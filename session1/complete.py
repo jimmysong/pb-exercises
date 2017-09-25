@@ -7,39 +7,43 @@ class FieldElement:
         self.num = num
         self.prime = prime
         if self.num >= self.prime or self.num < 0:
-            error = "Num {} not in field range 0 to {}".format(
+            error = 'Num {} not in field range 0 to {}'.format(
                 self.num, self.prime-1)
             raise RuntimeError(error)
 
     def __eq__(self, other):
+        if other is None:
+            return False
         return self.num == other.num and self.prime == other.prime
 
     def __ne__(self, other):
+        if other is None:
+            return True
         return self.num != other.num or self.prime != other.prime
 
     def __repr__(self):
-        return "FieldElement_{}({})".format(self.prime, self.num)
+        return 'FieldElement_{}({})'.format(self.prime, self.num)
 
     def __add__(self, other):
         num = (self.num + other.num) % self.prime
-        return FieldElement(num=num, prime=self.prime)
+        return self.__class__(num=num, prime=self.prime)
     
     def __sub__(self, other):
         num = (self.num - other.num) % self.prime
-        return FieldElement(num=num, prime=self.prime)
+        return self.__class__(num=num, prime=self.prime)
     
     def __mul__(self, other):
         num = (self.num * other.num) % self.prime
-        return FieldElement(num=num, prime=self.prime)
+        return self.__class__(num=num, prime=self.prime)
     
     def __pow__(self, n):
         n = n % (self.prime - 1)
         num = pow(self.num, n, self.prime)
-        return FieldElement(num=num, prime=self.prime)
+        return self.__class__(num=num, prime=self.prime)
 
     def __truediv__(self, other):
         other_inv = pow(other.num, self.prime - 2, self.prime)
-        return self*FieldElement(num=other_inv, prime=self.prime)
+        return self*self.__class__(num=other_inv, prime=self.prime)
 
 
 class FieldElementTest(TestCase):
@@ -94,7 +98,7 @@ class Point:
             self.y = None
             return
         if y**2 != x**3 + self.a * x + self.b:
-            raise RuntimeError("Not a point on the curve")
+            raise RuntimeError('Not a point on the curve')
         self.x = x
         self.y = y
 
@@ -108,10 +112,16 @@ class Point:
 
     def __repr__(self):
         if self.x is None:
-            return "Point(infinity)"
+            return 'Point(infinity)'
         else:
-            return "Point({},{})".format(self.x, self.y)
+            return 'Point({},{})'.format(self.x, self.y)
 
+    def double(self):
+        s = (3 * self.x**2 + self.a) / (2 * self.y)
+        x = s**2 - 2 * self.x
+        y = s * (self.x - x) - self.y
+        return self.__class__(x=x, y=y, a=self.a, b=self.b)
+        
     def __add__(self, other):
         # identity
         if self.x is None:
@@ -121,16 +131,13 @@ class Point:
         if self.x == other.x:
             if self.y != other.y:
                 # point at infinity
-                return Point(None, None, a=self.a, b=self.b)
-            s = (3 * self.x**2 + self.a) / (2 * self.y)
-            x = s**2 - 2 * self.x
-            y = s * (self.x - x) - self.y
-            return Point(x, y, self.a, self.b)
+                return self.__class__(x=None, y=None, a=self.a, b=self.b)
+            return self.double()
         else:
             s = (other.y - self.y) / (other.x - self.x)
             x = s**2 - self.x - other.x
             y = s * (self.x - x) - self.y
-            return Point(x, y, self.a, self.b)
+            return self.__class__(x=x, y=y, a=self.a, b=self.b)
 
 
 class PointTest(TestCase):

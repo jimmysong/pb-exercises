@@ -7,38 +7,43 @@ class FieldElement:
         self.num = num
         self.prime = prime
         if self.num >= self.prime or self.num < 0:
-            error = "Num {} not in field range 0 to {}".format(
+            error = 'Num {} not in field range 0 to {}'.format(
                 self.num, self.prime-1)
             raise RuntimeError(error)
 
     def __eq__(self, other):
+        if other is None:
+            return False
         return self.num == other.num and self.prime == other.prime
 
     def __ne__(self, other):
+        if other is None:
+            return True
         return self.num != other.num or self.prime != other.prime
 
     def __repr__(self):
-        return "FieldElement_{}({})".format(self.prime, self.num)
+        return 'FieldElement_{}({})'.format(self.prime, self.num)
 
     def __add__(self, other):
-        pass
-    
+        raise NotImplementedError
+
     def __sub__(self, other):
-        pass
-    
+        raise NotImplementedError
+
     def __mul__(self, other):
-        pass
-    
+        raise NotImplementedError
+
     def __pow__(self, n):
-        pass
+        raise NotImplementedError
 
     def __truediv__(self, other):
-        pass
+        raise NotImplementedError
+
 
 
 class FieldElementTest(TestCase):
 
-    @skip("unimplemented")
+    @skip('unimplemented')
     def test_add(self):
         a = FieldElement(2, 31)
         b = FieldElement(15, 31)
@@ -47,7 +52,7 @@ class FieldElementTest(TestCase):
         b = FieldElement(21, 31)
         self.assertEqual(a+b, FieldElement(7, 31))
 
-    @skip("unimplemented")
+    @skip('unimplemented')
     def test_sub(self):
         a = FieldElement(29, 31)
         b = FieldElement(4, 31)
@@ -56,13 +61,13 @@ class FieldElementTest(TestCase):
         b = FieldElement(30, 31)
         self.assertEqual(a-b, FieldElement(16, 31))
 
-    @skip("unimplemented")
+    @skip('unimplemented')
     def test_mul(self):
         a = FieldElement(24, 31)
         b = FieldElement(19, 31)
         self.assertEqual(a*b, FieldElement(22, 31))
         
-    @skip("unimplemented")
+    @skip('unimplemented')
     def test_pow(self):
         a = FieldElement(17, 31)
         self.assertEqual(a**3, FieldElement(15, 31))
@@ -70,7 +75,7 @@ class FieldElementTest(TestCase):
         b = FieldElement(18, 31)
         self.assertEqual(a**5 * b, FieldElement(16, 31))
 
-    @skip("unimplemented")
+    @skip('unimplemented')
     def test_div(self):
         a = FieldElement(3, 31)
         b = FieldElement(24, 31)
