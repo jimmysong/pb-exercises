@@ -1,7 +1,7 @@
 from random import randint
 from unittest import TestCase
 
-from pb import FieldElement, Point, G, N, PrivateKey
+from pb import FieldElement, Point, G, PrivateKey
 
 
 class FieldElementTest(TestCase):
@@ -44,6 +44,12 @@ class FieldElementTest(TestCase):
 
 
 class PointTest(TestCase):
+
+    def test_add0(self):
+        a = Point(x=None, y=None, a=5, b=7)
+        b = Point(x=2, y=5, a=5, b=7)
+        self.assertEqual(a+b, b)
+        self.assertEqual(b+a, b)
 
     def test_add1(self):
         a = Point(3, 7, 5, 7)

@@ -14,22 +14,20 @@ BITS = 256
 
 
 class FieldElement:
+
     def __init__(self, num, prime=P):
-        self.prime = prime
-        if num >= self.prime or num < 0:
-            raise RuntimeError(
-                "Num not in field range 0 to {}".format(self.prime-1))
         self.num = num
+        self.prime = prime
+        if self.num >= self.prime or self.num < 0:
+            error = "Num {} not in field range 0 to {}".format(
+                self.num, self.prime-1)
+            raise RuntimeError(error)
 
     def __eq__(self, other):
         return self.num == other.num and self.prime == other.prime
 
     def __ne__(self, other):
         return self.num != other.num or self.prime != other.prime
-
-    def __pow__(self, n):
-        n = n % (self.prime - 1)
-        return FieldElement(pow(self.num, n, self.prime), self.prime)
 
     def __add__(self, other):
         return FieldElement((self.num + other.num) % self.prime, self.prime)
@@ -40,19 +38,24 @@ class FieldElement:
     def __mul__(self, other):
         return FieldElement((self.num * other.num) % self.prime, self.prime)
 
+    def __pow__(self, n):
+        n = n % (self.prime - 1)
+        return FieldElement(pow(self.num, n, self.prime), self.prime)
+
     def __truediv__(self, other):
         return FieldElement(
             self.num * pow(other.num, self.prime - 2, self.prime) % self.prime,
             self.prime)
 
     def __repr__(self):
-        return "FieldElement_{}({})".format(hex(self.prime), hex(self.num))
+        return "FieldElement_{}({})".format(self.prime, self.num)
 
     def hex(self):
         return "{:x}".format(self.num).zfill(64)
 
 
 class Point:
+
     def __init__(self, x, y, a=FieldElement(A), b=FieldElement(B)):
         self.a = a
         self.b = b
@@ -69,6 +72,10 @@ class Point:
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \
             and self.a == other.a and self.b == other.b
+
+    def __ne__(self, other):
+        return self.x != other.x or self.y != other.y \
+            or self.a != other.a or self.b != other.b
 
     def __add__(self, other):
         # identity

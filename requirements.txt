@@ -1,1 +1,3 @@
 pycoin
+nose
+jupyter
