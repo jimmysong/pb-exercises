@@ -1,3 +1,4 @@
-pycoin
-nose
 jupyter
+nose
+pycoin
+requests
