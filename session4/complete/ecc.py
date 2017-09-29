@@ -397,7 +397,7 @@ class S256Point(Point):
         alpha = x**3 + S256Field(B)
         # solve for left side
         beta = alpha.sqrt()
-        if beta.num % 1 == 0:
+        if beta.num % 2 == 0:
             even_beta = beta
             odd_beta = S256Field(P - beta.num)
         else:
