@@ -1,4 +1,2 @@
 jupyter
-nose
-pycoin
 requests

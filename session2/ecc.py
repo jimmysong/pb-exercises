@@ -36,6 +36,10 @@ class FieldElement:
     def __mul__(self, other):
         num = (self.num * other.num) % self.prime
         return self.__class__(num=num, prime=self.prime)
+
+    def __rmul__(self, coefficient):
+        num = (self.num * coefficient) % self.prime
+        return self.__class__(num=num, prime=self.prime)
     
     def __pow__(self, n):
         n = n % (self.prime - 1)
@@ -69,6 +73,11 @@ class FieldElementTest(TestCase):
         a = FieldElement(24, 31)
         b = FieldElement(19, 31)
         self.assertEqual(a*b, FieldElement(22, 31))
+
+    def test_rmul(self):
+        a = FieldElement(24, 31)
+        b = 2
+        self.assertEqual(b*a, a+a)
         
     def test_pow(self):
         a = FieldElement(17, 31)
@@ -116,12 +125,6 @@ class Point:
             return 'Point(infinity)'
         else:
             return 'Point({},{})'.format(self.x, self.y)
-
-    def double(self):
-        s = (3 * self.x**2 + self.a) / (2 * self.y)
-        x = s**2 - 2 * self.x
-        y = s * (self.x - x) - self.y
-        return self.__class__(x=x, y=y, a=self.a, b=self.b)
         
     def __add__(self, other):
         # identity
@@ -133,7 +136,11 @@ class Point:
             if self.y != other.y:
                 # point at infinity
                 return self.__class__(x=None, y=None, a=self.a, b=self.b)
-            return self.double()
+            # we're adding a point to itself
+            s = (3* self.x**2 + self.a) / (2* self.y)
+            x = s**2 - 2*self.x
+            y = s * (self.x - x) - self.y
+            return self.__class__(x, y, a=self.a, b=self.b)
         else:
             s = (other.y - self.y) / (other.x - self.x)
             x = s**2 - self.x - other.x
