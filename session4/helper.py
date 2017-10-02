@@ -61,7 +61,7 @@ def flip_endian(h):
 def little_endian_to_int(b):
     '''little_endian_to_int takes byte sequence as a little-endian number.
     Returns an integer'''
-    return int(hexlify(b[::-1]), 16)
+    return int.from_bytes(b, 'little')
 
 
 def int_to_little_endian(n, length):

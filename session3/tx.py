@@ -17,6 +17,14 @@ class Tx:
         '''Takes a byte stream and parses the transaction at the start
         return a Tx object
         '''
+        # s.read(n) will return n bytes
+        # s.read(1)[0] will return the next byte as an integer
+
+        # version has 4 bytes, little-endian
+        # num_inputs is 1 byte (not really, but we can learn about varint later)
+        # each input needs parsing
+        # num_outputs is 1 byte (again, varint, but we'll learn that later)
+        # locktime is 4 bytes, little-endian
         raise NotImplementedError
 
 
@@ -33,6 +41,13 @@ class TxIn:
         '''Takes a byte stream and parses the tx_input at the start
         return a TxIn object
         '''
+        # s.read(n) will return n bytes
+        # s.read(1)[0] will return the next byte as an integer
+
+        # prev_tx is 32 bytes, little endian
+        # prev_index is 4 bytes, little endian
+        # script_sig is a variable field (length followed by the data)
+        # sequence is 4 bytes, little-endian
         raise NotImplementedError
 
 
@@ -47,6 +62,11 @@ class TxOut:
         '''Takes a byte stream and parses the tx_output at the start
         return a TxOut object
         '''
+        # s.read(n) will return n bytes
+        # s.read(1)[0] will return the next byte as an integer
+
+        # amount is 8 bytes, little endian
+        # script_pubkey is a variable field (length followed by the data)
         raise NotImplementedError
 
     

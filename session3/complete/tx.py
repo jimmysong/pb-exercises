@@ -26,8 +26,8 @@ class Tx:
         tx_outs = []
         for _ in range(num_outputs):
             tx_outs.append(TxOut.parse(s))
-        sequence = little_endian_to_int(s.read(4))
-        return cls(version, tx_ins, tx_outs, sequence)
+        locktime = little_endian_to_int(s.read(4))
+        return cls(version, tx_ins, tx_outs, locktime)
 
 
 class TxIn:
