@@ -2,6 +2,8 @@ from binascii import hexlify, unhexlify
 from io import BytesIO
 from unittest import TestCase
 
+from helper import h160_to_p2pkh_address, h160_to_p2sh_address
+
 
 OP_CODES = {
   0: 'OP_0',
@@ -149,11 +151,7 @@ class Script:
                 # we have an element
                 elements.append(s.read(op_code))
             else:
-                op_str = OP_CODES.get(op_code)
-                if op_str:
-                    elements.append(op_code)
-                else:
-                    raise RunTimeError('Unknown OP Code: {}'.format(op_code))
+                elements.append(op_code)
             current = s.read(1)
         return cls(elements)
 
@@ -243,6 +241,19 @@ class Script:
         else:
             raise RuntimeError('script type needs to be p2sh sig')
 
+    def address(self, testnet=False):
+        '''Returns the address corresponding to the script'''
+        sig_type = self.type()
+        if sig_type == 'p2pkh':
+            # hash160 is the 3rd element
+            # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
+            pass  # REMOVE THIS LINE
+        elif sig_type == 'p2sh':
+            # hash160 is the 2nd element
+            # convert to p2sh address using h160_to_p2sh_address (remember testnet)
+            pass  # REMOVE THIS LINE
+        raise NotImplementedError
+
 
 class ScriptTest(TestCase):
 
@@ -273,4 +284,18 @@ class ScriptTest(TestCase):
         self.assertEqual(script_sig.der_signature(index=1), unhexlify('3045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201'))
         self.assertEqual(script_sig.sec_pubkey(index=0), unhexlify('022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb70'))
         self.assertEqual(script_sig.sec_pubkey(index=1), unhexlify('03b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb71'))
+
+    def test_address(self):
+        script_raw = unhexlify('76a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac')
+        script_pubkey = Script.parse(script_raw)
+        want = '15hZo812Lx266Dot6T52krxpnhrNiaqHya'
+        self.assertEqual(script_pubkey.address(testnet=False), want)
+        want = 'mkDX6B619yTLsLHVp23QanB9ehT5bcf89D'
+        self.assertEqual(script_pubkey.address(testnet=True), want)
+        script_raw = unhexlify('a91474d691da1574e6b3c192ecfb52cc8984ee7b6c5687')
+        script_pubkey = Script.parse(script_raw)
+        want = '3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'
+        self.assertEqual(script_pubkey.address(testnet=False), want)
+        want = '2LSYbUfinZx4JKUHF6zrUtNb3SupF4HmKwH'
+        self.assertEqual(script_pubkey.address(testnet=True), want)
 
