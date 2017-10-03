@@ -38,6 +38,15 @@ def encode_base58_checksum(s):
     return encode_base58(s + double_sha256(s)[:4]).decode('ascii')
 
 
+def decode_base58(s):
+    num = 0
+    for c in s.encode('ascii'):
+        num *= 58
+        num += BASE58_ALPHABET.index(c)
+    # disregard the prefix and checksum
+    return num.to_bytes(25, byteorder='big')[1:-4]
+
+
 def flip_endian(h):
     '''flip_endian takes a hex string and flips the endianness
     Returns a hexadecimal string
@@ -51,7 +60,21 @@ def little_endian_to_int(b):
     raise NotImplementedError
 
 
+def int_to_little_endian(n, length):
+    '''endian_to_little_endian takes an integer and returns the little-endian
+    byte sequence of length'''
+    raise NotImplementedError
+
+
 class HelperTest(TestCase):
+
+    def test_base58(self):
+        addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'
+        h160 = hexlify(decode_base58(addr))
+        want = b'507b27411ccf7f16f10297de6cef3f291623eddf'
+        self.assertEqual(h160, want)
+        got = encode_base58_checksum(b'\x6f' + unhexlify(h160))
+        self.assertEqual(got, addr)
 
     @skip('unimplemented')
     def test_flip_endian(self):
@@ -70,3 +93,12 @@ class HelperTest(TestCase):
         h = unhexlify('a135ef0100000000')
         want = 32454049
         self.assertEqual(little_endian_to_int(h), want)
+
+    @skip('unimplemented')
+    def test_int_to_little_endian(self):
+        n = 1
+        want = b'\x01\x00\x00\x00'
+        self.assertEqual(int_to_little_endian(n, 4), want)
+        n = 10011545
+        want = b'\x99\xc3\x98\x00\x00\x00\x00\x00'
+        self.assertEqual(int_to_little_endian(n, 8), want)

@@ -1,4 +1,5 @@
 from binascii import hexlify, unhexlify
+from io import BytesIO
 from random import randint
 from unittest import TestCase, skip
 
@@ -503,7 +504,7 @@ class Signature:
         return unhexlify('30{}{}'.format(part1, part2))
 
     @classmethod
-    def decode_der(cls, signature_bin):
+    def parse(cls, signature_bin):
         compound = signature_bin[0]
         if compound != 0x30:
             raise RuntimeError("Bad Signature")
@@ -533,7 +534,7 @@ class SignatureTest(TestCase):
         for r, s in testcases:
             sig = Signature(r, s)
             der = sig.der()
-            sig2 = Signature.decode_der(der)
+            sig2 = Signature.parse(der)
             self.assertEqual(sig2.r, r)
             self.assertEqual(sig2.s, s)
 

@@ -38,10 +38,6 @@ def encode_base58_checksum(s):
     return encode_base58(s + double_sha256(s)[:4]).decode('ascii')
 
 
-def p2pkh_script(h160):
-    '''Takes a hash160 and returns the scriptPubKey'''
-    return b'\x76\xa9\x14' + h160 + b'\x88\xac'
-
 def decode_base58(s):
     num = 0
     for c in s.encode('ascii'):
@@ -61,7 +57,7 @@ def flip_endian(h):
 def little_endian_to_int(b):
     '''little_endian_to_int takes byte sequence as a little-endian number.
     Returns an integer'''
-    return int(hexlify(b[::-1]), 16)
+    return int.from_bytes(b, 'little')
 
 
 def int_to_little_endian(n, length):

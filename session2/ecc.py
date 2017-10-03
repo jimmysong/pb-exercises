@@ -379,7 +379,7 @@ class Signature:
         return unhexlify('30{}{}'.format(part1, part2))
 
     @classmethod
-    def decode_der(cls, signature_bin):
+    def parse(cls, signature_bin):
         compound = signature_bin[0]
         if compound != 0x30:
             raise RuntimeError("Bad Signature")

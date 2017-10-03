@@ -98,7 +98,7 @@ class Tx:
             point = S256Point.from_sec(inp.sec_pubkey(index=sig_num))
             # get the input signature
             der, sighash = inp.der_signature(index=sig_num)
-            signature = Signature.decode_der(der)
+            signature = Signature.parse(der)
             # get the hash to sign
             z = self.hash_to_sign(input_index)
             # verify the hash and signature are good

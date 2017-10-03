@@ -1,4 +1,5 @@
 from binascii import hexlify, unhexlify
+from io import BytesIO
 from random import randint
 from unittest import TestCase, skip
 
@@ -483,43 +484,42 @@ class Signature:
         self.r = r
         self.s = s
 
+    def __repr__(self):
+        return 'Signature({:x},{:x})'.format(self.r, self.s)
+
     def der(self):
-        rhex = '{:x}'.format(self.r)
-        if len(rhex) % 2 == 1:
-            # odd length
-            rhex = '0' + rhex
-        # if rhex has a high bit, add a 00
-        if rhex[0] in ('8', '9', 'a', 'b', 'c', 'd', 'e', 'f'):
-            rhex = '00' + rhex
-        rlenhex = "{:x}".format(len(rhex) // 2).zfill(2)
-        part1 = '02{}{}'.format(rlenhex, rhex)
-        shex = '{:x}'.format(self.s)
-        if len(shex) % 2 == 1:
-            # odd length
-            shex = '0' + shex
-        # if shex has a high bit, add a 00
-        if shex[0] in ('8', '9', 'a', 'b', 'c', 'd', 'e', 'f'):
-            shex = '00' + shex
-        slenhex = "{:x}".format(len(shex) // 2).zfill(2)
-        part2 = '02{}{}'.format(slenhex, shex)
-        return unhexlify('30{}{}'.format(part1, part2))
+        rbin = self.r.to_bytes(32, byteorder='big')
+        # if rbin has a high bit, add a 00
+        if rbin[0] > 128:
+            rbin = b'\x00' + rbin
+        result = bytes([2, len(rbin)]) + rbin
+        sbin = self.s.to_bytes(32, byteorder='big')
+        # if sbin has a high bit, add a 00
+        if sbin[0] > 128:
+            sbin = b'\x00' + sbin
+        result += bytes([2, len(sbin)]) + sbin
+        return bytes([0x30, len(result)]) + result
 
     @classmethod
-    def decode_der(cls, signature_bin):
-        compound = signature_bin[0]
+    def parse(cls, signature_bin):
+        s = BytesIO(signature_bin)
+        compound = s.read(1)[0]
         if compound != 0x30:
             raise RuntimeError("Bad Signature")
-        marker = signature_bin[1]
+        length = s.read(1)[0]
+        if length + 2 != len(signature_bin):
+            raise RuntimeError("Bad Signature Length")
+        marker = s.read(1)[0]
         if marker != 0x02:
             raise RuntimeError("Bad Signature")
-        rlength = signature_bin[2]
-        r = int(hexlify(signature_bin[3:3+rlength]), 16)
-        marker = signature_bin[3+rlength]
+        rlength = s.read(1)[0]
+        r = int(hexlify(s.read(rlength)), 16)
+        marker = s.read(1)[0]
         if marker != 0x02:
             raise RuntimeError("Bad Signature")
-        slength = signature_bin[4+rlength]
-        s = int(hexlify(signature_bin[5+rlength:5+rlength+slength]), 16)
-        if len(signature_bin) != 5 + rlength + slength:
+        slength = s.read(1)[0]
+        s = int(hexlify(s.read(slength)), 16)
+        if len(signature_bin) != 6 + rlength + slength:
             raise RuntimeError("Signature too long")
         return cls(r, s)
 
@@ -535,7 +535,7 @@ class SignatureTest(TestCase):
         for r, s in testcases:
             sig = Signature(r, s)
             der = sig.der()
-            sig2 = Signature.decode_der(der)
+            sig2 = Signature.parse(der)
             self.assertEqual(sig2.r, r)
             self.assertEqual(sig2.s, s)
 
@@ -566,7 +566,7 @@ class PrivateKey:
             postfix = b'\x01'
         else:
             postfix = b''
-        binary = unhexlify("{:x}".format(self.secret).zfill(64))
+        binary = self.secret.to_bytes(32, 'big')
         return encode_base58_checksum(prefix + binary + postfix)
 
 

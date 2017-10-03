@@ -38,10 +38,6 @@ def encode_base58_checksum(s):
     return encode_base58(s + double_sha256(s)[:4]).decode('ascii')
 
 
-def p2pkh_script(h160):
-    '''Takes a hash160 and returns the scriptPubKey'''
-    return b'\x76\xa9\x14' + h160 + b'\x88\xac'
-
 def decode_base58(s):
     num = 0
     for c in s.encode('ascii'):
@@ -67,7 +63,7 @@ def little_endian_to_int(b):
 def int_to_little_endian(n, length):
     '''endian_to_little_endian takes an integer and returns the little-endian
     byte sequence of length'''
-    raise NotImplementedError
+    return n.to_bytes(length, byteorder='little')
 
 
 class HelperTest(TestCase):
@@ -96,7 +92,6 @@ class HelperTest(TestCase):
         want = 32454049
         self.assertEqual(little_endian_to_int(h), want)
 
-    @skip('unimplemented')
     def test_int_to_little_endian(self):
         n = 1
         want = b'\x01\x00\x00\x00'

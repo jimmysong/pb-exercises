@@ -384,7 +384,7 @@ class S256Point(Point):
         return (u*G + v*self).x.num == sig.r
 
     @classmethod
-    def from_sec(self, sec_bin):
+    def parse(self, sec_bin):
         '''returns a Point object from a compressed sec binary (not hex)
         '''
         if sec_bin[0] == 4:
@@ -505,9 +505,9 @@ class S256Test(TestCase):
             0xc7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6)
         self.assertTrue(point.verify(z, sig))
 
-    def test_from_sec(self):
+    def test_parse(self):
         sec = unhexlify('0349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a')
-        point = S256Point.from_sec(sec)
+        point = S256Point.parse(sec)
         want = 0xa56c896489c71dfc65701ce25050f542f336893fb8cd15f4e8e5c124dbf58e47
         self.assertEqual(point.y.num, want)
         
@@ -517,6 +517,9 @@ class Signature:
     def __init__(self, r, s):
         self.r = r
         self.s = s
+
+    def __repr__(self):
+        return 'Signature({:x},{:x})'.format(self.r, self.s)
 
     def der(self):
         rbin = self.r.to_bytes(32, byteorder='big')
@@ -532,13 +535,13 @@ class Signature:
         return bytes([0x30, len(result)]) + result
 
     @classmethod
-    def decode_der(cls, signature_bin):
+    def parse(cls, signature_bin):
         s = BytesIO(signature_bin)
         compound = s.read(1)[0]
         if compound != 0x30:
             raise RuntimeError("Bad Signature")
         length = s.read(1)[0]
-        if length +2 != len(signature_bin):
+        if length + 2 != len(signature_bin):
             raise RuntimeError("Bad Signature Length")
         marker = s.read(1)[0]
         if marker != 0x02:
@@ -566,7 +569,7 @@ class SignatureTest(TestCase):
         for r, s in testcases:
             sig = Signature(r, s)
             der = sig.der()
-            sig2 = Signature.decode_der(der)
+            sig2 = Signature.parse(der)
             self.assertEqual(sig2.r, r)
             self.assertEqual(sig2.s, s)
 
@@ -597,7 +600,7 @@ class PrivateKey:
             postfix = b'\x01'
         else:
             postfix = b''
-        binary = unhexlify("{:x}".format(self.secret).zfill(64))
+        binary = self.secret.to_bytes(32, 'big')
         return encode_base58_checksum(prefix + binary + postfix)
 
 
