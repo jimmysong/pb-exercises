@@ -1,7 +1,15 @@
 from binascii import hexlify, unhexlify
+from subprocess import check_output
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
+import json
+
+
+SIGHASH_ALL = 1
+SIGHASH_NONE = 2
+SIGHASH_SINGLE = 3
+BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def run_test(test):
@@ -18,9 +26,6 @@ def bytes_to_str(b, encoding='ascii'):
 def str_to_bytes(s, encoding='ascii'):
     '''Returns a bytes version of the string'''
     return s.encode(encoding)
-
-
-BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def hash160(s):
@@ -92,7 +97,33 @@ def encode_varint(i):
         return b'\xff' + int_to_little_endian(i, 8)
     else:
         raise RuntimeError('integer too large: {}'.format(i))
-    
+
+
+def fetch_tx(tx_hash, testnet=False):
+    '''Returns the transaction json from a libbitcoin server'''
+    command = ['bx', 'fetch-tx', '-f', 'json', '-c']
+    if testnet:
+        command.append('bx-testnet.cfg')
+    else:
+        command.append('bx.cfg')
+    command.append(hexlify(tx_hash).decode('ascii'))
+    return json.loads(check_output(command).decode('ascii'))
+
+
+def fetch_script_pubkey(tx_hash, tx_index, testnet=False):
+    '''Returns the scriptPubKey from the libbitcoin server'''
+    tx_data = fetch_tx(tx_hash, testnet)
+    output = tx_data['transaction']['outputs'][tx_index]
+    script = output['script']
+    h160 = output['address_hash']
+    # hacky: interpret the script as p2pkh or p2sh
+    if script.startswith('dup hash160 [') and script.endswith('] equalverify checksig'):
+        return unhexlify('76a914' + h160 + '88ac')
+    elif script.startswith('hash160 [') and script.endswith('] equal'):
+        return unhexlify('a914' + h160 + '87')
+    else:
+        raise RuntimeError('unknown script: {}'.format(script))
+
 
 def flip_endian(h):
     '''flip_endian takes a hex string and flips the endianness
