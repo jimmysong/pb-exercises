@@ -4,13 +4,16 @@ from unittest import TestCase
 
 import requests
 
+from ecc import PrivateKey, S256Point, Signature
 from helper import (
+    decode_base58,
     double_sha256,
     encode_varint,
     fetch_tx,
     fetch_script_pubkey,
     int_to_little_endian,
     little_endian_to_int,
+    p2pkh_script,
     read_varint,
     SIGHASH_ALL,
 )
@@ -99,30 +102,60 @@ class Tx:
     def sig_hash(self, input_index, hash_type):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
-        # create a new transaction that's a clone of self
-        # use self.__class__(self.version, self.tx_ins, self.tx_outs, self.locktime)
-        alternate_tx = self.__class__(self.version, self.tx_ins, self.tx_outs, self.locktime)
-        # iterate through inputs
-        for tx_in in alternate_tx.tx_ins:
-            # for each input, create new TxIn with blanked out script_sig
-            # use Script(b'')
-            tx_in.script_sig = Script(b'')
-        # grab the input at input_index
-        tx_in = alternate_tx.tx_ins[input_index]
-        # replace input_index input with scriptPubKey from that input
-        # use Script(tx_in.script_pubkey())
-        tx_in.script_sig = Script(tx_in.script_pubkey())
-        # grab the serialization
-        serialization = alternate_tx.serialize()
-        # add the hash_type int in 4 bytes, little endian
-        serialization += int_to_little_endian(hash_type, 4)
-        # get the double_sha256 of the tx serialization
-        ds256 = double_sha256(serialization)
-        # convert this to a big-endian integer using int.from_bytes(x, 'big')
-        return int.from_bytes(ds256, 'big')
+        # create a transaction serialization where
+        # all the input script_sigs are blanked out
+        alt_tx_ins = []
+        for tx_in in self.tx_ins:
+            alt_tx_ins.append(TxIn(
+                prev_tx=tx_in.prev_tx,
+                prev_index=tx_in.prev_index,
+                script_sig=b'',
+                sequence=tx_in.sequence,
+            ))
+        # replace the input's scriptSig with the scriptPubKey
+        signing_input = alt_tx_ins[input_index]
+        # Exercise 6.2: grab the script_pubkey (use Script.parse(signing_input.script_pubkey(self.testnet)))
+        # Exercise 6.2: get the sig type from script_pubkey.type()
+        # Exercise 6.2: the script_sig of the signing_input should be script_pubkey for p2pkh
+            # Exercise 6.2: replace the input's scriptSig with the scriptPubKey
+        # Exercise 6.2: the script_sig of the signing_input should be the redeemScript
+        #               of the current input of the real tx_in (self.tx_ins[input_index].redeem_script()
+            # Exercise 6.2: replace the input's scriptSig with the RedeemScript
+            # Exercise 6.2: replace the input's scriptSig with the Script.parse(redeem_script)
+        signing_input.script_sig = Script.parse(signing_input.script_pubkey(self.testnet)) # Exercise 6.2 REPLACE THIS LINE!!!
+        alt_tx = self.__class__(
+            version=self.version,
+            tx_ins=alt_tx_ins,
+            tx_outs=self.tx_outs,
+            locktime=self.locktime)
+        # add the hash_type
+        result = alt_tx.serialize() + int_to_little_endian(hash_type, 4)
+        return int.from_bytes(double_sha256(result), 'big')
 
+    def verify_input(self, input_index):
+        '''Returns whether the input has a valid signature'''
+        # Exercise 1.1: get the relevant input
+        # Exercise 6.2: get the number of signatures required. This is available in tx_in.script_sig.num_sigs_required()
+        # Exercise 6.2: iterate over the sigs required and check each signature
+        # Exercise 1.1: get the point from the sec format (tx_in.sec_pubkey())
+            # Exercise 6.2: get the sec_pubkey at current signature index (check sec_pubkey function)
+        # Exercise 1.1: get the der sig and hash_type from input
+            # Exercise 6.2: get the der_signature at current signature index (check der_signature function)
+        # Exercise 1.1: get the signature from der format
+        # Exercise 1.1: get the hash to sign
+        # Exercise 1.1: use point.verify on the hash to sign and signature
+        raise NotImplementedError
 
-class TxIn:
+    def sign_input(self, input_index, private_key, hash_type):
+        '''Signs the input using the private key'''
+        # get the hash to sign
+        # get der signature of z from private key
+        # append the hash_type to der (use bytes([hash_type]))
+        # calculate the sec
+        # initialize a new script with [sig, sec] as the elements
+        # change input's script_sig to new script
+        # return whether sig is valid using self.verify_input
+        raise NotImplementedError
 
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
         self.prev_tx = prev_tx
@@ -193,6 +226,10 @@ class TxIn:
     def sec_pubkey(self, index=0):
         '''returns the SEC format public if the script_sig has one'''
         return self.script_sig.sec_pubkey(index=index)
+
+    def redeem_script(self):
+        '''return the Redeem Script if there is one'''
+        return self.script_sig.redeem_script()
 
 
 class TxOut:
@@ -332,3 +369,40 @@ class TxTest(TestCase):
         hash_type = SIGHASH_ALL
         want = int('27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6', 16)
         self.assertEqual(tx.sig_hash(0, hash_type), want)
+
+    def test_verify_input1(self):
+        raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
+        stream = BytesIO(raw_tx)
+        tx = Tx.parse(stream)
+        self.assertTrue(tx.verify_input(0))
+
+    def test_verify_input2(self):
+        raw_tx = unhexlify('0100000001868278ed6ddfb6c1ed3ad5f8181eb0c7a385aa0836f01d5e4789e6bd304d87221a000000db00483045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701483045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201475221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152aeffffffff04d3b11400000000001976a914904a49878c0adfc3aa05de7afad2cc15f483a56a88ac7f400900000000001976a914418327e3f3dda4cf5b9089325a4b95abdfa0334088ac722c0c00000000001976a914ba35042cfe9fc66fd35ac2224eebdafd1028ad2788acdc4ace020000000017a91474d691da1574e6b3c192ecfb52cc8984ee7b6c568700000000')
+        stream = BytesIO(raw_tx)
+        tx = Tx.parse(stream)
+        self.assertTrue(tx.verify_input(0))
+
+    def test_sign_input(self):
+        private_key = PrivateKey(secret=8675309)
+        tx_ins = []
+        prev_tx = unhexlify('0025bc3c0fa8b7eb55b9437fdbd016870d18e0df0ace7bc9864efc38414147c8')
+        tx_ins.append(TxIn(
+            prev_tx=prev_tx,
+            prev_index=0,
+            script_sig = b'',
+            sequence = 0xffffffff,
+        ))
+        tx_outs = []
+        h160 = decode_base58('mzx5YhAH9kNHtcN481u6WkjeHjYtVeKVh2')
+        tx_outs.append(TxOut(amount=int(0.99*100000000), script_pubkey=p2pkh_script(h160)))
+        h160 = decode_base58('mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf')
+        tx_outs.append(TxOut(amount=int(0.1*100000000), script_pubkey=p2pkh_script(h160)))
+
+        tx = Tx(
+            version=1,
+            tx_ins=tx_ins,
+            tx_outs=tx_outs,
+            locktime=0,
+            testnet=True,
+        )
+        self.assertTrue(tx.sign_input(0, private_key, SIGHASH_ALL))
