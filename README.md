@@ -2,9 +2,9 @@
 
 Install python 3.5 or above on your machine:
 
-Windows: https://www.python.org/ftp/python/3.6.2/python-3.6.2-amd64.exe
-Mac OS X: https://www.python.org/ftp/python/3.6.2/python-3.6.2-macosx10.6.pkg
-Linux: see your distro docs
+ * Windows: https://www.python.org/ftp/python/3.6.2/python-3.6.2-amd64.exe
+ * Mac OS X: https://www.python.org/ftp/python/3.6.2/python-3.6.2-macosx10.6.pkg
+ * Linux: see your distro docs
 
 Install pip:
 
@@ -26,7 +26,7 @@ Install virtualenv:
 
     $ git clone https://github.com/jimmysong/pb-exercises
     $ cd pb-exercises
-    $ virtualenv .venv
+    $ virtualenv -p python3 .venv
 
 Linux/OSX:
 
@@ -34,8 +34,9 @@ Linux/OSX:
     (.venv) $ pip install -r requirements.txt
 
 Windows:
+
     > .venv\Scripts\activate.bat
-    > 
+    > pip install -r requirements.txt
 
 # Run jupyter notebook
 
