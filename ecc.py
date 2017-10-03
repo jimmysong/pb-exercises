@@ -393,6 +393,9 @@ class S256Field(FieldElement):
     def __repr__(self):
         return self.hex()
 
+    def sqrt(self):
+        return self**((P+1)//4)
+
 
 class S256Point(Point):
     bits = 256
@@ -471,6 +474,31 @@ class S256Point(Point):
         # u*G + v*P should have as the x coordinate, r
         total = u*G + v*self
         return total.x.num == sig.r
+
+    @classmethod
+    def parse(self, sec_bin):
+        '''returns a Point object from a compressed sec binary (not hex)
+        '''
+        if sec_bin[0] == 4:
+            x = int(hexlify(sec_bin[1:33]), 16)
+            y = int(hexlify(sec_bin[33:65]), 16)
+            return S256Point(x=x, y=y)
+        is_even = sec_bin[0] == 2
+        x = S256Field(int(hexlify(sec_bin[1:]), 16))
+        # right side of the equation y^2 = x^3 + 7
+        alpha = x**3 + S256Field(B)
+        # solve for left side
+        beta = alpha.sqrt()
+        if beta.num % 2 == 0:
+            even_beta = beta
+            odd_beta = S256Field(P - beta.num)
+        else:
+            even_beta = S256Field(P - beta.num)
+            odd_beta = beta
+        if is_even:
+            return S256Point(x, even_beta)
+        else:
+            return S256Point(x, odd_beta)
 
 
 G = S256Point(
@@ -559,6 +587,12 @@ class S256Test(TestCase):
         r = 0xeff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c
         s = 0xc7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6
         self.assertTrue(point.verify(z, Signature(r, s)))
+
+    def test_parse(self):
+        sec = unhexlify('0349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a')
+        point = S256Point.parse(sec)
+        want = 0xa56c896489c71dfc65701ce25050f542f336893fb8cd15f4e8e5c124dbf58e47
+        self.assertEqual(point.y.num, want)
 
 
 
