@@ -25,7 +25,7 @@ class FieldElement:
         return 'FieldElement_{}({})'.format(self.prime, self.num)
 
     def __add__(self, other):
-        raise NotImplementedError
+        return self.__class__(num=((self.num+other.num) % self.prime), prime=self.prime)
 
     def __sub__(self, other):
         raise NotImplementedError
@@ -45,7 +45,6 @@ class FieldElement:
 
 class FieldElementTest(TestCase):
 
-    @skip('unimplemented')
     def test_add(self):
         a = FieldElement(2, 31)
         b = FieldElement(15, 31)
