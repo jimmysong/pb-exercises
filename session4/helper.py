@@ -1,5 +1,5 @@
 from binascii import hexlify, unhexlify
-from unittest import TestCase
+from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
 
@@ -8,6 +8,12 @@ SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
 BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+
+def run_test(test):
+    suite = TestSuite()
+    suite.addTest(test)
+    TextTestRunner().run(suite)
 
 
 def bytes_to_str(b, encoding='ascii'):

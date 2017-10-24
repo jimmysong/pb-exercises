@@ -387,7 +387,7 @@ class S256Point(Point):
         '''
         if sec_bin[0] == 4:
             x = int(hexlify(sec_bin[1:33]), 16)
-            x = int(hexlify(sec_bin[33:65]), 16)
+            y = int(hexlify(sec_bin[33:65]), 16)
             return S256Point(x=x, y=y)
         is_even = sec_bin[0] == 2
         x = S256Field(int(hexlify(sec_bin[1:]), 16))

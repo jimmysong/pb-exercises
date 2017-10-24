@@ -1,4 +1,10 @@
-from unittest import TestCase
+from unittest import TestCase, TestSuite, TextTestRunner
+
+
+def run_test(test):
+    suite = TestSuite()
+    suite.addTest(test)
+    TextTestRunner().run(suite)
 
 
 def bytes_to_str(b, encoding='ascii'):
