@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 from helper import little_endian_to_int
 
@@ -11,6 +11,17 @@ class Tx:
         self.tx_ins = tx_ins
         self.tx_outs = tx_outs
         self.locktime = locktime
+
+    def __repr__(self):
+        tx_ins = ''
+        for tx_in in self.tx_ins:
+            tx_ins += tx_in.__repr__()
+        tx_outs = ''
+        for tx_out in self.tx_outs:
+            tx_outs += tx_out.__repr__()
+        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            self.version, tx_ins, tx_outs, self.locktime,
+        )
 
     @classmethod
     def parse(cls, s):
@@ -72,14 +83,12 @@ class TxOut:
     
 class TxTest(TestCase):
 
-    @skip('unimplemented')
     def test_parse_version(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         self.assertEqual(tx.version, 1)
 
-    @skip('unimplemented')
     def test_parse_inputs(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
@@ -92,7 +101,6 @@ class TxTest(TestCase):
         self.assertEqual(tx.tx_ins[0].script_sig, want)
         self.assertEqual(tx.tx_ins[0].sequence, 0xfffffffe)
 
-    @skip('unimplemented')
     def test_parse_outputs(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
@@ -107,7 +115,6 @@ class TxTest(TestCase):
         want = unhexlify('76a9141c4bc762dd5423e332166702cb75f40df79fea1288ac')
         self.assertEqual(tx.tx_outs[1].script_pubkey, want)
 
-    @skip('unimplemented')
     def test_parse_locktime(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)

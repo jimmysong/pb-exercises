@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 import requests
 
@@ -24,6 +24,17 @@ class Tx:
         self.tx_outs = tx_outs
         self.locktime = locktime
         self.testnet = testnet
+
+    def __repr__(self):
+        tx_ins = ''
+        for tx_in in self.tx_ins:
+            tx_ins += tx_in.__repr__()
+        tx_outs = ''
+        for tx_out in self.tx_outs:
+            tx_outs += tx_out.__repr__()
+        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            self.version, tx_ins, tx_outs, self.locktime,
+        )
 
     @classmethod
     def parse(cls, s):
@@ -130,7 +141,7 @@ class Tx:
         # append the sighash, most likely SIGHASH_ALL
         sig = der + bytes([sighash])
         # add the sec
-        sec = unhexlify(private_key.point.sec())
+        sec = private_key.point.sec()
         # construct script_sig
         script_sig = bytes([len(sig)]) + sig + bytes([len(sec)]) + sec
         # change input's script_sig
@@ -180,8 +191,8 @@ class TxIn:
         prev_index = little_endian_to_int(s.read(4))
         script_sig_length = s.read(1)[0]
         script_sig = s.read(script_sig_length)
-        sequence = little_endian_to_int(s.read(4))
-        return cls(prev_tx, prev_index, script_sig, sequence)
+        locktime = little_endian_to_int(s.read(4))
+        return cls(prev_tx, prev_index, script_sig, locktime)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction input'''
@@ -217,8 +228,6 @@ class TxIn:
         get the outpoint value by looking up the tx_hash on blockcypher.com.
         Returns the amount in satoshi
         '''
-        # might be useful
-        # requests.get(url).json()
         outpoint = self.outpoint(testnet=testnet)
         return outpoint['value']
 
@@ -227,8 +236,6 @@ class TxIn:
         get the scriptPubKey by looking up the transaction on blockcypher.com.
         Returns the binary scriptpubkey
         '''
-        # might be useful
-        # requests.get(url).json()
         outpoint = self.outpoint(testnet=testnet)
         return unhexlify(outpoint['script'])
 

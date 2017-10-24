@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 from helper import little_endian_to_int
 
@@ -11,6 +11,17 @@ class Tx:
         self.tx_ins = tx_ins
         self.tx_outs = tx_outs
         self.locktime = locktime
+
+    def __repr__(self):
+        tx_ins = ''
+        for tx_in in self.tx_ins:
+            tx_ins += tx_in.__repr__()
+        tx_outs = ''
+        for tx_out in self.tx_outs:
+            tx_outs += tx_out.__repr__()
+        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            self.version, tx_ins, tx_outs, self.locktime,
+        )
 
     @classmethod
     def parse(cls, s):

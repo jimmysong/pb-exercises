@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 import requests
 
@@ -22,6 +22,17 @@ class Tx:
         self.locktime = locktime
         self.testnet = testnet
 
+    def __repr__(self):
+        tx_ins = ''
+        for tx_in in self.tx_ins:
+            tx_ins += tx_in.__repr__()
+        tx_outs = ''
+        for tx_out in self.tx_outs:
+            tx_outs += tx_out.__repr__()
+        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            self.version, tx_ins, tx_outs, self.locktime,
+        )
+
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses the transaction at the start
@@ -41,23 +52,33 @@ class Tx:
 
     def serialize(self):
         '''Returns the byte serialization of the transaction'''
-        # version
-        # inputs
-        # outputs
-        # locktime
+        # serialize version (4 bytes, little endian)
+        # iterate inputs
+        # serialize each input
+        # iterate outputs
+        # serialize each output
+        # serialize locktime (4 bytes, little endian)
         raise NotImplementedError
 
     def fee(self):
         '''Returns the fee of this transaction in satoshi'''
+        # initialize input sum and output sum
+        # iterate through inputs
+        # for each input get the value and add to input sum
+        # iterate through outputs
+        # for each output get the value and add to output sum
+        # return input sum - output sum
         raise NotImplementedError
 
     def hash_to_sign(self, input_index, sighash):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
-        # create a transaction serialization where
-        # all the input script_sigs are blanked out
-        # replace the input's scriptSig with the scriptPubKey
-        # add the sighash
+        # create a new transaction that's a clone of self
+        # iterate through inputs
+        # for each input, create new TxIn with blanked out script_sig
+        # replace input_index input with scriptPubKey from that input
+        # add the sighash in 4 bytes, little endian
+        # return the double_sha256 of the tx serialization
         raise NotImplementedError
 
 
@@ -79,14 +100,15 @@ class TxIn:
         prev_index = little_endian_to_int(s.read(4))
         script_sig_length = s.read(1)[0]
         script_sig = s.read(script_sig_length)
-        sequence = little_endian_to_int(s.read(4))
-        return cls(prev_tx, prev_index, script_sig, sequence)
+        locktime = little_endian_to_int(s.read(4))
+        return cls(prev_tx, prev_index, script_sig, locktime)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction input'''
-        # tx and index, prev_tx is little-endian!
-        # += script_sig.serialize()
-        # sequence
+        # serialize prev_tx, little endian
+        # serialize prev_index, 4 bytes, little endian
+        # serialize script_sig, (use: script_sig.serialize())
+        # serialize sequence, 4 bytes, little endian
         raise NotImplementedError
 
     def value(self, testnet=False):
@@ -94,8 +116,13 @@ class TxIn:
         get the outpoint value by looking up the tx_hash on blockcypher.com.
         Returns the amount in satoshi
         '''
-        # might be useful
-        # requests.get(url).json()
+        # construct the url based on the network
+        # https://api.blockcypher.com/v1/btc/main/txs/<tx_hash>
+        # https://api.blockcypher.com/v1/btc/test3/txs/<tx_hash>
+        # tx_hash should be prev_hash
+        # grab the json using requests library: requests.get(url).json()
+        # get the output at self.prev_index: json['outputs'][self.prev_index]
+        # grab the value
         raise NotImplementedError
 
     def script_pubkey(self, testnet=False):
@@ -103,8 +130,13 @@ class TxIn:
         get the scriptPubKey by looking up the transaction on blockcypher.com.
         Returns the binary scriptpubkey
         '''
-        # might be useful
-        # requests.get(url).json()
+        # construct the url based on the network
+        # https://api.blockcypher.com/v1/btc/main/txs/<tx_hash>
+        # https://api.blockcypher.com/v1/btc/test3/txs/<tx_hash>
+        # tx_hash should be prev_hash
+        # grab the json using requests library: requests.get(url).json()
+        # get the output at self.prev_index: json['outputs'][self.prev_index]
+        # grab the scriptPubKey
         raise NotImplementedError
 
     def der_signature(self, index=0):
@@ -137,8 +169,8 @@ class TxOut:
 
     def serialize(self):
         '''Returns the byte serialization of the transaction output'''
-        # amount
-        # script_pubkey.serialize()
+        # serialize amount, 8 bytes, little endian
+        # serialize pubkey, (use: script_pubkey.serialize())
         raise NotImplementedError
 
 
@@ -198,14 +230,12 @@ class TxTest(TestCase):
         want = b'0349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a'
         self.assertEqual(hexlify(tx.tx_ins[0].sec_pubkey()), want)
 
-    @skip('unimplemented')
     def test_serialize(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         self.assertEqual(tx.serialize(), raw_tx)
 
-    @skip('unimplemented')
     def test_input_value(self):
         tx_hash = 'd1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81'
         index = 0
@@ -218,7 +248,6 @@ class TxTest(TestCase):
         )
         self.assertEqual(tx_in.value(), want)
 
-    @skip('unimplemented')
     def test_input_pubkey(self):
         tx_hash = 'd1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81'
         index = 0
@@ -231,7 +260,6 @@ class TxTest(TestCase):
         want = unhexlify('76a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
         self.assertEqual(tx_in.script_pubkey(), want)
 
-    @skip('unimplemented')
     def test_fee(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
@@ -242,7 +270,6 @@ class TxTest(TestCase):
         tx = Tx.parse(stream)
         self.assertEqual(tx.fee(), 140500)
 
-    @skip('unimplemented')
     def test_hash_to_sign(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)

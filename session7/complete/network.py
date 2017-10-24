@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 from helper import (
     double_sha256,

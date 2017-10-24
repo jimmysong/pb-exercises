@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 import requests
 
@@ -24,6 +24,17 @@ class Tx:
         self.tx_outs = tx_outs
         self.locktime = locktime
         self.testnet = testnet
+
+    def __repr__(self):
+        tx_ins = ''
+        for tx_in in self.tx_ins:
+            tx_ins += tx_in.__repr__()
+        tx_outs = ''
+        for tx_out in self.tx_outs:
+            tx_outs += tx_out.__repr__()
+        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            self.version, tx_ins, tx_outs, self.locktime,
+        )
 
     @classmethod
     def parse(cls, s):
@@ -136,8 +147,8 @@ class TxIn:
         prev_index = little_endian_to_int(s.read(4))
         script_sig_length = s.read(1)[0]
         script_sig = s.read(script_sig_length)
-        sequence = little_endian_to_int(s.read(4))
-        return cls(prev_tx, prev_index, script_sig, sequence)
+        locktime = little_endian_to_int(s.read(4))
+        return cls(prev_tx, prev_index, script_sig, locktime)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction input'''
@@ -173,8 +184,6 @@ class TxIn:
         get the outpoint value by looking up the tx_hash on blockcypher.com.
         Returns the amount in satoshi
         '''
-        # might be useful
-        # requests.get(url).json()
         outpoint = self.outpoint(testnet=testnet)
         return outpoint['value']
 
@@ -183,8 +192,6 @@ class TxIn:
         get the scriptPubKey by looking up the transaction on blockcypher.com.
         Returns the binary scriptpubkey
         '''
-        # might be useful
-        # requests.get(url).json()
         outpoint = self.outpoint(testnet=testnet)
         return unhexlify(outpoint['script'])
 
@@ -334,21 +341,18 @@ class TxTest(TestCase):
         want = int('27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6', 16)
         self.assertEqual(tx.hash_to_sign(0, sighash), want)
 
-    @skip('unimplemented')
     def test_verify_input1(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         self.assertTrue(tx.verify_input(0))
 
-    @skip('unimplemented')
     def test_verify_input2(self):
         raw_tx = unhexlify('0100000001868278ed6ddfb6c1ed3ad5f8181eb0c7a385aa0836f01d5e4789e6bd304d87221a000000db00483045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701483045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201475221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152aeffffffff04d3b11400000000001976a914904a49878c0adfc3aa05de7afad2cc15f483a56a88ac7f400900000000001976a914418327e3f3dda4cf5b9089325a4b95abdfa0334088ac722c0c00000000001976a914ba35042cfe9fc66fd35ac2224eebdafd1028ad2788acdc4ace020000000017a91474d691da1574e6b3c192ecfb52cc8984ee7b6c568700000000')
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         self.assertTrue(tx.verify_input(0))
 
-    @skip('unimplemented')
     def test_sign_input(self):
         private_key = PrivateKey(secret=8675309)
         tx_ins = []

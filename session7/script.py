@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 from helper import h160_to_p2pkh_address, h160_to_p2sh_address
 

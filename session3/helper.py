@@ -1,7 +1,17 @@
 from binascii import hexlify, unhexlify
-from unittest import TestCase, skip
+from unittest import TestCase
 
 import hashlib
+
+
+def bytes_to_str(b, encoding='ascii'):
+    '''Returns a string version of the bytes'''
+    return b.decode(encoding)
+
+
+def str_to_bytes(s, encoding='ascii'):
+    '''Returns a bytes version of the string'''
+    return s.encode(encoding)
 
 
 BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -51,22 +61,34 @@ def flip_endian(h):
     '''flip_endian takes a hex string and flips the endianness
     Returns a hexadecimal string
     '''
+    # convert hex to binary (use .decode('ascii'))
+    # reverse the binary (use [::-1])
+    # convert binary to hex (use .encode('ascii'))
     raise NotImplementedError
 
 
 def little_endian_to_int(b):
     '''little_endian_to_int takes byte sequence as a little-endian number.
     Returns an integer'''
+    # use the from_bytes method of int
     raise NotImplementedError
 
 
 def int_to_little_endian(n, length):
     '''endian_to_little_endian takes an integer and returns the little-endian
     byte sequence of length'''
+    # use the to_bytes method of n
     raise NotImplementedError
 
 
 class HelperTest(TestCase):
+
+    def test_bytes(self):
+
+        b = b'hello world'
+        s = 'hello world'
+        self.assertEqual(b, str_to_bytes(s))
+        self.assertEqual(s, bytes_to_str(b))
 
     def test_base58(self):
         addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'
@@ -76,7 +98,6 @@ class HelperTest(TestCase):
         got = encode_base58_checksum(b'\x6f' + unhexlify(h160))
         self.assertEqual(got, addr)
 
-    @skip('unimplemented')
     def test_flip_endian(self):
         h = '03ee4f7a4e68f802303bc659f8f817964b4b74fe046facc3ae1be4679d622c45'
         w = '452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03'
@@ -85,7 +106,6 @@ class HelperTest(TestCase):
         w = 'd1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81'
         self.assertEqual(flip_endian(h), w)
 
-    @skip('unimplemented')
     def test_little_endian_to_int(self):
         h = unhexlify('99c3980000000000')
         want = 10011545
@@ -94,7 +114,6 @@ class HelperTest(TestCase):
         want = 32454049
         self.assertEqual(little_endian_to_int(h), want)
 
-    @skip('unimplemented')
     def test_int_to_little_endian(self):
         n = 1
         want = b'\x01\x00\x00\x00'

@@ -1,7 +1,7 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import randint
-from unittest import TestCase, skip
+from unittest import TestCase
 
 from helper import encode_base58, encode_base58_checksum, hash160, double_sha256
 
@@ -362,12 +362,12 @@ class S256Point(Point):
                 prefix = '03'
             else:
                 prefix = '02'
-            return '{}{}'.format(prefix, self.x.hex())
+            return unhexlify('{}{}'.format(prefix, self.x.hex()))
         else:
-            return '04{}{}'.format(self.x.hex(), self.y.hex())
+            return unhexlify('04{}{}'.format(self.x.hex(), self.y.hex()))
 
     def address(self, compressed=True, testnet=False):
-        h160 = hash160(unhexlify(self.sec(compressed=compressed)))
+        h160 = hash160(self.sec(compressed=compressed))
         if testnet:
             prefix = b'\x6f'
         else:
@@ -408,8 +408,8 @@ class S256Point(Point):
 
 
 G = S256Point(
-    0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
-    0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8)
+    0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798,
+    0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
 
 
 class S256Test(TestCase):
@@ -423,23 +423,23 @@ class S256Test(TestCase):
         # coefficients: 7G, 1485G, 2**128G, (2**240+2**31)G
         point = 7*G
         expected = (
-            0x5CBDF0646E5DB4EAA398F365F2EA7A0E3D419B7E0330E39CE92BDDEDCAC4F9BC,
-            0x6AEBCA40BA255960A3178D6D861A54DBA813D0B813FDE7B5A5082628087264DA)
+            0x5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc,
+            0x6aebca40ba255960a3178d6d861a54dba813d0b813fde7b5a5082628087264da)
         self.assertEqual((point.x.num, point.y.num), expected)
         point = 1485*G
         expected = (
-            0xC982196A7466FBBBB0E27A940B6AF926C1A74D5AD07128C82824A11B5398AFDA,
-            0x7A91F9EAE64438AFB9CE6448A1C133DB2D8FB9254E4546B6F001637D50901F55)
+            0xc982196a7466fbbbb0e27a940b6af926c1a74d5ad07128c82824a11b5398afda,
+            0x7a91f9eae64438afb9ce6448a1c133db2d8fb9254e4546b6f001637d50901f55)
         self.assertEqual((point.x.num, point.y.num), expected)
         point = 2**128*G
         expected = (
-            0x8F68B9D2F63B5F339239C1AD981F162EE88C5678723EA3351B7B444C9EC4C0DA,
-            0x662A9F2DBA063986DE1D90C2B6BE215DBBEA2CFE95510BFDF23CBF79501FFF82)
+            0x8f68b9d2f63b5f339239c1ad981f162ee88c5678723ea3351b7b444c9ec4c0da,
+            0x662a9f2dba063986de1d90c2b6be215dbbea2cfe95510bfdf23cbf79501fff82)
         self.assertEqual((point.x.num, point.y.num), expected)
         point = (2**240+2**31)*G
         expected = (
-            0x9577FF57C8234558F293DF502CA4F09CBC65A6572C842B39B366F21717945116,
-            0x10B49C67FA9365AD7B90DAB070BE339A1DAF9052373EC30FFAE4F72D5E66D053)
+            0x9577ff57c8234558f293df502ca4f09cbc65a6572c842b39b366f21717945116,
+            0x10b49c67fa9365ad7b90dab070be339a1daf9052373ec30ffae4f72d5e66d053)
         self.assertEqual((point.x.num, point.y.num), expected)
 
     def test_sec(self):
@@ -447,20 +447,20 @@ class S256Test(TestCase):
         uncompressed = '049d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d56fa15cc7f3d38cda98dee2419f415b7513dde1301f8643cd9245aea7f3f911f9'
         compressed = '039d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d5'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), uncompressed)
-        self.assertEqual(point.sec(compressed=True), compressed)
+        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
+        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
         coefficient = 123
         uncompressed = '04a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5204b5d6f84822c307e4b4a7140737aec23fc63b65b35f86a10026dbd2d864e6b'
         compressed = '03a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), uncompressed)
-        self.assertEqual(point.sec(compressed=True), compressed)
+        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
+        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
         coefficient = 42424242
         uncompressed = '04aee2e7d843f7430097859e2bc603abcc3274ff8169c1a469fee0f20614066f8e21ec53f40efac47ac1c5211b2123527e0e9b57ede790c4da1e72c91fb7da54a3'
         compressed = '03aee2e7d843f7430097859e2bc603abcc3274ff8169c1a469fee0f20614066f8e'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), uncompressed)
-        self.assertEqual(point.sec(compressed=True), compressed)
+        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
+        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
 
     def test_address(self):
         secret = 888**3
@@ -488,20 +488,19 @@ class S256Test(TestCase):
         self.assertEqual(
             point.address(compressed=False, testnet=True), testnet_address)
 
+
     def test_verify(self):
         point = S256Point(
             0x887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c,
             0x61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34)
         z = 0xec208baa0fc1c19f708a9ca96fdeff3ac3f230bb4a7ba4aede4942ad003c0f60
-        sig = Signature(
-            0xac8d1c87e51d0d441be8b3dd5b05c8795b48875dffe00b7ffcfac23010d3a395,
-            0x68342ceff8935ededd102dd876ffd6ba72d6a427a3edb13d26eb0781cb423c4)
-        self.assertTrue(point.verify(z, sig))
+        r = 0xac8d1c87e51d0d441be8b3dd5b05c8795b48875dffe00b7ffcfac23010d3a395
+        s = 0x68342ceff8935ededd102dd876ffd6ba72d6a427a3edb13d26eb0781cb423c4
+        self.assertTrue(point.verify(z, Signature(r, s)))
         z = 0x7c076ff316692a3d7eb3c3bb0f8b1488cf72e1afcd929e29307032997a838a3d
-        sig = Signature(
-            0xeff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c,
-            0xc7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6)
-        self.assertTrue(point.verify(z, sig))
+        r = 0xeff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c
+        s = 0xc7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6
+        self.assertTrue(point.verify(z, Signature(r, s)))
 
     def test_parse(self):
         sec = unhexlify('0349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a')

@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 from helper import (
     double_sha256,
@@ -30,19 +30,22 @@ class NetworkEnvelope:
         # check the network magic b'\xf9\xbe\xb4\xd9'
         # command 12 bytes
         # payload length 4 bytes, little endian
-        # checksum 4 bytes
+        # checksum 4 bytes, first four of double-sha256 of payload
         # payload
-        # check the checksum
         raise NotImplementedError
 
     def serialize(self):
         '''Returns the byte serialization of the entire network message'''
+        # add the network magic b'\xf9\xbe\xb4\xd9'
+        # command 12 bytes
+        # payload length 4 bytes, little endian
+        # checksum 4 bytes, first four of double-sha256 of payload
+        # payload
         raise NotImplementedError
 
 
 class NetworkEnvelopeTest(TestCase):
 
-    @skip('unimplemented')
     def test_parse(self):
         msg = unhexlify('f9beb4d976657261636b000000000000000000005df6e0e2')
         stream = BytesIO(msg)
@@ -55,7 +58,6 @@ class NetworkEnvelopeTest(TestCase):
         self.assertEqual(envelope.command[:7], b'version')
         self.assertEqual(envelope.payload, msg[24:])
 
-    @skip('unimplemented')
     def test_serialize(self):
         msg = unhexlify('f9beb4d976657261636b000000000000000000005df6e0e2')
         stream = BytesIO(msg)

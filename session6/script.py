@@ -1,6 +1,6 @@
 from binascii import hexlify, unhexlify
 from io import BytesIO
-from unittest import TestCase, skip
+from unittest import TestCase
 
 
 OP_CODES = {
@@ -279,7 +279,6 @@ class ScriptTest(TestCase):
         self.assertEqual(script_sig.sec_pubkey(index=0), unhexlify('022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb70'))
         self.assertEqual(script_sig.sec_pubkey(index=1), unhexlify('03b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb71'))
 
-    @skip('unimplemented')
     def test_address(self):
         script_raw = unhexlify('76a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac')
         script_pubkey = Script.parse(script_raw)

@@ -1,5 +1,5 @@
 from binascii import hexlify, unhexlify
-from unittest import TestCase, skip
+from unittest import TestCase
 
 import hashlib
 
@@ -7,9 +7,17 @@ import hashlib
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
-
-
 BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+
+def bytes_to_str(b, encoding='ascii'):
+    '''Returns a string version of the bytes'''
+    return b.decode(encoding)
+
+
+def str_to_bytes(s, encoding='ascii'):
+    '''Returns a bytes version of the string'''
+    return s.encode(encoding)
 
 
 def hash160(s):
@@ -88,6 +96,13 @@ def h160_to_p2sh_address(h160, testnet=False):
 
 class HelperTest(TestCase):
 
+    def test_bytes(self):
+
+        b = b'hello world'
+        s = 'hello world'
+        self.assertEqual(b, str_to_bytes(s))
+        self.assertEqual(s, bytes_to_str(b))
+
     def test_base58(self):
         addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'
         h160 = hexlify(decode_base58(addr))
@@ -120,7 +135,6 @@ class HelperTest(TestCase):
         want = b'\x99\xc3\x98\x00\x00\x00\x00\x00'
         self.assertEqual(int_to_little_endian(n, 8), want)
 
-    @skip('unimplemented')
     def test_p2pkh_address(self):
         h160 = unhexlify('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
         want = '1BenRpVUFK65JFWcQSuHnJKzc4M8ZP8Eqa'
@@ -128,7 +142,6 @@ class HelperTest(TestCase):
         want = 'mrAjisaT4LXL5MzE81sfcDYKU3wqWSvf9q'
         self.assertEqual(h160_to_p2pkh_address(h160, testnet=True), want)
 
-    @skip('unimplemented')
     def test_p2sh_address(self):
         h160 = unhexlify('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
         want = '3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'

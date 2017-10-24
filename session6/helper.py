@@ -1,5 +1,5 @@
 from binascii import hexlify, unhexlify
-from unittest import TestCase, skip
+from unittest import TestCase
 
 import hashlib
 
@@ -7,9 +7,17 @@ import hashlib
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
-
-
 BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+
+def bytes_to_str(b, encoding='ascii'):
+    '''Returns a string version of the bytes'''
+    return b.decode(encoding)
+
+
+def str_to_bytes(s, encoding='ascii'):
+    '''Returns a bytes version of the string'''
+    return s.encode(encoding)
 
 
 def hash160(s):
@@ -95,6 +103,13 @@ def h160_to_p2sh_address(h160, testnet=False):
 
 
 class HelperTest(TestCase):
+
+    def test_bytes(self):
+
+        b = b'hello world'
+        s = 'hello world'
+        self.assertEqual(b, str_to_bytes(s))
+        self.assertEqual(s, bytes_to_str(b))
 
     def test_base58(self):
         addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'

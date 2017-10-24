@@ -1,5 +1,7 @@
+from binascii import hexlify, unhexlify
+from io import BytesIO
 from random import randint
-from unittest import TestCase, skip
+from unittest import TestCase
 
 
 class FieldElement:
@@ -148,6 +150,18 @@ class Point:
             return self.__class__(x=x, y=y, a=self.a, b=self.b)
 
     def __rmul__(self, coefficient):
+        # rmul calculates coefficient * self
+        # the naive way is to keep adding the point coefficient times
+        # start from 0 (point at infinity)
+        # use: for i in range(coefficient):
+        # keep adding self over and over
+        # Extra Credit:
+        # a more advanced technique uses point doubling
+        # find the binary representation of coefficient
+        # keep doubling the point and if the bit is there for coefficient
+        # add the current.
+        # remember to return an instance of the class
+        # use: self.__class__(x, y, a, b)
         raise NotImplementedError
 
 
@@ -181,23 +195,30 @@ class PointTest(TestCase):
 
 class ECCTest(TestCase):
 
-    @skip('unimplemented')
     def test_on_curve(self):
         # tests the following points whether they are on the curve or not
         # on curve y^2=x^3-7 over F_223:
         # (192,105) (17,56) (200,119) (1,193) (42,99)
         # the ones that aren't should raise a RuntimeError
-        pass
 
-    @skip('unimplemented')
+        # iterate over all the point pairs above
+        # create point object
+        # assert that some raise an error using
+        # with self.assertRaises(RuntimeError):
+        #     Point(x, y, a, b)
+        # assert that others don't just by making sure they run normal
+        raise NotImplementedError
+
     def test_add1(self):
         # tests the following additions on curve y^2=x^3-7 over F_223:
         # (192,105) + (17,56)
         # (47,71) + (117,141)
         # (143,98) + (76,66)
-        pass
+        # Make sure you find the answers first
+        # iterate over triplets: (point1, point2, point_sum)
+        # test that: point1 + point2 == point_sum
+        raise NotImplementedError
 
-    @skip('unimplemented')
     def test_rmul(self):
         # tests the following scalar multiplications
         # 2*(192,105)
@@ -206,7 +227,10 @@ class ECCTest(TestCase):
         # 4*(47,71)
         # 8*(47,71)
         # 21*(47,71)
-        pass
+        # Make sure you find the answers first
+        # iterate over triplets: (coefficient, point, result)
+        # test that: coefficient * point == result
+        raise NotImplementedError
 
 
 A = 0
@@ -261,55 +285,66 @@ class S256Point(Point):
         return result
 
     def sec(self, compressed=True):
+        # returns the binary version of the sec format, NOT hex
+        # if compressed, starts with 02 if self.y is even, 03 if self.y is odd
+        # then self.x
+        # if non-compressed, starts with 04 followod by self.x and then self.y
+        # remember, you have to convert self.x/self.y to binary
         raise NotImplementedError
 
     def address(self, compressed=True, testnet=False):
+        # get the sec
+        # hash160 the sec
+        # raw is hash 160 prepended w/ b'\x00' for mainnet, b'\x6f' for testnet
+        # checksum is first 4 bytes of double_sha256 of raw
+        # encode_base58 the raw + checksum
         raise NotImplementedError
 
     def verify(self, z, sig):
+        # remember sig.r and sig.s are the main things we're checking
+        # remember 1/s = pow(s, N-2, N) % N
+        # u = z / s
+        # v = r / s
+        # u*G + v*P should have as the x coordinate, r
         raise NotImplementedError
 
 
 G = S256Point(
-    0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
-    0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8)
+    0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798,
+    0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
 
 
 class S256Test(TestCase):
 
-    @skip('unimplemented')
     def test_order(self):
         point = N*G
         self.assertIsNone(point.x)
 
-    @skip('unimplemented')
     def test_pubpoint(self):
         # write a test that tests the public point for the following
         # coefficients: 7, 1485, 2**128, 2**240+2**31
-        pass
+        raise NotImplementedError
 
-    @skip('unimplemented')
     def test_sec(self):
         coefficient = 999**3
-        uncompressed = '049D5CA49670CBE4C3BFA84C96A8C87DF086C6EA6A24BA6B809C9DE234496808D56FA15CC7F3D38CDA98DEE2419F415B7513DDE1301F8643CD9245AEA7F3F911F9'
-        compressed = '039D5CA49670CBE4C3BFA84C96A8C87DF086C6EA6A24BA6B809C9DE234496808D5'
+        uncompressed = '049d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d56fa15cc7f3d38cda98dee2419f415b7513dde1301f8643cd9245aea7f3f911f9'
+        compressed = '039d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d5'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), uncompressed)
-        self.assertEqual(point.sec(compressed=True), compressed)
+        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
+        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
         coefficient = 123
-        uncompressed = '04A598A8030DA6D86C6BC7F2F5144EA549D28211EA58FAA70EBF4C1E665C1FE9B5204B5D6F84822C307E4B4A7140737AEC23FC63B65B35F86A10026DBD2D864E6B'
-        compressed = '03A598A8030DA6D86C6BC7F2F5144EA549D28211EA58FAA70EBF4C1E665C1FE9B5'
+        uncompressed = '04a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5204b5d6f84822c307e4b4a7140737aec23fc63b65b35f86a10026dbd2d864e6b'
+        compressed = '03a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), uncompressed)
-        self.assertEqual(point.sec(compressed=True), compressed)
+        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
+        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
         coefficient = 42424242
-        uncompressed = '04AEE2E7D843F7430097859E2BC603ABCC3274FF8169C1A469FEE0F20614066F8E21EC53F40EFAC47AC1C5211B2123527E0E9B57EDE790C4DA1E72C91FB7DA54A3'
-        compressed = '03AEE2E7D843F7430097859E2BC603ABCC3274FF8169C1A469FEE0F20614066F8E'
+        uncompressed = '04aee2e7d843f7430097859e2bc603abcc3274ff8169c1a469fee0f20614066f8e21ec53f40efac47ac1c5211b2123527e0e9b57ede790c4da1e72c91fb7da54a3'
+        compressed = '03aee2e7d843f7430097859e2bc603abcc3274ff8169c1a469fee0f20614066f8e'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), uncompressed)
-        self.assertEqual(point.sec(compressed=True), compressed)
+        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
+        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
 
-    @skip('unimplemented')
     def test_address(self):
         secret = 888**3
         mainnet_address = '148dY81A9BmdpMhvYEVznrM45kWN32vSCN'
@@ -320,23 +355,22 @@ class S256Test(TestCase):
         self.assertEqual(
             point.address(compressed=True, testnet=True), testnet_address)
         secret = 321
-        mainnet_address = '1EaE56vJfg5ieZCXdBdq8EzkvyDXYNKtLx'
-        testnet_address = 'mu6BNA1HUhWyRfg9LkcCxAD5nxpEXDW3qb'
+        mainnet_address = '1S6g2xBJSED7Qr9CYZib5f4PYVhHZiVfj'
+        testnet_address = 'mfx3y63A7TfTtXKkv7Y6QzsPFY6QCBCXiP'
         point = secret*G
         self.assertEqual(
             point.address(compressed=False, testnet=False), mainnet_address)
         self.assertEqual(
             point.address(compressed=False, testnet=True), testnet_address)
         secret = 4242424242
-        mainnet_address = '16P53bpMkUrtu6DPq4Kt1SsCdsAG3eGHpu'
-        testnet_address = 'mku2LeuLZWJ9gCh1YdJFqN5XVrkxxSTfkh'
+        mainnet_address = '1226JSptcStqn4Yq9aAmNXdwdc2ixuH9nb'
+        testnet_address = 'mgY3bVusRUL6ZB2Ss999CSrGVbdRwVpM8s'
         point = secret*G
         self.assertEqual(
             point.address(compressed=False, testnet=False), mainnet_address)
         self.assertEqual(
             point.address(compressed=False, testnet=True), testnet_address)
 
-    @skip('unimplemented')
     def test_verify(self):
         point = S256Point(
             0x887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c,
@@ -424,12 +458,17 @@ class PrivateKey:
         return '{:x}'.format(self.secret).zfill(64)
 
     def sign(self, z):
+        # we need a random number k: randint(0, 2**256)
+        # r is the x coordinate of the resulting point k*G
+        # remember 1/k = pow(k, N-2, N) % N
+        # s = (z+r*secret) / k
+        # return an instance of Signature:
+        # Signature(r, s)
         raise NotImplementedError
 
 
 class PrivateKeyTest(TestCase):
 
-    @skip('unimplemented')
     def test_sign(self):
         pk = PrivateKey(randint(0, 2**256))
         z = randint(0, 2**256)
