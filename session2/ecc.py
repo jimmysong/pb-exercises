@@ -3,6 +3,8 @@ from io import BytesIO
 from random import randint
 from unittest import TestCase
 
+from helper import double_sha256, encode_base58, hash160
+
 
 class FieldElement:
 
@@ -104,15 +106,20 @@ class Point:
     def __init__(self, x, y, a, b):
         self.a = a
         self.b = b
+        self.x = x
+        self.y = y
+        # x being None and y being None represents the point at infinity
+        # Check for that here since the equation below won't make sense
+        # with None values for both.
         if x is None and y is None:
             # point at infinity
             self.x = None
             self.y = None
-            return
-        if y**2 != x**3 + self.a * x + self.b:
+        # make sure that the elliptic curve equation is satisfied
+        # y**2 == x**3 + a*x + b
+        # if not, throw a RuntimeError
+        elif y**2 != x**3 + self.a * x + self.b:
             raise RuntimeError('Not a point on the curve')
-        self.x = x
-        self.y = y
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \
@@ -129,29 +136,33 @@ class Point:
             return 'Point({},{})'.format(self.x, self.y)
 
     def __add__(self, other):
-        # identity
+        # Case 0.0: self is the point at infinity, return other
         if self.x is None:
             return other
+        # Case 0.1: other is the point at infinity, return self
         if other.x is None:
             return self
-        if self.x == other.x:
-            if self.y != other.y:
-                # point at infinity
-                return self.__class__(x=None, y=None, a=self.a, b=self.b)
+        # Case 1: self.x != other.x
+        if self.x != other.x:
+            s = (other.y - self.y) / (other.x - self.x)
+            x = s**2 - self.x - other.x
+            y = s * (self.x - x) - self.y
+            return self.__class__(x=x, y=y, a=self.a, b=self.b)
+        # Case 2: self.x == other.x, self.y != other.y
+        elif self.y != other.y:
+            # point at infinity
+            return self.__class__(x=None, y=None, a=self.a, b=self.b)
+        # Case 3: self.x == other.x, self.y == other.y
+        else:
             # we're adding a point to itself
             s = (3* self.x**2 + self.a) / (2* self.y)
             x = s**2 - 2*self.x
             y = s * (self.x - x) - self.y
             return self.__class__(x, y, a=self.a, b=self.b)
-        else:
-            s = (other.y - self.y) / (other.x - self.x)
-            x = s**2 - self.x - other.x
-            y = s * (self.x - x) - self.y
-            return self.__class__(x=x, y=y, a=self.a, b=self.b)
 
     def __rmul__(self, coefficient):
         # rmul calculates coefficient * self
-        # the naive way is to keep adding the point coefficient times
+        # implement the naive way:
         # start from 0 (point at infinity)
         # use: for i in range(coefficient):
         # keep adding self over and over
@@ -200,6 +211,14 @@ class ECCTest(TestCase):
         # on curve y^2=x^3-7 over F_223:
         # (192,105) (17,56) (200,119) (1,193) (42,99)
         # the ones that aren't should raise a RuntimeError
+        prime = 223
+        a = FieldElement(0, prime)
+        b = FieldElement(7, prime)
+
+        # Initialize points this way:
+        # x = FieldElement(192, prime)
+        # y = FieldElement(105, prime)
+        # p1 = Point(x, y, a, b)
 
         # iterate over all the point pairs above
         # create point object
@@ -214,6 +233,15 @@ class ECCTest(TestCase):
         # (192,105) + (17,56)
         # (47,71) + (117,141)
         # (143,98) + (76,66)
+        prime = 223
+        a = FieldElement(0, prime)
+        b = FieldElement(7, prime)
+
+        # Initialize points this way:
+        # x = FieldElement(192, prime)
+        # y = FieldElement(105, prime)
+        # p1 = Point(x, y, a, b)
+
         # Make sure you find the answers first
         # iterate over triplets: (point1, point2, point_sum)
         # test that: point1 + point2 == point_sum
@@ -227,6 +255,15 @@ class ECCTest(TestCase):
         # 4*(47,71)
         # 8*(47,71)
         # 21*(47,71)
+        prime = 223
+        a = FieldElement(0, prime)
+        b = FieldElement(7, prime)
+
+        # Initialize points this way:
+        # x = FieldElement(192, prime)
+        # y = FieldElement(105, prime)
+        # p1 = Point(x, y, a, b)
+
         # Make sure you find the answers first
         # iterate over triplets: (coefficient, point, result)
         # test that: coefficient * point == result
@@ -286,18 +323,20 @@ class S256Point(Point):
 
     def sec(self, compressed=True):
         # returns the binary version of the sec format, NOT hex
-        # if compressed, starts with 02 if self.y is even, 03 if self.y is odd
+        # if compressed, starts with b'\x02' if self.y is even, b'\x03' if self.y is odd
         # then self.x
-        # if non-compressed, starts with 04 followod by self.x and then self.y
-        # remember, you have to convert self.x/self.y to binary
+        # if non-compressed, starts with b'\x04' followod by self.x and then self.y
+        # remember, you have to convert self.x/self.y to binary (some_integer.to_bytes(32, 'big'))
         raise NotImplementedError
 
     def address(self, compressed=True, testnet=False):
+        '''Returns the address string'''
         # get the sec
         # hash160 the sec
         # raw is hash 160 prepended w/ b'\x00' for mainnet, b'\x6f' for testnet
         # checksum is first 4 bytes of double_sha256 of raw
         # encode_base58 the raw + checksum
+        # return as a string, you can use .decode('ascii') to do this.
         raise NotImplementedError
 
     def verify(self, z, sig):

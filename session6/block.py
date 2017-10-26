@@ -22,10 +22,11 @@ class Block:
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses a block. Returns a Block object'''
-        # version - 4 bytes, little endian
+        # s.read(n) will read n bytes from the stream
+        # version - 4 bytes, little endian, interpret as int
         # prev_block - 32 bytes, little endian
         # merkle_root - 32 bytes, little endian
-        # timestamp - 4 bytes, little endian
+        # timestamp - 4 bytes, little endian, interpret as int
         # bits - 4 bytes
         # nonce - 4 bytes
         raise NotImplementedError
@@ -68,7 +69,8 @@ class Block:
 
     def target(self):
         '''Returns the proof-of-work target based on the bits'''
-        # note bits is in little-endian and the first byte is the exponent
+        # reverse the bits
+        # first byte is exponent
         # the other three bytes are the coefficient.
         # the formula is:
         # coefficient * 2**(8*(exponent-3))

@@ -3,7 +3,7 @@ from io import BytesIO
 from random import randint
 from unittest import TestCase
 
-from helper import encode_base58, hash160, double_sha256
+from helper import double_sha256, encode_base58, hash160
 
 
 class FieldElement:
@@ -106,15 +106,20 @@ class Point:
     def __init__(self, x, y, a, b):
         self.a = a
         self.b = b
+        self.x = x
+        self.y = y
+        # x being None and y being None represents the point at infinity
+        # Check for that here since the equation below won't make sense
+        # with None values for both.
         if x is None and y is None:
             # point at infinity
             self.x = None
             self.y = None
-            return
-        if y**2 != x**3 + self.a * x + self.b:
+        # make sure that the elliptic curve equation is satisfied
+        # y**2 == x**3 + a*x + b
+        # if not, throw a RuntimeError
+        elif y**2 != x**3 + self.a * x + self.b:
             raise RuntimeError('Not a point on the curve')
-        self.x = x
-        self.y = y
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \
@@ -131,30 +136,37 @@ class Point:
             return 'Point({},{})'.format(self.x, self.y)
 
     def __add__(self, other):
-        # identity
+        # Case 0.0: self is the point at infinity, return other
         if self.x is None:
             return other
+        # Case 0.1: other is the point at infinity, return self
         if other.x is None:
             return self
-        if self.x == other.x:
-            if self.y != other.y:
-                # point at infinity
-                return self.__class__(x=None, y=None, a=self.a, b=self.b)
-            # we're adding a point to itself
-            s = (3* self.x**2 + self.a) / (2* self.y)
-            x = s**2 - 2*self.x
-            y = s * (self.x - x) - self.y
-            return self.__class__(x=x, y=y, a=self.a, b=self.b)
-        else:
+        # Case 1: self.x != other.x
+        if self.x != other.x:
             s = (other.y - self.y) / (other.x - self.x)
             x = s**2 - self.x - other.x
             y = s * (self.x - x) - self.y
             return self.__class__(x=x, y=y, a=self.a, b=self.b)
+        # Case 2: self.x == other.x, self.y != other.y
+        elif self.y != other.y:
+            # point at infinity
+            return self.__class__(x=None, y=None, a=self.a, b=self.b)
+        # Case 3: self.x == other.x, self.y == other.y
+        else:
+            # we're adding a point to itself
+            s = (3* self.x**2 + self.a) / (2* self.y)
+            x = s**2 - 2*self.x
+            y = s * (self.x - x) - self.y
+            return self.__class__(x, y, a=self.a, b=self.b)
 
     def __rmul__(self, coefficient):
+        # rmul calculates coefficient * self
         # naive way - see below for binary expansion method
+        # start from 0 (point at infinity)
         result = self.__class__(x=None, y=None, a=self.a, b=self.b)
         for i in range(coefficient):
+            # keep adding self over and over
             result += self
         return result
 
@@ -195,25 +207,26 @@ class ECCTest(TestCase):
         # (200,119) (42,99) - not on curve
         # (192,105) (17,56) (1,193) - on curve
         # the ones that aren't should raise a RuntimeError
-        a = FieldElement(num=0, prime=223)
-        b = FieldElement(num=7, prime=223)
+        prime = 223
+        a = FieldElement(0, prime)
+        b = FieldElement(7, prime)
         with self.assertRaises(RuntimeError):
-            x = FieldElement(num=200, prime=223)
-            y = FieldElement(num=119, prime=223)
+            x = FieldElement(num=200, prime=prime)
+            y = FieldElement(num=119, prime=prime)
             Point(x=x, y=y, a=a, b=b)
         with self.assertRaises(RuntimeError):
-            x = FieldElement(num=42, prime=223)
-            y = FieldElement(num=99, prime=223)
+            x = FieldElement(num=42, prime=prime)
+            y = FieldElement(num=99, prime=prime)
             Point(x=x, y=y, a=a, b=b)
         # these should go through fine
-        x = FieldElement(num=192, prime=223)
-        y = FieldElement(num=105, prime=223)
+        x = FieldElement(num=192, prime=prime)
+        y = FieldElement(num=105, prime=prime)
         Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=17, prime=223)
-        y = FieldElement(num=56, prime=223)
+        x = FieldElement(num=17, prime=prime)
+        y = FieldElement(num=56, prime=prime)
         Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=1, prime=223)
-        y = FieldElement(num=193, prime=223)
+        x = FieldElement(num=1, prime=prime)
+        y = FieldElement(num=193, prime=prime)
         Point(x=x, y=y, a=a, b=b)
 
     def test_add1(self):
@@ -221,36 +234,37 @@ class ECCTest(TestCase):
         # (192,105) + (17,56) = (170, 142)
         # (47,71) + (117,141) = (60, 139)
         # (143,98) + (76,66) = (47, 71)
-        a = FieldElement(num=0, prime=223)
-        b = FieldElement(num=7, prime=223)
-        x = FieldElement(num=192, prime=223)
-        y = FieldElement(num=105, prime=223)
+        prime = 223
+        a = FieldElement(0, prime)
+        b = FieldElement(7, prime)
+        x = FieldElement(num=192, prime=prime)
+        y = FieldElement(num=105, prime=prime)
         p1 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=17, prime=223)
-        y = FieldElement(num=56, prime=223)
+        x = FieldElement(num=17, prime=prime)
+        y = FieldElement(num=56, prime=prime)
         p2 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=170, prime=223)
-        y = FieldElement(num=142, prime=223)
+        x = FieldElement(num=170, prime=prime)
+        y = FieldElement(num=142, prime=prime)
         p3 = Point(x=x, y=y, a=a, b=b)
         self.assertEqual(p1+p2, p3)
-        x = FieldElement(num=47, prime=223)
-        y = FieldElement(num=71, prime=223)
+        x = FieldElement(num=47, prime=prime)
+        y = FieldElement(num=71, prime=prime)
         p1 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=117, prime=223)
-        y = FieldElement(num=141, prime=223)
+        x = FieldElement(num=117, prime=prime)
+        y = FieldElement(num=141, prime=prime)
         p2 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=60, prime=223)
-        y = FieldElement(num=139, prime=223)
+        x = FieldElement(num=60, prime=prime)
+        y = FieldElement(num=139, prime=prime)
         p3 = Point(x=x, y=y, a=a, b=b)
         self.assertEqual(p1+p2, p3)
-        x = FieldElement(num=143, prime=223)
-        y = FieldElement(num=98, prime=223)
+        x = FieldElement(num=143, prime=prime)
+        y = FieldElement(num=98, prime=prime)
         p1 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=76, prime=223)
-        y = FieldElement(num=66, prime=223)
+        x = FieldElement(num=76, prime=prime)
+        y = FieldElement(num=66, prime=prime)
         p2 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=47, prime=223)
-        y = FieldElement(num=71, prime=223)
+        x = FieldElement(num=47, prime=prime)
+        y = FieldElement(num=71, prime=prime)
         p3 = Point(x=x, y=y, a=a, b=b)
         self.assertEqual(p1+p2, p3)
 
@@ -262,41 +276,42 @@ class ECCTest(TestCase):
         # 4*(47,71) = (194, 51)
         # 8*(47,71) = (116, 55)
         # 21*(47,71) = (None, None)
-        a = FieldElement(num=0, prime=223)
-        b = FieldElement(num=7, prime=223)
-        x = FieldElement(num=192, prime=223)
-        y = FieldElement(num=105, prime=223)
+        prime = 223
+        a = FieldElement(0, prime)
+        b = FieldElement(7, prime)
+        x = FieldElement(num=192, prime=prime)
+        y = FieldElement(num=105, prime=prime)
         p1 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=49, prime=223)
-        y = FieldElement(num=71, prime=223)
+        x = FieldElement(num=49, prime=prime)
+        y = FieldElement(num=71, prime=prime)
         p2 = Point(x=x, y=y, a=a, b=b)
         self.assertEqual(2*p1, p2)
-        x = FieldElement(num=143, prime=223)
-        y = FieldElement(num=98, prime=223)
+        x = FieldElement(num=143, prime=prime)
+        y = FieldElement(num=98, prime=prime)
         p1 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=64, prime=223)
-        y = FieldElement(num=168, prime=223)
+        x = FieldElement(num=64, prime=prime)
+        y = FieldElement(num=168, prime=prime)
         p2 = Point(x=x, y=y, a=a, b=b)
         self.assertEqual(2*p1, p2)
-        x = FieldElement(num=47, prime=223)
-        y = FieldElement(num=71, prime=223)
+        x = FieldElement(num=47, prime=prime)
+        y = FieldElement(num=71, prime=prime)
         p1 = Point(x=x, y=y, a=a, b=b)
-        x = FieldElement(num=36, prime=223)
-        y = FieldElement(num=111, prime=223)
+        x = FieldElement(num=36, prime=prime)
+        y = FieldElement(num=111, prime=prime)
         p2 = Point(x=x, y=y, a=a, b=b)
         self.assertEqual(2*p1, p2)
-        x = FieldElement(num=194, prime=223)
-        y = FieldElement(num=51, prime=223)
+        x = FieldElement(num=194, prime=prime)
+        y = FieldElement(num=51, prime=prime)
         p2 = Point(x=x, y=y, a=a, b=b)
         self.assertEqual(4*p1, p2)
-        x = FieldElement(num=116, prime=223)
-        y = FieldElement(num=55, prime=223)
+        x = FieldElement(num=116, prime=prime)
+        y = FieldElement(num=55, prime=prime)
         p2 = Point(x=x, y=y, a=a, b=b)
         self.assertEqual(8*p1, p2)
         p2 = Point(x=None, y=None, a=a, b=b)
         self.assertEqual(21*p1, p2)
-        x = FieldElement(num=15, prime=223)
-        y = FieldElement(num=86, prime=223)
+        x = FieldElement(num=15, prime=prime)
+        y = FieldElement(num=86, prime=prime)
         p1 = Point(x=x, y=y, a=a, b=b)
         p2 = Point(x=None, y=None, a=a, b=b)
         self.assertEqual(7*p1, p2)
@@ -354,28 +369,39 @@ class S256Point(Point):
         return result
 
     def sec(self, compressed=True):
+        # returns the binary version of the sec format, NOT hex
+        # if compressed, starts with b'\x02' if self.y is even,
+        # b'\x03' if self.y is odd, then self.x
         if compressed:
             if self.y.num % 2 == 1:
                 prefix = '03'
             else:
                 prefix = '02'
             return unhexlify('{}{}'.format(prefix, self.x.hex()))
+        # if non-compressed, starts with b'\x04' followod by self.x
+        # and then self.y
         else:
             return unhexlify('04{}{}'.format(self.x.hex(), self.y.hex()))
 
     def address(self, compressed=True, testnet=False):
+        '''Returns the address string'''
+        # get the sec / hash160 the sec
         h160 = hash160(self.sec(compressed=compressed))
+        # raw is hash 160 prepended w/ b'\x00' for mainnet, b'\x6f' for testnet
         if testnet:
             prefix = b'\x6f'
         else:
             prefix = b'\x00'
         raw = prefix + h160
-        raw = raw + double_sha256(raw)[:4]
-        return encode_base58(raw).decode('ascii')
+        # checksum is first 4 bytes of double_sha256 of raw
+        checksum = double_sha256(raw)[:4]
+        # encode_base58 the raw + checksum
+        return encode_base58(raw+checksum).decode('ascii')
 
     def verify(self, z, sig):
-        u = z * pow(sig.s, N-2, N) % N
-        v = sig.r * pow(sig.s, N-2, N) % N
+        s_inv = pow(sig.s, N-2, N)
+        u = z * s_inv % N
+        v = sig.r * s_inv % N
         return (u*G + v*self).x.num == sig.r
 
 

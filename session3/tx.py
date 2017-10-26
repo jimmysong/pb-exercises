@@ -31,7 +31,7 @@ class Tx:
         # s.read(n) will return n bytes
         # s.read(1)[0] will return the next byte as an integer
 
-        # version has 4 bytes, little-endian
+        # version has 4 bytes, little-endian, interpret as int
         # num_inputs is 1 byte (not really, but we can learn about varint later)
         # each input needs parsing
         # num_outputs is 1 byte (again, varint, but we'll learn that later)
@@ -56,9 +56,9 @@ class TxIn:
         # s.read(1)[0] will return the next byte as an integer
 
         # prev_tx is 32 bytes, little endian
-        # prev_index is 4 bytes, little endian
+        # prev_index is 4 bytes, little endian, interpret as int
         # script_sig is a variable field (length followed by the data)
-        # sequence is 4 bytes, little-endian
+        # sequence is 4 bytes, little-endian, interpret as int
         raise NotImplementedError
 
 
@@ -76,7 +76,7 @@ class TxOut:
         # s.read(n) will return n bytes
         # s.read(1)[0] will return the next byte as an integer
 
-        # amount is 8 bytes, little endian
+        # amount is 8 bytes, little endian, interpret as int
         # script_pubkey is a variable field (length followed by the data)
         raise NotImplementedError
 

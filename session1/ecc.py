@@ -109,13 +109,13 @@ class FieldElementTest(TestCase):
 class Point:
 
     def __init__(self, x, y, a, b):
+        self.a = a
+        self.b = b
         self.x = x
         self.y = y
         # x being None and y being None represents the point at infinity
         # Check for that here since the equation below won't make sense
         # with None values for both.
-        self.a = a
-        self.b = b
         # make sure that the elliptic curve equation is satisfied
         # y**2 == x**3 + a*x + b
         # if not, throw a RuntimeError
@@ -141,7 +141,7 @@ class Point:
         # Case 1: self.x != other.x
         # Formula (x3,y3)==(x1,y1)+(x2,y2)
         # s=(y2-y1)/(x2-x1)
-        # x3=s2-x1-x2
+        # x3=s**2-x1-x2
         # y3=s*(x1-x3)-y1
         # Remember to return an instance of this class:
         # self.__class__(x, y, a, b)
@@ -153,9 +153,9 @@ class Point:
 
         # Case 3: self.x == other.x, self.y == other.y
         # Formula (x3,y3)=(x1,y1)+(x1,y1)
-        # s=(3x1**2+a)/(2*y1)
-        # x3=s2-2x1
-        # y3=s(x1-x3)-y1
+        # s=(3*x1**2+a)/(2*y1)
+        # x3=s**2-2x1
+        # y3=s*(x1-x3)-y1
         # Remember to return an instance of this class:
         # self.__class__(x, y, a, b)
         raise NotImplementedError

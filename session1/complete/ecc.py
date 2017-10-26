@@ -92,15 +92,20 @@ class Point:
     def __init__(self, x, y, a, b):
         self.a = a
         self.b = b
+        self.x = x
+        self.y = y
+        # x being None and y being None represents the point at infinity
+        # Check for that here since the equation below won't make sense
+        # with None values for both.
         if x is None and y is None:
             # point at infinity
             self.x = None
             self.y = None
-            return
-        if y**2 != x**3 + self.a * x + self.b:
+        # make sure that the elliptic curve equation is satisfied
+        # y**2 == x**3 + a*x + b
+        # if not, throw a RuntimeError
+        elif y**2 != x**3 + self.a * x + self.b:
             raise RuntimeError('Not a point on the curve')
-        self.x = x
-        self.y = y
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \
@@ -117,25 +122,29 @@ class Point:
             return 'Point({},{})'.format(self.x, self.y)
 
     def __add__(self, other):
-        # identity
+        # Case 0.0: self is the point at infinity, return other
         if self.x is None:
             return other
+        # Case 0.1: other is the point at infinity, return self
         if other.x is None:
             return self
-        if self.x == other.x:
-            if self.y != other.y:
-                # point at infinity
-                return self.__class__(x=None, y=None, a=self.a, b=self.b)
+        # Case 1: self.x != other.x
+        if self.x != other.x:
+            s = (other.y - self.y) / (other.x - self.x)
+            x = s**2 - self.x - other.x
+            y = s * (self.x - x) - self.y
+            return self.__class__(x=x, y=y, a=self.a, b=self.b)
+        # Case 2: self.x == other.x, self.y != other.y
+        elif self.y != other.y:
+            # point at infinity
+            return self.__class__(x=None, y=None, a=self.a, b=self.b)
+        # Case 3: self.x == other.x, self.y == other.y
+        else:
             # we're adding a point to itself
             s = (3* self.x**2 + self.a) / (2* self.y)
             x = s**2 - 2*self.x
             y = s * (self.x - x) - self.y
             return self.__class__(x, y, a=self.a, b=self.b)
-        else:
-            s = (other.y - self.y) / (other.x - self.x)
-            x = s**2 - self.x - other.x
-            y = s * (self.x - x) - self.y
-            return self.__class__(x=x, y=y, a=self.a, b=self.b)
 
 
 class PointTest(TestCase):
