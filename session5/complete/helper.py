@@ -90,7 +90,7 @@ def int_to_little_endian(n, length):
 
 def h160_to_p2pkh_address(h160, testnet=False):
     '''Takes a byte sequence hash160 and returns a p2pkh address string'''
-    # p2pkh has a prefix of b'\x00' for mainnet, b'\xef' for testnet
+    # p2pkh has a prefix of b'\x00' for mainnet, b'\x6f' for testnet
     if testnet:
         prefix = b'\x6f'
     else:
