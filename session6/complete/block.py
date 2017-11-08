@@ -82,7 +82,7 @@ class Block:
         # note difficulty is (target of lowest difficulty) / (self's target)
         # lowest difficulty has bits that equal 0xffff001d
         exponent = 0x1d
-        minimum_target = 0xffff * 2**(8*(0x1d-3))
+        minimum_target = 0xffff * 2**(8*(exponent-3))
         return minimum_target / self.target()
 
     def check_pow(self):
