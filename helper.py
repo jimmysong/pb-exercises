@@ -9,12 +9,12 @@ def run_test(test):
 
 def bytes_to_str(b, encoding='ascii'):
     '''Returns a string version of the bytes'''
-    raise NotImplementedError
+    return b.decode(encoding)
 
 
 def str_to_bytes(s, encoding='ascii'):
     '''Returns a bytes version of the string'''
-    raise NotImplementedError
+    return s.encode(encoding)
 
 
 class HelperTest(TestCase):
