@@ -99,23 +99,25 @@ def flip_endian(h):
     Returns a hexadecimal string
     '''
     # convert hex to binary (use unhexlify)
+    b = unhexlify(h)
     # reverse the binary (use [::-1])
+    b_rev = b[::-1]
     # convert binary to hex (use hexlify and then .decode('ascii'))
-    raise NotImplementedError
+    return hexlify(b_rev).decode('ascii')
 
 
 def little_endian_to_int(b):
     '''little_endian_to_int takes byte sequence as a little-endian number.
     Returns an integer'''
     # use the from_bytes method of int
-    raise NotImplementedError
+    return int.from_bytes(b, 'little')
 
 
 def int_to_little_endian(n, length):
     '''endian_to_little_endian takes an integer and returns the little-endian
     byte sequence of length'''
     # use the to_bytes method of n
-    raise NotImplementedError
+    return n.to_bytes(length, 'little')
 
 
 class HelperTest(TestCase):
