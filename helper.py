@@ -3,7 +3,6 @@ from subprocess import check_output
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
-import json
 import math
 
 
@@ -105,32 +104,6 @@ def encode_varint(i):
         raise RuntimeError('integer too large: {}'.format(i))
 
 
-def fetch_tx(tx_hash, testnet=False):
-    '''Returns the transaction json from a libbitcoin server'''
-    command = ['bx', 'fetch-tx', '-f', 'json', '-c']
-    if testnet:
-        command.append('bx-testnet.cfg')
-    else:
-        command.append('bx.cfg')
-    command.append(hexlify(tx_hash).decode('ascii'))
-    return json.loads(check_output(command).decode('ascii'))
-
-
-def fetch_script_pubkey(tx_hash, tx_index, testnet=False):
-    '''Returns the scriptPubKey from the libbitcoin server'''
-    tx_data = fetch_tx(tx_hash, testnet)
-    output = tx_data['transaction']['outputs'][tx_index]
-    script = output['script']
-    h160 = output['address_hash']
-    # hacky: interpret the script as p2pkh or p2sh
-    if script.startswith('dup hash160 [') and script.endswith('] equalverify checksig'):
-        return unhexlify('76a914' + h160 + '88ac')
-    elif script.startswith('hash160 [') and script.endswith('] equal'):
-        return unhexlify('a914' + h160 + '87')
-    else:
-        raise RuntimeError('unknown script: {}'.format(script))
-
-
 def flip_endian(h):
     '''flip_endian takes a hex string and flips the endianness
     Returns a hexadecimal string
@@ -180,49 +153,64 @@ def h160_to_p2sh_address(h160, testnet=False):
 def merkle_parent(hash1, hash2):
     '''Takes the binary hashes and calculates the double-sha256'''
     # return the double-sha256 of hash1 + hash2
-    raise NotImplementedError
+    return double_sha256(hash1 + hash2)
 
 
 def merkle_parent_level(hash_list):
     '''Takes a list of binary hashes and returns a list that's half
     the length'''
     # Exercise 2.2: if the list has exactly 1 element raise an error
+    if len(hash_list) == 1:
+        raise RuntimeError('Cannot take a parent level with only 1 item')
     # Exercise 3.2: if the list has an odd number of elements, duplicate the last one
     #               and put it at the end so it has an even number of elements
+    if len(hash_list) % 2 == 1:
+        hash_list.append(hash_list[-1])
     # Exercise 2.2: initialize next level
+    parent_level = []
     # Exercise 2.2: loop over every pair (use: for i in range(0, len(hash_list), 2))
+    for i in range(0, len(hash_list), 2):
         # Exercise 2.2: get the merkle parent of i and i+1 hashes
+        parent = merkle_parent(hash_list[i], hash_list[i+1])
         # Exercise 2.2: append parent to parent level
+        parent_level.append(parent)
     # Exercise 2.2: return parent level
-    raise NotImplementedError
+    return parent_level
 
 
 def merkle_root(hash_list):
     '''Takes a list of binary hashes and returns the merkle root
     '''
     # current level starts as hash_list
+    current_level = hash_list
     # loop until there's exactly 1 element
+    while len(current_level) > 1:
         # current level becomes the merkle parent level
+        current_level = merkle_parent_level(current_level)        
     # return the 1st item of current_level
-    raise NotImplementedError
+    return current_level[0]
 
 
 def merkle_path(index, total):
     '''Returns a list of indexes up the merkle tree of the node at index if
     there are a total number of nodes'''
     # initialize the path
+    path = []
     # calculate number of levels (math.ceil(math.log(total, 2)))
+    num_levels = math.ceil(math.log(total, 2))
     # loop through each level
+    for _ in range(num_levels):
         # add the index to path
+        path.append(index)
         # index becomes integer divide by 2 (use: index = index // 2)
+        index = index // 2
     # return the path
-    raise NotImplementedError
+    return path
 
 
 class HelperTest(TestCase):
 
     def test_bytes(self):
-
         b = b'hello world'
         s = 'hello world'
         self.assertEqual(b, str_to_bytes(s))

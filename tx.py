@@ -2,15 +2,14 @@ from binascii import hexlify, unhexlify
 from io import BytesIO
 from unittest import TestCase
 
-import requests
+import random
+import zmq
 
 from ecc import PrivateKey, S256Point, Signature
 from helper import (
     decode_base58,
     double_sha256,
     encode_varint,
-    fetch_tx,
-    fetch_script_pubkey,
     int_to_little_endian,
     little_endian_to_int,
     p2pkh_script,
@@ -158,7 +157,7 @@ class Tx:
             # Exercise 1.1: get the signature from der format
             signature = Signature.parse(der)
             # Exercise 1.1: get the hash to sign
-            z = self.hash_to_sign(input_index, hash_type)
+            z = self.sig_hash(input_index, hash_type)
             # Exercise 1.1: use point.verify on the hash to sign and signature
             if not point.verify(z, signature):
                 return False
@@ -167,7 +166,7 @@ class Tx:
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
         # get the hash to sign
-        z = self.hash_to_sign(input_index, hash_type)
+        z = self.sig_hash(input_index, hash_type)
         # get der signature of z from private key
         der = private_key.sign(z).der()
         # append the hash_type to der (use bytes([hash_type]))
@@ -213,6 +212,11 @@ class Tx:
 
 class TxIn:
 
+    context = zmq.Context()
+    mainnet_socket = None
+    testnet_socket = None
+    cache = {}
+
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
@@ -254,23 +258,59 @@ class TxIn:
         result += int_to_little_endian(self.sequence, 4)
         return result
 
+    @classmethod
+    def get_socket(cls, testnet=False):
+        if testnet:
+            if cls.testnet_socket is None:
+                cls.testnet_socket = cls.context.socket(zmq.DEALER)
+                cls.testnet_socket.connect('tcp://testnet.libbitcoin.net:19091')
+            return cls.testnet_socket
+        else:
+            if cls.mainnet_socket is None:
+                cls.mainnet_socket = cls.context.socket(zmq.DEALER)
+                cls.mainnet_socket.connect('tcp://mainnet.libbitcoin.net:9091')
+            return cls.mainnet_socket
+
+    def fetch_tx(self, testnet=False):
+        if self.prev_tx not in self.cache:
+            socket = self.get_socket(testnet=testnet)
+            nonce = int_to_little_endian(random.randint(0, 2**32), 4)
+            msg = b'blockchain.fetch_transaction2'
+            socket.send(msg, zmq.SNDMORE)
+            socket.send(nonce, zmq.SNDMORE)
+            socket.send(self.prev_tx[::-1])
+            response_msg = socket.recv()
+            response_nonce = socket.recv()
+            if response_msg != msg or response_nonce != nonce:
+                raise RuntimeError('received wrong msg: {}'.format(
+                    response_msg.decode('ascii')))
+            response_tx = socket.recv()
+            response_code = little_endian_to_int(response_tx[:4])
+            if response_code != 0:
+                raise RuntimeError('got code from server: {}'.format(response_code))
+            stream = BytesIO(response_tx[4:])
+            self.cache[self.prev_tx] = Tx.parse(stream)
+        return self.cache[self.prev_tx]
+            
     def value(self, testnet=False):
         '''Get the outpoint value by looking up the tx hash on libbitcoin server
         Returns the amount in satoshi
         '''
-        # use fetch_tx to get the transaction
-        tx_data = fetch_tx(self.prev_tx)
-        # get the output at self.prev_index: tx_data['transaction']['outputs'][self.prev_index]
-        output = tx_data['transaction']['outputs'][self.prev_index]
-        # grab the value and cast to int
-        return int(output['value'])
+        # use self.fetch_tx to get the transaction
+        tx = self.fetch_tx(testnet=testnet)
+        # get the output at self.prev_index
+        # return the amount property
+        return tx.tx_outs[self.prev_index].amount
 
     def script_pubkey(self, testnet=False):
         '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
         Returns the binary scriptpubkey
         '''
-        # use fetch_script_pubkey from helper.py
-        return fetch_script_pubkey(self.prev_tx, self.prev_index, testnet)
+        # use self.fetch_tx to get the transaction
+        tx = self.fetch_tx(testnet=testnet)
+        # get the output at self.prev_index
+        # return the script_pubkey property and serialize
+        return tx.tx_outs[self.prev_index].script_pubkey.serialize()
 
     def der_signature(self, index=0):
         '''returns a DER format signature and hash_type if the script_sig
@@ -289,6 +329,13 @@ class TxIn:
 
 
 class TxOut:
+
+    @classmethod
+    def tearDownClass(cls):
+        if TxIn.mainnet_socket is not None:
+            TxIn.mainnet_socket.close()
+        if TxIn.testnet_socket is not None:
+            TxIn.testnet_socket.close()
 
     def __init__(self, amount, script_pubkey):
         self.amount = amount
