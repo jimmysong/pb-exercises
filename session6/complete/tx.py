@@ -8,13 +8,16 @@ from ecc import PrivateKey, S256Point, Signature
 from helper import (
     decode_base58,
     double_sha256,
+    encode_varint,
+    fetch_tx,
+    fetch_script_pubkey,
     int_to_little_endian,
     little_endian_to_int,
     p2pkh_script,
+    read_varint,
     SIGHASH_ALL,
 )
 from script import Script
-
 
 class Tx:
 
@@ -41,47 +44,59 @@ class Tx:
         '''Takes a byte stream and parses the transaction at the start
         return a Tx object
         '''
+        # s.read(n) will return n bytes
         # version has 4 bytes, little-endian, interpret as int
         version = little_endian_to_int(s.read(4))
-        # num_inputs is 1 byte (not really, but we can learn about varint later)
-        num_inputs = s.read(1)[0]
-        tx_ins = []
+        # num_inputs is a varint, use read_varint(s)
+        num_inputs = read_varint(s)
         # each input needs parsing
+        inputs = []
         for _ in range(num_inputs):
-            tx_ins.append(TxIn.parse(s))
-        # num_outputs is 1 byte (again, varint, but we'll learn that later)
-        num_outputs = s.read(1)[0]
-        tx_outs = []
+            inputs.append(TxIn.parse(s))
+        # num_outputs is a varint, use read_varint(s)
+        num_outputs = read_varint(s)
+        # each output needs parsing
+        outputs = []
         for _ in range(num_outputs):
-            tx_outs.append(TxOut.parse(s))
+            outputs.append(TxOut.parse(s))
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
-        return cls(version, tx_ins, tx_outs, locktime)
+        # return an instance of the class (cls(...))
+        return cls(version, inputs, outputs, locktime)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction'''
-        # version
+        # serialize version (4 bytes, little endian)
         result = int_to_little_endian(self.version, 4)
-        # inputs
-        result += bytes([len(self.tx_ins)])
+        # encode_varint on the number of inputs
+        result += encode_varint(len(self.tx_ins))
+        # iterate inputs
         for tx_in in self.tx_ins:
+            # serialize each input
             result += tx_in.serialize()
-        # outputs
-        result += bytes([len(self.tx_outs)])
+        # encode_varint on the number of inputs
+        result += encode_varint(len(self.tx_outs))
+        # iterate outputs
         for tx_out in self.tx_outs:
+            # serialize each output
             result += tx_out.serialize()
-        # locktime
+        # serialize locktime (4 bytes, little endian)
         result += int_to_little_endian(self.locktime, 4)
         return result
 
     def fee(self):
         '''Returns the fee of this transaction in satoshi'''
-        input_sum = 0
+        # initialize input sum and output sum
+        input_sum, output_sum = 0, 0
+        # iterate through inputs
         for tx_in in self.tx_ins:
-            input_sum += tx_in.value(self.testnet)
-        output_sum = 0
+            # for each input get the value and add to input sum
+            input_sum += tx_in.value()
+        # iterate through outputs
         for tx_out in self.tx_outs:
+            # for each output get the amount and add to output sum
             output_sum += tx_out.amount
+        # return input sum - output sum
         return input_sum - output_sum
 
     def hash_to_sign(self, input_index, sighash):
@@ -97,16 +112,22 @@ class Tx:
                 script_sig=b'',
                 sequence=tx_in.sequence,
             ))
-        # determine how we need to sign from the scriptPubKey
+        # replace the input's scriptSig with the scriptPubKey
         signing_input = alt_tx_ins[input_index]
+        # Exercise 6.2: grab the script_pubkey (use Script.parse(signing_input.script_pubkey(self.testnet)))
         script_pubkey = Script.parse(signing_input.script_pubkey(self.testnet))
+        # Exercise 6.2: get the sig type from script_pubkey.type()
         sig_type = script_pubkey.type()
+        # Exercise 6.2: the script_sig of the signing_input should be script_pubkey for p2pkh
         if sig_type == 'p2pkh':
-            # replace the input's scriptSig with the scriptPubKey
+            # Exercise 6.2: replace the input's scriptSig with the scriptPubKey
             signing_input.script_sig = script_pubkey
+        # Exercise 6.2: the script_sig of the signing_input should be the redeemScript
+        #               of the current input of the real tx_in (self.tx_ins[input_index].redeem_script()
         elif sig_type == 'p2sh':
-            # replace the input's scriptSig with the RedeemScript
+            # Exercise 6.2: replace the input's scriptSig with the RedeemScript
             current_input = self.tx_ins[input_index]
+            # Exercise 6.2: replace the input's scriptSig with the Script.parse(redeem_script)
             signing_input.script_sig = Script.parse(
                 current_input.redeem_script())
         else:
@@ -122,17 +143,23 @@ class Tx:
 
     def verify_input(self, input_index):
         '''Returns whether the input has a valid signature'''
-        inp = self.tx_ins[input_index]
-        sigs_required = inp.script_sig.num_sigs_required()
+        # Exercise 1.1: get the relevant input
+        tx_in = self.tx_ins[input_index]
+        # Exercise 6.2: get the number of signatures required. This is available in tx_in.script_sig.num_sigs_required()
+        sigs_required = tx_in.script_sig.num_sigs_required()
+        # Exercise 6.2: iterate over the sigs required and check each signature
         for sig_num in range(sigs_required):
-            # get the point from the sec format
-            point = S256Point.parse(inp.sec_pubkey(index=sig_num))
-            # get the input signature
-            der, sighash = inp.der_signature(index=sig_num)
+            # Exercise 1.1: get the point from the sec format (tx_in.sec_pubkey())
+            # Exercise 6.2: get the sec_pubkey at current signature index (check sec_pubkey function)
+            point = S256Point.parse(tx_in.sec_pubkey(index=sig_num))
+            # Exercise 1.1: get the der sig and sighash from input
+            # Exercise 6.2: get the der_signature at current signature index (check der_signature function)
+            der, sighash = tx_in.der_signature(index=sig_num)
+            # Exercise 1.1: get the signature from der format
             signature = Signature.parse(der)
-            # get the hash to sign
+            # Exercise 1.1: get the hash to sign
             z = self.hash_to_sign(input_index, sighash)
-            # verify the hash and signature are good
+            # Exercise 1.1: use point.verify on the hash to sign and signature
             if not point.verify(z, signature):
                 return False
         return True
@@ -141,41 +168,47 @@ class Tx:
         '''Signs the input using the private key'''
         # get the hash to sign
         z = self.hash_to_sign(input_index, sighash)
-        # get der signature from private key
+        # get der signature of z from private key
         der = private_key.sign(z).der()
-        # append the sighash, most likely SIGHASH_ALL
+        # append the sighash to der (use bytes([sighash]))
         sig = der + bytes([sighash])
-        # add the sec
+        # calculate the sec
         sec = private_key.point.sec()
-        # construct script_sig
-        script_sig = bytes([len(sig)]) + sig + bytes([len(sec)]) + sec
-        # change input's script_sig
-        self.tx_ins[input_index].script_sig = Script.parse(script_sig)
-        # return whether sig is valid
+        # initialize a new script with [sig, sec] as the elements
+        script_sig = Script([sig, sec])
+        # change input's script_sig to new script
+        self.tx_ins[input_index].script_sig = script_sig
+        # return whether sig is valid using self.verify_input
         return self.verify_input(input_index)
 
     def is_coinbase(self):
         '''Returns whether this transaction is a coinbase transaction or not'''
-        # previous hash is all 0's
-        # previous index is all f's
-        coinbase_input = b'\x00' * 32
-        return len(self.tx_ins) == 1 \
-           and self.tx_ins[0].prev_tx == coinbase_input \
-           and self.tx_ins[0].prev_index == 0xffffffff
+        # check that there is exactly 1 input
+        if len(self.tx_ins) != 1:
+            return False
+        # grab the first input
+        first_input = self.tx_ins[0]
+        # check that first input prev_tx is b'\x00' * 32 bytes
+        if first_input.prev_tx != b'\x00' * 32:
+            return False
+        # check that first input prev_index is 0xffffffff
+        if first_input.prev_index != 0xffffffff:
+            return False
+        return True
 
     def coinbase_height(self):
         '''Returns the height of the block this coinbase transaction is in
         Returns None if this transaction is not a coinbase transaction
         '''
-        # coinbase height is encoded in the first input's script_sig as the
-        # first element encoded in little-endian
+        # if this is NOT a coinbase transaction, return None
         if not self.is_coinbase():
             return None
-        height = int.from_bytes(self.tx_ins[0].script_sig.elements[0], 'little')
-        return height
-
-
-CACHE = {'75d7454b7010fa28b00f16cccb640b1756fd6e357c03a3b81b9d119505f47b56:0': {'spent_by': 'ee51510d7bbabe28052038d1deb10c03ec74f06a79e21913c6fcf48d56217c87', 'script_type': 'pay-to-pubkey-hash', 'value': 1043341, 'addresses': ['1KhAyQ3kaRQptGwAZghHBjNg65dgGdDXak'], 'script': '76a914cd0b3a22cd16e182291aa2708c41cb38de5a330788ac'}, 'd37f9e7282f81b7fd3af0fde8b462a1c28024f1d83cf13637ec18d03f4518fe:0': {'spent_by': 'ee51510d7bbabe28052038d1deb10c03ec74f06a79e21913c6fcf48d56217c87', 'script_type': 'pay-to-pubkey-hash', 'value': 29960102, 'addresses': ['1Gy5Djegn51WxHQN4X19FBsUy8RQ74hvYo'], 'script': '76a914af24b3f3e987c23528b366122a7ed2af199b36bc88ac'}, 'd37f9e7282f81b7fd3af0fde8b462a1c28024f1d83cf13637ec18d03f4518feb:0': {'spent_by': 'ee51510d7bbabe28052038d1deb10c03ec74f06a79e21913c6fcf48d56217c87', 'script_type': 'pay-to-pubkey-hash', 'value': 29960102, 'addresses': ['1Gy5Djegn51WxHQN4X19FBsUy8RQ74hvYo'], 'script': '76a914af24b3f3e987c23528b366122a7ed2af199b36bc88ac'}, '0025bc3c0fa8b7eb55b9437fdbd016870d18e0df0ace7bc9864efc38414147c8:0': {'script_type': 'pay-to-pubkey-hash', 'value': 110000000, 'addresses': ['mzx5YhAH9kNHtcN481u6WkjeHjYtVeKVh2'], 'script': '76a914d52ad7ca9b3d096a38e752c2018e6fbc40cdf26f88ac'}, 'd1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81:0': {'spent_by': '452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03', 'script_type': 'pay-to-pubkey-hash', 'value': 42505594, 'addresses': ['1GKN6gJBgvet8S92qiQjVxEaVJ5eoJE9s2'], 'script': '76a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac'}, '9e067aedc661fca148e13953df75f8ca6eada9ce3b3d8d68631769ac60999156:1': {'spent_by': 'ee51510d7bbabe28052038d1deb10c03ec74f06a79e21913c6fcf48d56217c87', 'script_type': 'pay-to-pubkey-hash', 'value': 800000, 'addresses': ['1ARzh3A5fgGzbaXkg3novtH8AopzojY79D'], 'script': '76a914677345c7376dfda2c52ad9b6a153b643b6409a3788ac'}, '22874d30bde689475e1df03608aa85a3c7b01e18f8d53aedc1b6df6ded788286:26': {'spent_by': '46df1a9484d0a81d03ce0ee543ab6e1a23ed06175c104a178268fad381216c2b', 'script_type': 'pay-to-script-hash', 'value': 50000000, 'addresses': ['3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'], 'script': 'a91474d691da1574e6b3c192ecfb52cc8984ee7b6c5687'}, '45f3f79066d251addc04fd889f776c73afab1cb22559376ff820e6166c5e3ad6:1': {'spent_by': 'ee51510d7bbabe28052038d1deb10c03ec74f06a79e21913c6fcf48d56217c87', 'script_type': 'pay-to-pubkey-hash', 'value': 9337330, 'addresses': ['15UecwTDg57tnfSM6Cra8cmZVYavxtTZp2'], 'script': '76a914311b232c3400080eb2636edb8548b47f6835be7688ac'}}
+        # grab the first input
+        first_input = self.tx_ins[0]
+        # grab the first element of the script_sig (.script_sig.elements[0])
+        first_element = first_input.script_sig.elements[0]
+        # convert the first element from little endian to int
+        return little_endian_to_int(first_element)
 
 
 class TxIn:
@@ -191,61 +224,53 @@ class TxIn:
         '''Takes a byte stream and parses the tx_input at the start
         return a TxIn object
         '''
+        # s.read(n) will return n bytes
         # prev_tx is 32 bytes, little endian
         prev_tx = s.read(32)[::-1]
         # prev_index is 4 bytes, little endian, interpret as int
         prev_index = little_endian_to_int(s.read(4))
         # script_sig is a variable field (length followed by the data)
-        script_sig_length = s.read(1)[0]
+        # get the length by using read_varint(s)
+        script_sig_length = read_varint(s)
         script_sig = s.read(script_sig_length)
         # sequence is 4 bytes, little-endian, interpret as int
         sequence = little_endian_to_int(s.read(4))
+        # return an instance of the class (cls(...))
         return cls(prev_tx, prev_index, script_sig, sequence)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction input'''
-        # tx, prev_tx is little-endian!
-        result = self.prev_tx[::-1] + int_to_little_endian(self.prev_index, 4)
-        # script_sig
-        serialized_script_sig = self.script_sig.serialize()
-        result += bytes([len(serialized_script_sig)]) + serialized_script_sig
-        # sequence
+        # serialize prev_tx, little endian
+        result = self.prev_tx[::-1]
+        # serialize prev_index, 4 bytes, little endian
+        result += int_to_little_endian(self.prev_index, 4)
+        # get the scriptSig ready (use self.script_sig.serialize())
+        raw_script_sig = self.script_sig.serialize()
+        # encode_varint on the length of the scriptSig
+        result += encode_varint(len(raw_script_sig))
+        # add the scriptSig
+        result += raw_script_sig
+        # serialize sequence, 4 bytes, little endian
         result += int_to_little_endian(self.sequence, 4)
         return result
 
-    def outpoint(self, testnet=False):
-        cache_key = '{}:{}'.format(
-            hexlify(self.prev_tx).decode('ascii'), self.prev_index)
-        cache = CACHE.get(cache_key)
-        if cache:
-            return cache
-        if testnet:
-            net = 'test3'
-        else:
-            net = 'main'
-        url = 'https://api.blockcypher.com/v1/btc/{}/txs/{}?token=41298c19cc85400da2f1aa620578b096&outstart=0&limit={}'.format(
-            net, hexlify(self.prev_tx).decode('ascii'), self.prev_index + 1)
-        tx_json = requests.get(url).json()
-        if 'outputs' not in tx_json:
-            raise RuntimeError('received {}'.format(tx_json))
-        CACHE[cache_key] = tx_json['outputs'][self.prev_index]
-        return CACHE[cache_key]
-
     def value(self, testnet=False):
-        '''tx_hash is a hex version of tx, index is an integer
-        get the outpoint value by looking up the tx_hash on blockcypher.com.
+        '''Get the outpoint value by looking up the tx hash on libbitcoin server
         Returns the amount in satoshi
         '''
-        outpoint = self.outpoint(testnet=testnet)
-        return outpoint['value']
+        # use fetch_tx to get the transaction
+        tx_data = fetch_tx(self.prev_tx)
+        # get the output at self.prev_index: tx_data['transaction']['outputs'][self.prev_index]
+        output = tx_data['transaction']['outputs'][self.prev_index]
+        # grab the value and cast to int
+        return int(output['value'])
 
     def script_pubkey(self, testnet=False):
-        '''tx_hash is a hex version of tx, index is an integer
-        get the scriptPubKey by looking up the transaction on blockcypher.com.
+        '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
         Returns the binary scriptpubkey
         '''
-        outpoint = self.outpoint(testnet=testnet)
-        return unhexlify(outpoint['script'])
+        # use fetch_script_pubkey from helper.py
+        return fetch_script_pubkey(self.prev_tx, self.prev_index, testnet)
 
     def der_signature(self, index=0):
         '''returns a DER format signature and sighash if the script_sig
@@ -274,20 +299,26 @@ class TxOut:
         '''Takes a byte stream and parses the tx_output at the start
         return a TxOut object
         '''
+        # s.read(n) will return n bytes
         # amount is 8 bytes, little endian, interpret as int
         amount = little_endian_to_int(s.read(8))
         # script_pubkey is a variable field (length followed by the data)
-        script_pubkey_length = s.read(1)[0]
+        # get the length by using read_varint(s)
+        script_pubkey_length = read_varint(s)
         script_pubkey = s.read(script_pubkey_length)
+        # return an instance of the class (cls(...))
         return cls(amount, script_pubkey)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction output'''
-        # amount
+        # serialize amount, 8 bytes, little endian
         result = int_to_little_endian(self.amount, 8)
-        # pubkey
-        serialized_script_pubkey = self.script_pubkey.serialize()
-        result += bytes([len(serialized_script_pubkey)]) + serialized_script_pubkey
+        # get the scriptPubkey ready (use self.script_pubkey.serialize())
+        raw_script_pubkey = self.script_pubkey.serialize()
+        # encode_varint on the length of the scriptPubkey
+        result += encode_varint(len(raw_script_pubkey))
+        # add the scriptPubKey
+        result += raw_script_pubkey
         return result
 
 

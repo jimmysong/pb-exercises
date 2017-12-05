@@ -245,11 +245,15 @@ class Script:
         '''Returns the address corresponding to the script'''
         sig_type = self.type()
         if sig_type == 'p2pkh':
-            return h160_to_p2pkh_address(self.elements[2], testnet=testnet)
+            # hash160 is the 3rd element
+            h160 = self.elements[2]
+            # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
+            return h160_to_p2pkh_address(h160, testnet)
         elif sig_type == 'p2sh':
-            return h160_to_p2sh_address(self.elements[1], testnet=testnet)
-        else:
-            return None
+            # hash160 is the 2nd element
+            h160 = self.elements[1]
+            # convert to p2sh address using h160_to_p2sh_address (remember testnet)
+            return h160_to_p2sh_address(h160, testnet)
 
 
 class ScriptTest(TestCase):

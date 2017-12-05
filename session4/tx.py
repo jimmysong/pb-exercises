@@ -6,12 +6,15 @@ import requests
 
 from helper import (
     double_sha256,
+    encode_varint,
+    fetch_tx,
+    fetch_script_pubkey,
     int_to_little_endian,
     little_endian_to_int,
+    read_varint,
     SIGHASH_ALL,
 )
 from script import Script
-
 
 class Tx:
 
@@ -38,30 +41,35 @@ class Tx:
         '''Takes a byte stream and parses the transaction at the start
         return a Tx object
         '''
+        # s.read(n) will return n bytes
         # version has 4 bytes, little-endian, interpret as int
         version = little_endian_to_int(s.read(4))
-        # num_inputs is 1 byte (not really, but we can learn about varint later)
-        num_inputs = s.read(1)[0]
-        tx_ins = []
+        # num_inputs is a varint, use read_varint(s)
+        num_inputs = read_varint(s)
         # each input needs parsing
+        inputs = []
         for _ in range(num_inputs):
-            tx_ins.append(TxIn.parse(s))
-        # num_outputs is 1 byte (again, varint, but we'll learn that later)
-        num_outputs = s.read(1)[0]
-        tx_outs = []
+            inputs.append(TxIn.parse(s))
+        # num_outputs is a varint, use read_varint(s)
+        num_outputs = read_varint(s)
+        # each output needs parsing
+        outputs = []
         for _ in range(num_outputs):
-            tx_outs.append(TxOut.parse(s))
+            outputs.append(TxOut.parse(s))
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
-        return cls(version, tx_ins, tx_outs, locktime)
+        # return an instance of the class (cls(...))
+        return cls(version, inputs, outputs, locktime)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction'''
         # serialize version (4 bytes, little endian)
+        # encode_varint on the number of inputs
         # iterate inputs
-        # serialize each input
+            # serialize each input
+        # encode_varint on the number of inputs
         # iterate outputs
-        # serialize each output
+            # serialize each output
         # serialize locktime (4 bytes, little endian)
         raise NotImplementedError
 
@@ -69,9 +77,9 @@ class Tx:
         '''Returns the fee of this transaction in satoshi'''
         # initialize input sum and output sum
         # iterate through inputs
-        # for each input get the value and add to input sum
+            # for each input get the value and add to input sum
         # iterate through outputs
-        # for each output get the value and add to output sum
+            # for each output get the amount and add to output sum
         # return input sum - output sum
         raise NotImplementedError
 
@@ -79,11 +87,17 @@ class Tx:
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
         # create a new transaction that's a clone of self
+        # use self.__class__(self.version, self.tx_ins, self.tx_outs, self.locktime)
         # iterate through inputs
-        # for each input, create new TxIn with blanked out script_sig
+            # for each input, create new TxIn with blanked out script_sig
+            # use Script(b'')
+        # grab the input at input_index
         # replace input_index input with scriptPubKey from that input
-        # add the sighash in 4 bytes, little endian
-        # return the double_sha256 of the tx serialization
+        # use Script(tx_in.script_pubkey())
+        # grab the serialization
+        # add the sighash int in 4 bytes, little endian
+        # get the double_sha256 of the tx serialization
+        # convert this to a big-endian integer using int.from_bytes(x, 'big')
         raise NotImplementedError
 
 
@@ -100,51 +114,44 @@ class TxIn:
         '''Takes a byte stream and parses the tx_input at the start
         return a TxIn object
         '''
+        # s.read(n) will return n bytes
         # prev_tx is 32 bytes, little endian
         prev_tx = s.read(32)[::-1]
         # prev_index is 4 bytes, little endian, interpret as int
         prev_index = little_endian_to_int(s.read(4))
         # script_sig is a variable field (length followed by the data)
-        script_sig_length = s.read(1)[0]
+        # get the length by using read_varint(s)
+        script_sig_length = read_varint(s)
         script_sig = s.read(script_sig_length)
         # sequence is 4 bytes, little-endian, interpret as int
         sequence = little_endian_to_int(s.read(4))
+        # return an instance of the class (cls(...))
         return cls(prev_tx, prev_index, script_sig, sequence)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction input'''
         # serialize prev_tx, little endian
         # serialize prev_index, 4 bytes, little endian
-        # serialize script_sig, (use: script_sig.serialize())
+        # get the scriptSig ready (use self.script_sig.serialize())
+        # encode_varint on the length of the scriptSig
+        # add the scriptSig
         # serialize sequence, 4 bytes, little endian
         raise NotImplementedError
 
     def value(self, testnet=False):
-        '''tx_hash is a hex version of tx, index is an integer
-        get the outpoint value by looking up the tx_hash on blockcypher.com.
+        '''Get the outpoint value by looking up the tx hash on libbitcoin server
         Returns the amount in satoshi
         '''
-        # construct the url based on the network
-        # https://api.blockcypher.com/v1/btc/main/txs/<tx_hash>
-        # https://api.blockcypher.com/v1/btc/test3/txs/<tx_hash>
-        # tx_hash should be prev_hash
-        # grab the json using requests library: requests.get(url).json()
-        # get the output at self.prev_index: json['outputs'][self.prev_index]
-        # grab the value
+        # use fetch_tx to get the transaction
+        # get the output at self.prev_index: tx_data['transaction']['outputs'][self.prev_index]
+        # grab the value and cast to int
         raise NotImplementedError
 
     def script_pubkey(self, testnet=False):
-        '''tx_hash is a hex version of tx, index is an integer
-        get the scriptPubKey by looking up the transaction on blockcypher.com.
+        '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
         Returns the binary scriptpubkey
         '''
-        # construct the url based on the network
-        # https://api.blockcypher.com/v1/btc/main/txs/<tx_hash>
-        # https://api.blockcypher.com/v1/btc/test3/txs/<tx_hash>
-        # tx_hash should be prev_hash
-        # grab the json using requests library: requests.get(url).json()
-        # get the output at self.prev_index: json['outputs'][self.prev_index]
-        # grab the scriptPubKey
+        # use fetch_script_pubkey from helper.py
         raise NotImplementedError
 
     def der_signature(self, index=0):
@@ -170,17 +177,22 @@ class TxOut:
         '''Takes a byte stream and parses the tx_output at the start
         return a TxOut object
         '''
+        # s.read(n) will return n bytes
         # amount is 8 bytes, little endian, interpret as int
         amount = little_endian_to_int(s.read(8))
         # script_pubkey is a variable field (length followed by the data)
-        script_pubkey_length = s.read(1)[0]
+        # get the length by using read_varint(s)
+        script_pubkey_length = read_varint(s)
         script_pubkey = s.read(script_pubkey_length)
+        # return an instance of the class (cls(...))
         return cls(amount, script_pubkey)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction output'''
         # serialize amount, 8 bytes, little endian
-        # serialize pubkey, (use: script_pubkey.serialize())
+        # get the scriptPubkey ready (use self.script_pubkey.serialize())
+        # encode_varint on the length of the scriptPubkey
+        # add the scriptPubKey
         raise NotImplementedError
 
 

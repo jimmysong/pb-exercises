@@ -24,11 +24,12 @@ class Block:
         '''Takes a byte stream and parses a block. Returns a Block object'''
         # s.read(n) will read n bytes from the stream
         # version - 4 bytes, little endian, interpret as int
-        # prev_block - 32 bytes, little endian
-        # merkle_root - 32 bytes, little endian
+        # prev_block - 32 bytes, little endian (use [::-1] to reverse)
+        # merkle_root - 32 bytes, little endian (use [::-1] to reverse)
         # timestamp - 4 bytes, little endian, interpret as int
         # bits - 4 bytes
         # nonce - 4 bytes
+        # initialize class
         raise NotImplementedError
 
     def serialize(self):
@@ -69,9 +70,8 @@ class Block:
 
     def target(self):
         '''Returns the proof-of-work target based on the bits'''
-        # reverse the bits
-        # first byte is exponent
-        # the other three bytes are the coefficient.
+        # last byte is exponent
+        # the first three bytes are the coefficient in little endian
         # the formula is:
         # coefficient * 2**(8*(exponent-3))
         raise NotImplementedError
@@ -84,9 +84,9 @@ class Block:
 
     def check_pow(self):
         '''Returns whether this block satisfies proof of work'''
-        # You will need to get the hash of this block and interpret it
-        # as an integer. If the hash of the block is lower, pow is good.
-        # hint: int.from_bytes('', 'big')
+        # get the double_sha256 of the serialization of this block
+        # interpret this hash as an integer using int.from_bytes(sha, 'little')
+        # return whether this integer is less than the target
         raise NotImplementedError
 
 

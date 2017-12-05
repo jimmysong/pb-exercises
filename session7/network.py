@@ -31,7 +31,8 @@ class NetworkEnvelope:
         # command 12 bytes
         # payload length 4 bytes, little endian
         # checksum 4 bytes, first four of double-sha256 of payload
-        # payload
+        # payload is of length payload_length
+        # verify checksum
         raise NotImplementedError
 
     def serialize(self):

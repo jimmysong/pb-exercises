@@ -153,7 +153,7 @@ class Script:
                 if op_str:
                     elements.append(op_code)
                 else:
-                    raise RuntimeError('Unknown OP Code: {}'.format(op_code))
+                    raise RunTimeError('Unknown OP Code: {}'.format(op_code))
             current = s.read(1)
         return cls(elements)
 

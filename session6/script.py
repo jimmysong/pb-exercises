@@ -2,6 +2,8 @@ from binascii import hexlify, unhexlify
 from io import BytesIO
 from unittest import TestCase
 
+from helper import h160_to_p2pkh_address, h160_to_p2sh_address
+
 
 OP_CODES = {
   0: 'OP_0',
@@ -243,9 +245,13 @@ class Script:
         '''Returns the address corresponding to the script'''
         sig_type = self.type()
         if sig_type == 'p2pkh':
-            pass
+            # hash160 is the 3rd element
+            # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
+            pass  # REMOVE THIS LINE
         elif sig_type == 'p2sh':
-            pass
+            # hash160 is the 2nd element
+            # convert to p2sh address using h160_to_p2sh_address (remember testnet)
+            pass  # REMOVE THIS LINE
         raise NotImplementedError
 
 

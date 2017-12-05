@@ -2,7 +2,7 @@ from binascii import hexlify, unhexlify
 from io import BytesIO
 from unittest import TestCase
 
-from helper import little_endian_to_int
+from helper import little_endian_to_int, read_varint
 
 class Tx:
 
@@ -29,13 +29,13 @@ class Tx:
         return a Tx object
         '''
         # s.read(n) will return n bytes
-        # s.read(1)[0] will return the next byte as an integer
-
         # version has 4 bytes, little-endian, interpret as int
-        # num_inputs is 1 byte (not really, but we can learn about varint later)
+        # num_inputs is a varint, use read_varint(s)
         # each input needs parsing
-        # num_outputs is 1 byte (again, varint, but we'll learn that later)
+        # num_outputs is a varint, use read_varint(s)
+        # each output needs parsing
         # locktime is 4 bytes, little-endian
+        # return an instance of the class (cls(...))
         raise NotImplementedError
 
 
@@ -53,12 +53,12 @@ class TxIn:
         return a TxIn object
         '''
         # s.read(n) will return n bytes
-        # s.read(1)[0] will return the next byte as an integer
-
         # prev_tx is 32 bytes, little endian
         # prev_index is 4 bytes, little endian, interpret as int
         # script_sig is a variable field (length followed by the data)
+        # get the length by using read_varint(s)
         # sequence is 4 bytes, little-endian, interpret as int
+        # return an instance of the class (cls(...))
         raise NotImplementedError
 
 
@@ -74,10 +74,10 @@ class TxOut:
         return a TxOut object
         '''
         # s.read(n) will return n bytes
-        # s.read(1)[0] will return the next byte as an integer
-
         # amount is 8 bytes, little endian, interpret as int
         # script_pubkey is a variable field (length followed by the data)
+        # get the length by using read_varint(s)
+        # return an instance of the class (cls(...))
         raise NotImplementedError
 
     

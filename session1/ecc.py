@@ -169,7 +169,6 @@ class PointTest(TestCase):
         # these should not raise an error
         Point(x=3, y=-7, a=5, b=7)
         Point(x=18, y=77, a=5, b=7)
-        Point(x=None, y=None, a=5, b=7)
 
     def test_add0(self):
         a = Point(x=None, y=None, a=5, b=7)

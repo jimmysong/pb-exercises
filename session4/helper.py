@@ -1,7 +1,9 @@
 from binascii import hexlify, unhexlify
+from subprocess import check_output
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
+import json
 
 
 SIGHASH_ALL = 1
@@ -66,23 +68,87 @@ def decode_base58(s):
     return num.to_bytes(25, byteorder='big')[1:-4]
 
 
+def read_varint(s):
+    '''read_varint reads a variable integer from a stream'''
+    i = s.read(1)[0]
+    if i == 0xfd:
+        # 0xfd means the next two bytes are the number
+        return little_endian_to_int(s.read(2))
+    elif i == 0xfe:
+        # 0xfe means the next four bytes are the number
+        return little_endian_to_int(s.read(4))
+    elif i == 0xff:
+        # 0xff means the next eight bytes are the number
+        return little_endian_to_int(s.read(8))
+    else:
+        # anything else is just the integer
+        return i
+
+
+def encode_varint(i):
+    '''encodes an integer as a varint'''
+    if i < 0xfd:
+        return bytes([i])
+    elif i < 0x10000:
+        return b'\xfd' + int_to_little_endian(i, 2)
+    elif i < 0x100000000:
+        return b'\xfe' + int_to_little_endian(i, 4)
+    elif i < 0x10000000000000000:
+        return b'\xff' + int_to_little_endian(i, 8)
+    else:
+        raise RuntimeError('integer too large: {}'.format(i))
+
+
+def fetch_tx(tx_hash, testnet=False):
+    '''Returns the transaction json from a libbitcoin server'''
+    command = ['bx', 'fetch-tx', '-f', 'json', '-c']
+    if testnet:
+        command.append('bx-testnet.cfg')
+    else:
+        command.append('bx.cfg')
+    command.append(hexlify(tx_hash).decode('ascii'))
+    return json.loads(check_output(command).decode('ascii'))
+
+
+def fetch_script_pubkey(tx_hash, tx_index, testnet=False):
+    '''Returns the scriptPubKey from the libbitcoin server'''
+    tx_data = fetch_tx(tx_hash, testnet)
+    output = tx_data['transaction']['outputs'][tx_index]
+    script = output['script']
+    h160 = output['address_hash']
+    # hacky: interpret the script as p2pkh or p2sh
+    if script.startswith('dup hash160 [') and script.endswith('] equalverify checksig'):
+        return unhexlify('76a914' + h160 + '88ac')
+    elif script.startswith('hash160 [') and script.endswith('] equal'):
+        return unhexlify('a914' + h160 + '87')
+    else:
+        raise RuntimeError('unknown script: {}'.format(script))
+
+
 def flip_endian(h):
     '''flip_endian takes a hex string and flips the endianness
     Returns a hexadecimal string
     '''
-    return hexlify(unhexlify(h)[::-1]).decode('ascii')
+    # convert hex to binary (use unhexlify)
+    b = unhexlify(h)
+    # reverse the binary (use [::-1])
+    b_rev = b[::-1]
+    # convert binary to hex (use hexlify and then .decode('ascii'))
+    return hexlify(b_rev).decode('ascii')
 
 
 def little_endian_to_int(b):
     '''little_endian_to_int takes byte sequence as a little-endian number.
     Returns an integer'''
+    # use the from_bytes method of int
     return int.from_bytes(b, 'little')
 
 
 def int_to_little_endian(n, length):
     '''endian_to_little_endian takes an integer and returns the little-endian
     byte sequence of length'''
-    return n.to_bytes(length, byteorder='little')
+    # use the to_bytes method of n
+    return n.to_bytes(length, 'little')
 
 
 class HelperTest(TestCase):

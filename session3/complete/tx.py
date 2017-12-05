@@ -2,7 +2,7 @@ from binascii import hexlify, unhexlify
 from io import BytesIO
 from unittest import TestCase
 
-from helper import little_endian_to_int
+from helper import little_endian_to_int, read_varint
 
 class Tx:
 
@@ -28,22 +28,25 @@ class Tx:
         '''Takes a byte stream and parses the transaction at the start
         return a Tx object
         '''
+        # s.read(n) will return n bytes
         # version has 4 bytes, little-endian, interpret as int
         version = little_endian_to_int(s.read(4))
-        # num_inputs is 1 byte (not really, but we can learn about varint later)
-        num_inputs = s.read(1)[0]
-        tx_ins = []
+        # num_inputs is a varint, use read_varint(s)
+        num_inputs = read_varint(s)
         # each input needs parsing
+        inputs = []
         for _ in range(num_inputs):
-            tx_ins.append(TxIn.parse(s))
-        # num_outputs is 1 byte (again, varint, but we'll learn that later)
-        num_outputs = s.read(1)[0]
-        tx_outs = []
+            inputs.append(TxIn.parse(s))
+        # num_outputs is a varint, use read_varint(s)
+        num_outputs = read_varint(s)
+        # each output needs parsing
+        outputs = []
         for _ in range(num_outputs):
-            tx_outs.append(TxOut.parse(s))
+            outputs.append(TxOut.parse(s))
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
-        return cls(version, tx_ins, tx_outs, locktime)
+        # return an instance of the class (cls(...))
+        return cls(version, inputs, outputs, locktime)
 
 
 class TxIn:
@@ -59,15 +62,18 @@ class TxIn:
         '''Takes a byte stream and parses the tx_input at the start
         return a TxIn object
         '''
+        # s.read(n) will return n bytes
         # prev_tx is 32 bytes, little endian
         prev_tx = s.read(32)[::-1]
         # prev_index is 4 bytes, little endian, interpret as int
         prev_index = little_endian_to_int(s.read(4))
         # script_sig is a variable field (length followed by the data)
-        script_sig_length = s.read(1)[0]
+        # get the length by using read_varint(s)
+        script_sig_length = read_varint(s)
         script_sig = s.read(script_sig_length)
         # sequence is 4 bytes, little-endian, interpret as int
         sequence = little_endian_to_int(s.read(4))
+        # return an instance of the class (cls(...))
         return cls(prev_tx, prev_index, script_sig, sequence)
 
 
@@ -82,11 +88,14 @@ class TxOut:
         '''Takes a byte stream and parses the tx_output at the start
         return a TxOut object
         '''
+        # s.read(n) will return n bytes
         # amount is 8 bytes, little endian, interpret as int
         amount = little_endian_to_int(s.read(8))
         # script_pubkey is a variable field (length followed by the data)
-        script_pubkey_length = s.read(1)[0]
+        # get the length by using read_varint(s)
+        script_pubkey_length = read_varint(s)
         script_pubkey = s.read(script_pubkey_length)
+        # return an instance of the class (cls(...))
         return cls(amount, script_pubkey)
 
     

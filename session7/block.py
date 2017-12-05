@@ -34,13 +34,15 @@ class Proof:
 
     def verify(self):
         '''Returns whether this proof is valid'''
-        # current_hash starts with the tx_hash
+        # current hash starts with self.tx_hash, reversed
         # Get the Merkle Path for the index and 2**len(merkle_proof)
-        # Loop through Merkle Path
-        #   If odd, combine current_hash with merkle proof[i] on the left
-        #   If even, combine current_hash with merkle proof[i] on the right
-        #   current_hash is the double_sha256 of the concatenation
-        # if final result is equal to merkle_root, return True
+        # Loop through Merkle Path and proof hashes
+        # for proof_hash, index_at_level in zip(self.merkle_proof, path):
+            # if index_at_level is odd, proof_hash goes on left
+                # current hash becomes merkle parent of proof_hash and current
+            # if index_at_level is even, proof_hash goes on right
+                # current hash becomes merkle parent of current and proof_hash
+        # if final result reversed is equal to merkle_root, return True
         raise NotImplementedError
 
     
@@ -62,9 +64,9 @@ class Block:
         # s.read(n) will read n bytes from the stream
         # version - 4 bytes, little endian, interpret as int
         version = little_endian_to_int(s.read(4))
-        # prev_block - 32 bytes, little endian
+        # prev_block - 32 bytes, little endian (use [::-1] to reverse)
         prev_block = s.read(32)[::-1]
-        # merkle_root - 32 bytes, little endian
+        # merkle_root - 32 bytes, little endian (use [::-1] to reverse)
         merkle_root = s.read(32)[::-1]
         # timestamp - 4 bytes, little endian, interpret as int
         timestamp = little_endian_to_int(s.read(4))
@@ -72,82 +74,99 @@ class Block:
         bits = s.read(4)
         # nonce - 4 bytes
         nonce = s.read(4)
+        # initialize class
         return cls(version, prev_block, merkle_root, timestamp, bits, nonce)
 
     def serialize(self):
         '''Returns the 80 byte block header'''
+        # version - 4 bytes, little endian
         result = int_to_little_endian(self.version, 4)
+        # prev_block - 32 bytes, little endian
         result += self.prev_block[::-1]
+        # merkle_root - 32 bytes, little endian
         result += self.merkle_root[::-1]
+        # timestamp - 4 bytes, little endian
         result += int_to_little_endian(self.timestamp, 4)
+        # bits - 4 bytes
         result += self.bits
+        # nonce - 4 bytes
         result += self.nonce
         return result
 
     def hash(self):
         '''Returns the double-sha256 interpreted little endian of the block'''
-        return double_sha256(self.serialize())[::-1]
+        # serialize
+        s = self.serialize()
+        # double-sha256
+        sha = double_sha256(s)
+        # reverse
+        return sha[::-1]
 
     def bip9(self):
         '''Returns whether this block is signaling readiness for BIP9'''
         # BIP9 is signalled if the top 3 bits are 001
+        # remember version is 32 bytes so right shift 29 (>> 29) and see if
+        # that is 001
         return self.version >> 29 == 0b001
 
     def bip91(self):
         '''Returns whether this block is signaling readiness for BIP91'''
-        # BIP91 is signalled if the top 5th bit from the right is 1
-        return (self.version >> 4) & 1 == 1
+        # BIP91 is signalled if the 5th bit from the right is 1
+        # shift 4 bits to the right and see if the last bit is 1
+        return self.version >> 4 & 1 == 1
     
     def bip141(self):
         '''Returns whether this block is signaling readiness for BIP141'''
-        # BIP91 is signalled if the top 2nd bit from the right is 1
-        return (self.version >> 1) & 1 == 1
+        # BIP91 is signalled if the 2nd bit from the right is 1
+        # shift 1 bit to the right and see if the last bit is 1
+        return self.version >> 1 & 1 == 1
 
     def target(self):
         '''Returns the proof-of-work target based on the bits'''
-        # reverse the bits
-        # first byte is exponent
-        # the other three bytes are the coefficient.
+        # last byte is exponent
+        exponent = self.bits[-1]
+        # the first three bytes are the coefficient in little endian
+        coefficient = little_endian_to_int(self.bits[:-1])
         # the formula is:
         # coefficient * 2**(8*(exponent-3))
-        exponent = self.bits[-1]
-        coefficient = little_endian_to_int(self.bits[:-1])
-        return coefficient * 2**(8*(exponent - 3))
+        return coefficient * 2**(8*(exponent-3))
 
     def difficulty(self):
         '''Returns the block difficulty based on the bits'''
         # note difficulty is (target of lowest difficulty) / (self's target)
         # lowest difficulty has bits that equal 0xffff001d
-        exponent = 0x1d
-        minimum_target = 0xffff * 2**(8*(0x1d-3))
-        return minimum_target / self.target()
+        lowest = 0xffff * 2**(8*(0x1d-3))
+        return lowest / self.target()
 
     def check_pow(self):
         '''Returns whether this block satisfies proof of work'''
-        # You will need to get the hash of this block and interpret it
-        # as an integer. If the hash of the block is lower, pow is good.
-        # hint: int.from_bytes('', 'big')
-        s256 = self.hash()
-        return int.from_bytes(s256, 'big') < self.target()
+        # get the double_sha256 of the serialization of this block
+        sha = double_sha256(self.serialize())
+        # interpret this hash as an integer using int.from_bytes(sha, 'little')
+        proof = int.from_bytes(sha, 'little')
+        # return whether this integer is less than the target
+        return proof < self.target()
 
     def validate_merkle_root(self):
         '''Gets the merkle root of the tx_hashes and checks that it's
         the same as the merkle root of this block.
         '''
-        # reverse all the transaction hashes
+        # reverse all the transaction hashes (self.tx_hashes)
         # get the Merkle Root
         # reverse the Merkle Root
-        # check that this block's merkle root is the same as the Merkle Root
+        # return whether self.merkle root is the same as 
+        # the reverse of the calculated merkle root
         raise NotImplementedError
 
     def calculate_merkle_tree(self):
         '''Calculate and store the entire Merkle Tree'''
         # store the result in self.merkle_tree, an array, 0 representing
         # the bottom level and 1 the parent level of level 0 and so on.
-        # reverse all the transaction hashes
+        # initialize self.merkle_tree to be an empty list
+        # reverse all the transaction hashes (self.tx_hashes) store as current level
         # if there is more than 1 hash:
-        #   store current level
-        #   Make current level Merkle Parent level
+            # store current level in self.merkle_tree
+            # Make current level Merkle Parent level
         # store root as the final level
         raise NotImplementedError
     
@@ -157,8 +176,9 @@ class Block:
         # Get the Merkle Path
         # initialize merkle_proof list
         # Loop over the items in the Merkle Path
-        #   Find the partner index (-1 for odd, +1 for even)
-        #   add partner to merkle_proof list
+        # for level, index_at_level in enumerate(path):
+            # Find the partner index (-1 for odd, +1 for even)
+            # add partner to merkle_proof list
         # Return a Proof instance
         raise NotImplementedError
 

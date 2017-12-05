@@ -30,29 +30,65 @@ class FieldElement:
         return 'FieldElement_{}({})'.format(self.prime, self.num)
 
     def __add__(self, other):
+        if self.prime != other.prime:
+            raise RuntimeError('Primes must be the same')
+        # self.num and other.num are the actual values
         num = (self.num + other.num) % self.prime
-        return self.__class__(num=num, prime=self.prime)
+        # self.prime is what you'll need to mod against
+        prime = self.prime
+        # You need to return an element of the same class
+        # use: self.__class__(num, prime)
+        return self.__class__(num, prime)
 
     def __sub__(self, other):
+        if self.prime != other.prime:
+            raise RuntimeError('Primes must be the same')
+        # self.num and other.num are the actual values
         num = (self.num - other.num) % self.prime
-        return self.__class__(num=num, prime=self.prime)
+        # self.prime is what you'll need to mod against
+        prime = self.prime
+        # You need to return an element of the same class
+        # use: self.__class__(num, prime)
+        return self.__class__(num, prime)
 
     def __mul__(self, other):
+        if self.prime != other.prime:
+            raise RuntimeError('Primes must be the same')
+        # self.num and other.num are the actual values
         num = (self.num * other.num) % self.prime
-        return self.__class__(num=num, prime=self.prime)
+        # self.prime is what you'll need to mod against
+        prime = self.prime
+        # You need to return an element of the same class
+        # use: self.__class__(num, prime)
+        return self.__class__(num, prime)
 
     def __rmul__(self, coefficient):
         num = (self.num * coefficient) % self.prime
         return self.__class__(num=num, prime=self.prime)
 
     def __pow__(self, n):
-        n = n % (self.prime - 1)
-        num = pow(self.num, n, self.prime)
-        return self.__class__(num=num, prime=self.prime)
+        # remember fermat's little theorem:
+        # self.num**(p-1) % p == 1
+        # you might want to use % operator on n
+        prime = self.prime
+        num = pow(self.num, n % (prime-1), prime)
+        return self.__class__(num, prime)
 
     def __truediv__(self, other):
-        other_inv = pow(other.num, self.prime - 2, self.prime)
-        return self*self.__class__(num=other_inv, prime=self.prime)
+        if self.prime != other.prime:
+            raise RuntimeError('Primes must be the same')
+        # self.num and other.num are the actual values
+        num = (self.num * pow(other.num, self.prime - 2, self.prime)) % self.prime
+        # self.prime is what you'll need to mod against
+        prime = self.prime
+        # use fermat's little theorem:
+        # self.num**(p-1) % p == 1
+        # this means:
+        # 1/n == pow(n, p-2, p)
+        # You need to return an element of the same class
+        # use: self.__class__(num, prime)
+        return self.__class__(num, prime)
+
 
 
 class FieldElementTest(TestCase):
@@ -101,6 +137,7 @@ class FieldElementTest(TestCase):
         self.assertEqual(a**-4*b, FieldElement(13, 31))
 
 
+
 class Point:
 
     def __init__(self, x, y, a, b):
@@ -111,15 +148,13 @@ class Point:
         # x being None and y being None represents the point at infinity
         # Check for that here since the equation below won't make sense
         # with None values for both.
-        if x is None and y is None:
-            # point at infinity
-            self.x = None
-            self.y = None
+        if self.x is None and self.y is None:
+            return
         # make sure that the elliptic curve equation is satisfied
         # y**2 == x**3 + a*x + b
+        if self.y**2 != self.x**3 + a*x + b:
         # if not, throw a RuntimeError
-        elif y**2 != x**3 + self.a * x + self.b:
-            raise RuntimeError('Not a point on the curve')
+            raise RuntimeError('({}, {}) is not on the curve'.format(self.x, self.y))
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \
@@ -136,44 +171,67 @@ class Point:
             return 'Point({},{})'.format(self.x, self.y)
 
     def __add__(self, other):
+        if self.a != other.a or self.b != other.b:
+            raise RuntimeError('Points {}, {} are not on the same curve'.format(self, other))
         # Case 0.0: self is the point at infinity, return other
         if self.x is None:
             return other
         # Case 0.1: other is the point at infinity, return self
         if other.x is None:
             return self
-        # Case 1: self.x != other.x
+
+        # Case 1: self.x == other.x, self.y != other.y
+        # Result is point at infinity
+        if self.x == other.x and self.y != other.y:
+        # Remember to return an instance of this class:
+        # self.__class__(x, y, a, b)
+            return self.__class__(None, None, self.a, self.b)
+ 
+        # Case 2: self.x != other.x
         if self.x != other.x:
+        # Formula (x3,y3)==(x1,y1)+(x2,y2)
+        # s=(y2-y1)/(x2-x1)
             s = (other.y - self.y) / (other.x - self.x)
+        # x3=s**2-x1-x2
             x = s**2 - self.x - other.x
-            y = s * (self.x - x) - self.y
-            return self.__class__(x=x, y=y, a=self.a, b=self.b)
-        # Case 2: self.x == other.x, self.y != other.y
-        elif self.y != other.y:
-            # point at infinity
-            return self.__class__(x=None, y=None, a=self.a, b=self.b)
+        # y3=s*(x1-x3)-y1
+            y = s*(self.x-x) - self.y
+        # Remember to return an instance of this class:
+        # self.__class__(x, y, a, b)
+            return self.__class__(x, y, self.a, self.b)
+
         # Case 3: self.x == other.x, self.y == other.y
         else:
-            # we're adding a point to itself
-            s = (3* self.x**2 + self.a) / (2* self.y)
+        # Formula (x3,y3)=(x1,y1)+(x1,y1)
+        # s=(3*x1**2+a)/(2*y1)
+            s = (3*self.x**2 + self.a) / (2*self.y)
+        # x3=s**2-2*x1
             x = s**2 - 2*self.x
-            y = s * (self.x - x) - self.y
-            return self.__class__(x, y, a=self.a, b=self.b)
+        # y3=s*(x1-x3)-y1
+            y = s*(self.x-x) - self.y
+        # Remember to return an instance of this class:
+        # self.__class__(x, y, a, b)
+            return self.__class__(x, y, self.a, self.b)
 
     def __rmul__(self, coefficient):
         # rmul calculates coefficient * self
         # implement the naive way:
-        # start from 0 (point at infinity)
-        # use: for i in range(coefficient):
-        # keep adding self over and over
+        # start product from 0 (point at infinity)
+        # use: self.__class__(None, None, a, b)
+        product = self.__class__(None, None, self.a, self.b)
+        # loop coefficient times
+        # use: for _ in range(coefficient):
+        for _ in range(coefficient):
+            # keep adding self over and over
+            product += self
+        # return the product
+        return product
         # Extra Credit:
         # a more advanced technique uses point doubling
         # find the binary representation of coefficient
         # keep doubling the point and if the bit is there for coefficient
         # add the current.
         # remember to return an instance of the class
-        # use: self.__class__(x, y, a, b)
-        raise NotImplementedError
 
 
 class PointTest(TestCase):
@@ -184,7 +242,6 @@ class PointTest(TestCase):
         # these should not raise an error
         Point(x=3, y=-7, a=5, b=7)
         Point(x=18, y=77, a=5, b=7)
-        Point(x=None, y=None, a=5, b=7)
 
     def test_add0(self):
         a = Point(x=None, y=None, a=5, b=7)
@@ -193,7 +250,7 @@ class PointTest(TestCase):
         self.assertEqual(a+b, b)
         self.assertEqual(b+a, b)
         self.assertEqual(b+c, a)
-
+    
     def test_add1(self):
         a = Point(x=3, y=7, a=5, b=7)
         b = Point(x=-1, y=-1, a=5, b=7)
@@ -214,18 +271,25 @@ class ECCTest(TestCase):
         prime = 223
         a = FieldElement(0, prime)
         b = FieldElement(7, prime)
+        
+        valid_points = ((192,105), (17,56), (1,193))
+        invalid_points = ((200,119), (42,99))
+        
+        # iterate over valid points
+            # Initialize points this way:
+            # x = FieldElement(192, prime)
+            # y = FieldElement(105, prime)
+            # Point(x, y, a, b)
+            # Creating the point should not result in an error
 
-        # Initialize points this way:
-        # x = FieldElement(192, prime)
-        # y = FieldElement(105, prime)
-        # p1 = Point(x, y, a, b)
-
-        # iterate over all the point pairs above
-        # create point object
-        # assert that some raise an error using
-        # with self.assertRaises(RuntimeError):
-        #     Point(x, y, a, b)
-        # assert that others don't just by making sure they run normal
+        # iterate over invalid points
+            # Initialize points this way:
+            # x = FieldElement(192, prime)
+            # y = FieldElement(105, prime)
+            # Point(x, y, a, b)
+            # check that creating the point results in a RuntimeError
+            # with self.assertRaises(RuntimeError):
+            #     Point(x, y, a, b)
         raise NotImplementedError
 
     def test_add1(self):
@@ -237,14 +301,18 @@ class ECCTest(TestCase):
         a = FieldElement(0, prime)
         b = FieldElement(7, prime)
 
-        # Initialize points this way:
-        # x = FieldElement(192, prime)
-        # y = FieldElement(105, prime)
-        # p1 = Point(x, y, a, b)
-
-        # Make sure you find the answers first
-        # iterate over triplets: (point1, point2, point_sum)
-        # test that: point1 + point2 == point_sum
+        additions = (
+            # (x1, y1, x2, y2, x3, y3)         
+            (192, 105, 17, 56, 170, 142),
+            (47, 71, 117, 141, 60, 139),
+            (143, 98, 76, 66, 47, 71),
+        )
+        # iterate over the additions
+            # Initialize points this way:
+            # x = FieldElement(192, prime)
+            # y = FieldElement(105, prime)
+            # p1 = Point(x, y, a, b)
+            # check that p1 + p2 == p3
         raise NotImplementedError
 
     def test_rmul(self):
@@ -259,16 +327,24 @@ class ECCTest(TestCase):
         a = FieldElement(0, prime)
         b = FieldElement(7, prime)
 
-        # Initialize points this way:
-        # x = FieldElement(192, prime)
-        # y = FieldElement(105, prime)
-        # p1 = Point(x, y, a, b)
+        multiplications = (
+            # (coefficient, x1, y1, x2, y2)
+            (2, 192, 105, 49, 71),
+            (2, 143, 98, 64, 168),
+            (2, 47, 71, 36, 111),
+            (4, 47, 71, 194, 51),
+            (8, 47, 71, 116, 55),
+            (21, 47, 71, None, None),
+        )
 
-        # Make sure you find the answers first
-        # iterate over triplets: (coefficient, point, result)
-        # test that: coefficient * point == result
+        # iterate over the multiplications
+            # Initialize points this way:
+            # x = FieldElement(192, prime)
+            # y = FieldElement(105, prime)
+            # p = Point(x, y, a, b)
+            # initialize the second point based on whether it's the point at infinity
+            # check that the product is equal to the expected point
         raise NotImplementedError
-
 
 A = 0
 B = 7
@@ -323,10 +399,10 @@ class S256Point(Point):
 
     def sec(self, compressed=True):
         # returns the binary version of the sec format, NOT hex
-        # if compressed, starts with b'\x02' if self.y is even, b'\x03' if self.y is odd
-        # then self.x
+        # if compressed, starts with b'\x02' if self.y.num is even, b'\x03' if self.y is odd
+        # then self.x.num
+        # remember, you have to convert self.x.num/self.y.num to binary (some_integer.to_bytes(32, 'big'))
         # if non-compressed, starts with b'\x04' followod by self.x and then self.y
-        # remember, you have to convert self.x/self.y to binary (some_integer.to_bytes(32, 'big'))
         raise NotImplementedError
 
     def address(self, compressed=True, testnet=False):
@@ -341,7 +417,7 @@ class S256Point(Point):
 
     def verify(self, z, sig):
         # remember sig.r and sig.s are the main things we're checking
-        # remember 1/s = pow(s, N-2, N) % N
+        # remember 1/s = pow(s, N-2, N)
         # u = z / s
         # v = r / s
         # u*G + v*P should have as the x coordinate, r
@@ -361,7 +437,17 @@ class S256Test(TestCase):
 
     def test_pubpoint(self):
         # write a test that tests the public point for the following
-        # coefficients: 7, 1485, 2**128, 2**240+2**31
+        points = (
+            # secret, x, y
+            (7, 0x5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc, 0x6aebca40ba255960a3178d6d861a54dba813d0b813fde7b5a5082628087264da),
+            (1485, 0xc982196a7466fbbbb0e27a940b6af926c1a74d5ad07128c82824a11b5398afda, 0x7a91f9eae64438afb9ce6448a1c133db2d8fb9254e4546b6f001637d50901f55),
+            (2**128, 0x8f68b9d2f63b5f339239c1ad981f162ee88c5678723ea3351b7b444c9ec4c0da, 0x662a9f2dba063986de1d90c2b6be215dbbea2cfe95510bfdf23cbf79501fff82),
+            (2**240+2**31, 0x9577ff57c8234558f293df502ca4f09cbc65a6572c842b39b366f21717945116, 0x10b49c67fa9365ad7b90dab070be339a1daf9052373ec30ffae4f72d5e66d053),
+        )
+
+        # iterate over points
+            # initialize the secp256k1 point (S256Point)
+            # check that the secret*G is the same as the point
         raise NotImplementedError
 
     def test_sec(self):
@@ -499,7 +585,7 @@ class PrivateKey:
     def sign(self, z):
         # we need a random number k: randint(0, 2**256)
         # r is the x coordinate of the resulting point k*G
-        # remember 1/k = pow(k, N-2, N) % N
+        # remember 1/k = pow(k, N-2, N)
         # s = (z+r*secret) / k
         # return an instance of Signature:
         # Signature(r, s)
