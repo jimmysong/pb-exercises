@@ -115,14 +115,23 @@ class Tx:
         # replace the input's scriptSig with the scriptPubKey
         signing_input = alt_tx_ins[input_index]
         # Exercise 6.2: grab the script_pubkey (use Script.parse(signing_input.script_pubkey(self.testnet)))
+        script_pubkey = Script.parse(signing_input.script_pubkey(self.testnet))
         # Exercise 6.2: get the sig type from script_pubkey.type()
+        sig_type = script_pubkey.type()
         # Exercise 6.2: the script_sig of the signing_input should be script_pubkey for p2pkh
+        if sig_type == 'p2pkh':
             # Exercise 6.2: replace the input's scriptSig with the scriptPubKey
+            signing_input.script_sig = script_pubkey
         # Exercise 6.2: the script_sig of the signing_input should be the redeemScript
         #               of the current input of the real tx_in (self.tx_ins[input_index].redeem_script()
+        elif sig_type == 'p2sh':
             # Exercise 6.2: replace the input's scriptSig with the RedeemScript
+            current_input = self.tx_ins[input_index]
             # Exercise 6.2: replace the input's scriptSig with the Script.parse(redeem_script)
-        signing_input.script_sig = Script.parse(signing_input.script_pubkey(self.testnet)) # Exercise 6.2 REPLACE THIS LINE!!!
+            signing_input.script_sig = Script.parse(
+                current_input.redeem_script())
+        else:
+            raise RuntimeError('no valid sig_type')
         alt_tx = self.__class__(
             version=self.version,
             tx_ins=alt_tx_ins,
@@ -135,27 +144,42 @@ class Tx:
     def verify_input(self, input_index):
         '''Returns whether the input has a valid signature'''
         # Exercise 1.1: get the relevant input
+        tx_in = self.tx_ins[input_index]
         # Exercise 6.2: get the number of signatures required. This is available in tx_in.script_sig.num_sigs_required()
+        sigs_required = tx_in.script_sig.num_sigs_required()
         # Exercise 6.2: iterate over the sigs required and check each signature
-        # Exercise 1.1: get the point from the sec format (tx_in.sec_pubkey())
+        for sig_num in range(sigs_required):
+            # Exercise 1.1: get the point from the sec format (tx_in.sec_pubkey())
             # Exercise 6.2: get the sec_pubkey at current signature index (check sec_pubkey function)
-        # Exercise 1.1: get the der sig and hash_type from input
+            point = S256Point.parse(tx_in.sec_pubkey(index=sig_num))
+            # Exercise 1.1: get the der sig and hash_type from input
             # Exercise 6.2: get the der_signature at current signature index (check der_signature function)
-        # Exercise 1.1: get the signature from der format
-        # Exercise 1.1: get the hash to sign
-        # Exercise 1.1: use point.verify on the hash to sign and signature
-        raise NotImplementedError
+            der, hash_type = tx_in.der_signature(index=sig_num)
+            # Exercise 1.1: get the signature from der format
+            signature = Signature.parse(der)
+            # Exercise 1.1: get the hash to sign
+            z = self.hash_to_sign(input_index, hash_type)
+            # Exercise 1.1: use point.verify on the hash to sign and signature
+            if not point.verify(z, signature):
+                return False
+        return True
 
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
         # get the hash to sign
+        z = self.hash_to_sign(input_index, hash_type)
         # get der signature of z from private key
+        der = private_key.sign(z).der()
         # append the hash_type to der (use bytes([hash_type]))
+        sig = der + bytes([hash_type])
         # calculate the sec
+        sec = private_key.point.sec()
         # initialize a new script with [sig, sec] as the elements
+        script_sig = Script([sig, sec])
         # change input's script_sig to new script
+        self.tx_ins[input_index].script_sig = script_sig
         # return whether sig is valid using self.verify_input
-        raise NotImplementedError
+        return self.verify_input(input_index)
 
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
         self.prev_tx = prev_tx
