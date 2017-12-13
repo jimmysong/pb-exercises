@@ -27,6 +27,9 @@ class Tx:
         self.tx_outs = tx_outs
         self.locktime = locktime
         self.testnet = testnet
+        self.h_prevouts = None
+        self.h_sequence = None
+        self.h_outputs = None
 
     def __repr__(self):
         tx_ins = ''
@@ -99,6 +102,48 @@ class Tx:
         # return input sum - output sum
         return input_sum - output_sum
 
+    def hash_prevouts(self):
+        if self.h_prevouts is None:
+            raw = b''
+            for tx_in in self.tx_ins:
+                raw += tx_in.prev_tx[::-1]
+                raw += int_to_little_endian(tx_in.prev_index, 4)
+            self.h_prevouts = double_sha256(raw)
+        return self.h_prevouts
+
+    def hash_sequence(self):
+        if self.h_sequence is None:
+            raw = b''
+            for tx_in in self.tx_ins:
+                raw += int_to_little_endian(tx_in.sequence, 4)
+            self.h_sequence = double_sha256(raw)
+        return self.h_sequence
+
+    def hash_outputs(self):
+        if self.h_outputs is None:
+            raw = b''
+            for tx_out in self.tx_outs:
+                raw += tx_out.serialize()
+            self.h_outputs = double_sha256(raw)
+        return self.h_outputs
+    
+    def segwit_serialization(self, input_index, sighash):
+        tx_in = self.tx_ins[input_index]
+        result = int_to_little_endian(self.version, 4)
+        result += self.hash_prevouts()
+        result += self.hash_sequence()
+        result += tx_in.prev_tx[::-1] + int_to_little_endian(tx_in.prev_index, 4)
+        print(tx_in.value())
+        print(tx_in.script_pubkey())
+        result += b'\x19' + tx_in.script_pubkey()
+        result += int_to_little_endian(tx_in.value(), 8)
+        result += int_to_little_endian(tx_in.sequence, 4)
+        result += self.hash_outputs()
+        result += int_to_little_endian(self.locktime, 4)
+        result += int_to_little_endian(sighash, 4)
+        return result
+        
+    
     def hash_to_sign(self, input_index, sighash):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
@@ -218,6 +263,13 @@ class TxIn:
         self.prev_index = prev_index
         self.script_sig = Script.parse(script_sig)
         self.sequence = sequence
+        self.script_pubkey_cache = None
+        self.value_cache = None
+
+    def __repr__(self):
+        return '{}:{}\n{}\n{}\n'.format(
+            hexlify(self.prev_tx).decode('ascii'), self.prev_index, self.script_sig, self.sequence,
+        )
 
     @classmethod
     def parse(cls, s):
@@ -258,19 +310,23 @@ class TxIn:
         '''Get the outpoint value by looking up the tx hash on libbitcoin server
         Returns the amount in satoshi
         '''
-        # use fetch_tx to get the transaction
-        tx_data = fetch_tx(self.prev_tx)
-        # get the output at self.prev_index: tx_data['transaction']['outputs'][self.prev_index]
-        output = tx_data['transaction']['outputs'][self.prev_index]
-        # grab the value and cast to int
-        return int(output['value'])
+        if self.value_cache is None:
+            # use fetch_tx to get the transaction
+            tx_data = fetch_tx(self.prev_tx)
+            # get the output at self.prev_index: tx_data['transaction']['outputs'][self.prev_index]
+            output = tx_data['transaction']['outputs'][self.prev_index]
+            # grab the value and cast to int
+            self.value_cache = int(output['value'])
+        return self.value_cache
 
     def script_pubkey(self, testnet=False):
         '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
         Returns the binary scriptpubkey
         '''
-        # use fetch_script_pubkey from helper.py
-        return fetch_script_pubkey(self.prev_tx, self.prev_index, testnet)
+        if self.script_pubkey_cache is None:
+            # use fetch_script_pubkey from helper.py
+            self.script_pubkey_cache = fetch_script_pubkey(self.prev_tx, self.prev_index, testnet)
+        return self.script_pubkey_cache
 
     def der_signature(self, index=0):
         '''returns a DER format signature and sighash if the script_sig
@@ -293,6 +349,12 @@ class TxOut:
     def __init__(self, amount, script_pubkey):
         self.amount = amount
         self.script_pubkey = Script.parse(script_pubkey)
+
+
+    def __repr__(self):
+        return '{}:{}\n'.format(
+            self.amount, self.script_pubkey,
+        )
 
     @classmethod
     def parse(cls, s):

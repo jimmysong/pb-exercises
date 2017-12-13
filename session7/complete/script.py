@@ -134,6 +134,7 @@ class Script:
     def __repr__(self):
         result = ''
         for element in self.elements:
+            print(element)
             if type(element) == int:
                 result += '{} '.format(OP_CODES[element])
             else:
