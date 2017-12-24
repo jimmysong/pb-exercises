@@ -338,13 +338,24 @@ class ECCTest(TestCase):
         )
 
         # iterate over the multiplications
+        for n, x1r, y1r, x2r, y2r in multiplications:
             # Initialize points this way:
+            x1 = FieldElement(x1r, prime)
+            y1 = FieldElement(y1r, prime)
             # x = FieldElement(192, prime)
             # y = FieldElement(105, prime)
+            p1 = Point(x1, y1, a, b)
             # p = Point(x, y, a, b)
+            
             # initialize the second point based on whether it's the point at infinity
+            if x2r is None:
+                p2 = Point(None, None, a, b)
+            else:
+                x2 = FieldElement(x2r, prime)
+                y2 = FieldElement(y2r, prime)
+                p2 = Point(x2, y2, a, b)
+            self.assertEqual(n*p1, p2)
             # check that the product is equal to the expected point
-        raise NotImplementedError
 
 A = 0
 B = 7
@@ -400,28 +411,45 @@ class S256Point(Point):
     def sec(self, compressed=True):
         # returns the binary version of the sec format, NOT hex
         # if compressed, starts with b'\x02' if self.y.num is even, b'\x03' if self.y is odd
+        if compressed:
+            if self.y.num % 2 == 1:
+                prefix = b'\x03'
+            else:
+                prefix = b'\x02'
+            return prefix + self.x.num.to_bytes(32, 'big')
+        else:
+            return b'\x04' + self.x.num.to_bytes(32, 'big') + self.y.num.to_bytes(32, 'big')
         # then self.x.num
         # remember, you have to convert self.x.num/self.y.num to binary (some_integer.to_bytes(32, 'big'))
         # if non-compressed, starts with b'\x04' followod by self.x and then self.y
-        raise NotImplementedError
 
     def address(self, compressed=True, testnet=False):
         '''Returns the address string'''
         # get the sec
+        sec = self.sec(compressed)
         # hash160 the sec
+        h160 = hash160(sec)
         # raw is hash 160 prepended w/ b'\x00' for mainnet, b'\x6f' for testnet
+        if testnet:
+            prefix = b'\x6f'
+        else:
+            prefix = b'\x00'
         # checksum is first 4 bytes of double_sha256 of raw
+        checksum = double_sha256(prefix + h160)[:4]
         # encode_base58 the raw + checksum
+        address = encode_base58(prefix + h160 + checksum)
         # return as a string, you can use .decode('ascii') to do this.
-        raise NotImplementedError
+        return address.decode('ascii')
 
     def verify(self, z, sig):
         # remember sig.r and sig.s are the main things we're checking
         # remember 1/s = pow(s, N-2, N)
         # u = z / s
         # v = r / s
+        u = z * pow(sig.s, N-2, N) % N
+        v = sig.r * pow(sig.s, N-2, N) % N
         # u*G + v*P should have as the x coordinate, r
-        raise NotImplementedError
+        return (u*G + v*self).x.num == sig.r
 
 
 G = S256Point(
@@ -446,9 +474,11 @@ class S256Test(TestCase):
         )
 
         # iterate over points
+        for secret, x, y in points:
             # initialize the secp256k1 point (S256Point)
+            point = S256Point(x,y)
             # check that the secret*G is the same as the point
-        raise NotImplementedError
+            self.assertEqual(secret*G, point)
 
     def test_sec(self):
         coefficient = 999**3
@@ -584,12 +614,15 @@ class PrivateKey:
 
     def sign(self, z):
         # we need a random number k: randint(0, 2**256)
+        k = randint(0, 2**256)
         # r is the x coordinate of the resulting point k*G
+        r = (k*G).x.num
         # remember 1/k = pow(k, N-2, N)
+        s = (z+r*self.secret) * pow(k, N-2, N) % N
         # s = (z+r*secret) / k
+        return Signature(r, s)
         # return an instance of Signature:
         # Signature(r, s)
-        raise NotImplementedError
 
 
 class PrivateKeyTest(TestCase):

@@ -59,6 +59,6 @@ class NodeConnection:
                 print(envelope)
 
 loop = asyncio.get_event_loop()
-node = NodeConnection(host='35.187.200.6', port=8333)
+node = NodeConnection(host='52.14.30.5', port=8333)
 task = loop.run_until_complete(node.connect(loop))
 loop.close()

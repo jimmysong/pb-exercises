@@ -648,10 +648,19 @@ class PrivateKey:
 
     def wif(self, compressed=True, testnet=False):
         # convert the secret from integer to a 32-bytes in big endian using num.to_bytes(32, 'big')
+        priv = self.secret.to_bytes(32, 'big')
         # prepend b'\xef' on testnet, b'\x80' on mainnet
+        if testnet:
+            prefix = b'\xef'
+        else:
+            prefix = b'\x80'
         # append b'\x01' if compressed
+        if compressed:
+            suffix = b'\x01'
+        else:
+            suffix = b''
         # encode_base58_checksum the whole thing
-        raise NotImplementedError
+        return encode_base58_checksum(prefix+priv+suffix)
 
 
 class PrivateKeyTest(TestCase):
