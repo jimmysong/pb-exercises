@@ -83,7 +83,7 @@ class Tx:
         # return input sum - output sum
         raise NotImplementedError
 
-    def hash_to_sign(self, input_index, sighash):
+    def sig_hash(self, input_index, hash_type):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
         # create a new transaction that's a clone of self
@@ -95,7 +95,7 @@ class Tx:
         # replace input_index input with scriptPubKey from that input
         # use Script(tx_in.script_pubkey())
         # grab the serialization
-        # add the sighash int in 4 bytes, little endian
+        # add the hash_type int in 4 bytes, little endian
         # get the double_sha256 of the tx serialization
         # convert this to a big-endian integer using int.from_bytes(x, 'big')
         raise NotImplementedError
@@ -155,10 +155,10 @@ class TxIn:
         raise NotImplementedError
 
     def der_signature(self, index=0):
-        '''returns a DER format signature and sighash if the script_sig
+        '''returns a DER format signature and hash_type if the script_sig
         has a signature'''
         signature = self.script_sig.der_signature(index=index)
-        # last byte is the sighash, rest is the signature
+        # last byte is the hash_type, rest is the signature
         return signature[:-1], signature[-1]
 
     def sec_pubkey(self, index=0):
@@ -241,9 +241,9 @@ class TxTest(TestCase):
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         want = b'3045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed'
-        der, sighash = tx.tx_ins[0].der_signature()
+        der, hash_type = tx.tx_ins[0].der_signature()
         self.assertEqual(hexlify(der), want)
-        self.assertEqual(sighash, SIGHASH_ALL)
+        self.assertEqual(hash_type, SIGHASH_ALL)
 
     def test_sec_pubkey(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
@@ -292,10 +292,10 @@ class TxTest(TestCase):
         tx = Tx.parse(stream)
         self.assertEqual(tx.fee(), 140500)
 
-    def test_hash_to_sign(self):
+    def test_sig_hash(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
-        sighash = SIGHASH_ALL
+        hash_type = SIGHASH_ALL
         want = int('27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6', 16)
-        self.assertEqual(tx.hash_to_sign(0, sighash), want)
+        self.assertEqual(tx.sig_hash(0, hash_type), want)
