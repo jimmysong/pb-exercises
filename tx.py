@@ -27,6 +27,9 @@ class Tx:
         self.tx_outs = tx_outs
         self.locktime = locktime
         self.testnet = testnet
+        self._hash_prevouts = None
+        self._hash_sequence = None
+        self._hash_outputs = None
 
     def __repr__(self):
         tx_ins = ''
@@ -99,6 +102,47 @@ class Tx:
         # return input sum - output sum
         return input_sum - output_sum
 
+    def hash_prevouts(self):
+        if self._hash_prevouts is None:
+            all_prevouts = b''
+            all_sequence = b''
+            for tx_in in self.tx_ins:
+                all_prevouts += tx_in.prev_tx[::-1] + int_to_little_endian(tx_in.prev_index, 4)
+                all_sequence += int_to_little_endian(tx_in.sequence, 4)
+            self._hash_prevouts = double_sha256(all_prevouts)
+            self._hash_sequence = double_sha256(all_sequence)
+        return self._hash_prevouts
+
+    def hash_sequence(self):
+        if self._hash_sequence is None:
+            self.hash_prevouts()  # this should calculate self._hash_prevouts
+        return self._hash_sequence
+
+    def hash_outputs(self):
+        if self._hash_outputs is None:
+            all_outputs = b''
+            for tx_out in self.tx_outs:
+                all_outputs += tx_out.serialize()
+            self._hash_outputs = double_sha256(all_outputs)
+        return self._hash_outputs
+    
+    def sig_hash_bip143(self, input_index, hash_type):
+        '''Returns the integer representation of the hash that needs to get
+        signed for index input_index'''
+        tx_in = self.tx_ins[input_index]
+        # per BIP143 spec
+        s = int_to_little_endian(self.version, 4)
+        s += self.hash_prevouts() + self.hash_sequence()
+        s += tx_in.prev_tx[::-1] + int_to_little_endian(tx_in.prev_index, 4)
+        ser = tx_in.script_pubkey()
+        s += bytes([len(ser)]) + ser # script pubkey
+        s += int_to_little_endian(tx_in.value(), 8)
+        s += int_to_little_endian(tx_in.sequence, 4)
+        s += self.hash_outputs()
+        s += int_to_little_endian(self.locktime, 4)
+        s += int_to_little_endian(hash_type, 4)
+        return int.from_bytes(double_sha256(s), 'big')
+    
     def sig_hash(self, input_index, hash_type):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
@@ -141,7 +185,7 @@ class Tx:
         result = alt_tx.serialize() + int_to_little_endian(hash_type, 4)
         return int.from_bytes(double_sha256(result), 'big')
 
-    def verify_input(self, input_index):
+    def verify_input(self, input_index, fork_id=0):
         '''Returns whether the input has a valid signature'''
         # Exercise 1.1: get the relevant input
         tx_in = self.tx_ins[input_index]
@@ -158,22 +202,22 @@ class Tx:
             # Exercise 1.1: get the signature from der format
             signature = Signature.parse(der)
             # Exercise 1.1: get the hash to sign
-            z = self.hash_to_sign(input_index, hash_type)
+            z = self.sig_hash_bip143(input_index, hash_type|fork_id)
             # Exercise 1.1: use point.verify on the hash to sign and signature
             if not point.verify(z, signature):
                 return False
         return True
 
-    def sign_input(self, input_index, private_key, hash_type):
+    def sign_input(self, input_index, private_key, hash_type, compressed=True, fork_id=0):
         '''Signs the input using the private key'''
         # get the hash to sign
-        z = self.hash_to_sign(input_index, hash_type)
+        z = self.sig_hash_bip143(input_index, hash_type|fork_id)
         # get der signature of z from private key
         der = private_key.sign(z).der()
         # append the hash_type to der (use bytes([hash_type]))
         sig = der + bytes([hash_type])
         # calculate the sec
-        sec = private_key.point.sec()
+        sec = private_key.point.sec(compressed=compressed)
         # initialize a new script with [sig, sec] as the elements
         script_sig = Script([sig, sec])
         # change input's script_sig to new script
@@ -210,14 +254,26 @@ class Tx:
         # convert the first element from little endian to int
         return little_endian_to_int(first_element)
 
+    def verify(self):
+        for i in range(len(self.tx_ins)):
+            if not self.verify_input(i):
+                return False
+        return True
+
+    def sign(self, private_key, compressed=True, fork_id=0):
+        for i in range(len(self.tx_ins)):
+            self.sign_input(i, private_key, 0x40|SIGHASH_ALL, compressed=compressed, fork_id=fork_id)
+
 
 class TxIn:
 
-    def __init__(self, prev_tx, prev_index, script_sig, sequence):
+    def __init__(self, prev_tx, prev_index, script_sig, sequence, value=None, script_pubkey=None):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
         self.script_sig = Script.parse(script_sig)
         self.sequence = sequence
+        self._value = value
+        self._script_pubkey = script_pubkey
 
     @classmethod
     def parse(cls, s):
@@ -258,19 +314,23 @@ class TxIn:
         '''Get the outpoint value by looking up the tx hash on libbitcoin server
         Returns the amount in satoshi
         '''
-        # use fetch_tx to get the transaction
-        tx_data = fetch_tx(self.prev_tx)
-        # get the output at self.prev_index: tx_data['transaction']['outputs'][self.prev_index]
-        output = tx_data['transaction']['outputs'][self.prev_index]
-        # grab the value and cast to int
-        return int(output['value'])
+        if self._value is None:
+            # use fetch_tx to get the transaction
+            tx_data = fetch_tx(self.prev_tx)
+            # get the output at self.prev_index: tx_data['transaction']['outputs'][self.prev_index]
+            output = tx_data['transaction']['outputs'][self.prev_index]
+            # grab the value and cast to int
+            self._value = int(output['value'])
+        return self._value
 
     def script_pubkey(self, testnet=False):
         '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
         Returns the binary scriptpubkey
         '''
-        # use fetch_script_pubkey from helper.py
-        return fetch_script_pubkey(self.prev_tx, self.prev_index, testnet)
+        if self._script_pubkey is None:
+            # use fetch_script_pubkey from helper.py
+            self._script_pubkey = fetch_script_pubkey(self.prev_tx, self.prev_index, testnet)
+        return self._script_pubkey
 
     def der_signature(self, index=0):
         '''returns a DER format signature and hash_type if the script_sig
@@ -478,3 +538,42 @@ class TxTest(TestCase):
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         self.assertIsNone(tx.coinbase_height())
+
+    def test_sig_hash_bip143(self):
+        raw_tx = unhexlify('0100000001fd5145175fafdee6d20ac376e376cf26d933848ba5aa177d0d163a462fb3f183010000006b483045022100f49a17e80098bc057e319b890bdc42fe7224e7f6beb69a650102f802239be154022069742f504fdd52906c14d0d18ff0808e01146813775602163ec10d419270c1c541210223f1c80f382f086e2af7ad9d05227d94b6cf292596b9853f04a91194048f9048ffffffff0236820100000000001976a914dc10e999a5f18eb510feec09206d1812fa24a9c288ac5c058049000000001976a91421704f258089af191df1a4abed2b48ec11d6063e88ac00000000')
+        stream = BytesIO(raw_tx)
+        tx = Tx.parse(stream)
+        tx_in = tx.tx_ins[0]
+        raw_tx2 = unhexlify('010000000185037eb5531900f2f450e55cd950c509310229c0444e318a8811eecfa3b5c183010000006b483045022100f4a6e308ff7846bd19d394ec1b7263e051f2a60e6819feb006cdb9047bdd21a502206d969dfb5dfee3e53ed1a79b441d1cc2b7b8fe945ac7507c3b5e180565fbaead4121037765d8921f9559a6f03d620a1687a57e5b4ecb9efa5b41fc44555da0a376f81affffffff021ffc6c00000000001976a914fe1f6bea216c790c30d07f52966850268a3f90a788acfc8b8149000000001976a9142563b8536a228ec866e1c1084044a7730e53758888ac00000000')
+        stream2 = BytesIO(raw_tx2)
+        tx2 = Tx.parse(stream2)
+        tx_in._value = tx2.tx_outs[1].amount
+        tx_in._script_pubkey = tx2.tx_outs[1].script_pubkey.serialize()
+        der, hash_type = tx_in.der_signature()
+        sec = tx_in.sec_pubkey()
+        sig = Signature.parse(der)
+        point = S256Point.parse(sec)
+        z = tx.sig_hash_bip143(0, hash_type)
+        self.assertTrue(point.verify(z,sig))
+        self.assertTrue(tx.verify_input(0))
+        self.assertTrue(tx.verify())
+ 
+        raw_tx = unhexlify('01000000066f267f335a54abf404c66a7a6e9ed3d77566a09ce11632f57029a677f42c6095000000006b483045022100fb0b16699c9b0984345c7860e208c04694aaa5117c8306082cfafc58b53e489a02203cd53408f1f8c8ff29701a9d1f6960b2dc5e1039f0eea949c5a886ac367e1e38412102fdcae0e5a55b20c8d3cbdf451d39f6d47daa50f884ed0ffcf0ae0adfeec4abb9ffffffff4ceb6a2894b19b96fedd543750bf7307805a2f6ca189c8c42d1abbe2930235fa000000006a4730440220794c269d519b567aa694de6dcde1d09dffa30b69dc18a619ce9ea65f239899150220156394f70f405c0710851490b9f21dc8a23931fbdc8a70ea51f73e9b00274a5c412103b708cd0b3329cff03611b0155384d1d4f40cb3aa30f82d8f4a34da044c868058ffffffff15053ac5123a25e0adf0ed998dfb710fff827861ac1a4c6601be8034179350ab000000006a473044022020e7b448318fa44b977d557b639aaf3a9666cf6d8dd446bd7812e752ddfcd1d302207159d22c2e379b77b0514b8e0767d0e9fff7063a659c268d605be436f65703884121031a97eb1664ceffa32988f7ea7c6726d681f1385b9765be1a40d6083fba4e6c69ffffffff2e1fb2ad94461104b147ffe95d0534eb98495c45831547b70eae652ac6cf52d0000000006b483045022100b0ce5496d51673f82430eee24c57f7f2f2631e5b9b32c78bbd79e1cbf3f6297b02201c807ecfa86c1c493e83f1235a19e4426da651e8f76c2f4b41ceebf1222a9291412102e4aa3631fd0b4a877c7c0a040b8211636f743c392ce17e6f266beb1b62490af9ffffffff311368bcf1bac2ae2e906bd7e84e9b45da861a63154ae5c3d69840f65486ba86000000006b483045022100d5f63c5284604eefb942fa9710f8d5b5bccf431e63c496237a0c41eb5c6debf102202bda17f3b7406b9c41f44c7377261413cfa144489a70a40e9e9126b3e7f2fc734121032e413587a71814365b7912eac3a052d8ac0c5f2351d3d84863a02bafefd41f19ffffffff2e9e219c5a68079891a8d2b00bfcf3772fa605997773c2c516bb5ac99aa8ee06000000006a47304402207b6e0d96d0ce538fb54fcb1731a35632b6e40efde834ce45ee22f0c0f5baa886022009327de37e3fb657af29161d265db558869c09e295e84ddb2f686a492db0015a41210389c44f336f7c8cc3096f8f40bc5bdbffea24da9e26649dbe6b862d7d369698d0ffffffff0102b84f05000000001976a9145c52250125494685f133df34f47fb88799b2903588ac00000000')
+        stream = BytesIO(raw_tx)
+        tx = Tx.parse(stream)
+        inputs = (
+            ('18Lk6CB2WSpc4BVbxWhZrxLaYaJA2XVtyU', 24285000),
+            ('13xY6E2tnBC5eGFCkayAUdVVcuGkFPoebJ', 824730),
+	    ('1BjFmsA4StiDa9xjAwahFXNpzR6SfXxBFD', 7583000),
+            ('1Nn5QirD9iFT5kSF35XN8E3SX3SJM1daPL', 13150000),
+            ('1HE8AdXHkP2bbnKmgENET4iyCHncP7rd7G', 32850000),
+            ('1J3BgNjoqeR5JhHzC2rgorzBXTmdbmYcau', 10422900),
+        )
+        for i, data in enumerate(inputs):
+            addr, value = data
+            tx_in = tx.tx_ins[i]
+            i += 1
+            h160 = decode_base58(addr)
+            tx_in._value = value
+            tx_in._script_pubkey = p2pkh_script(h160)
+        self.assertTrue(tx.verify())

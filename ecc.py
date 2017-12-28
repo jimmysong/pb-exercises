@@ -3,7 +3,7 @@ from io import BytesIO
 from random import randint
 from unittest import TestCase
 
-from helper import double_sha256, encode_base58, encode_base58_checksum, hash160
+from helper import double_sha256, decode_base58, encode_base58, encode_base58_checksum, hash160
 
 
 class FieldElement:
@@ -676,6 +676,8 @@ class PrivateKey:
         k_inv = pow(k, N-2, N)
         # s = (z+r*secret) / k
         s = (z + r*self.secret) * k_inv % N
+        if s > N/2:
+            s = N - s
         # return an instance of Signature:
         # Signature(r, s)
         return Signature(r, s)
@@ -695,6 +697,26 @@ class PrivateKey:
             suffix = b''
         # encode_base58_checksum the whole thing
         return encode_base58_checksum(prefix + secret_bytes + suffix)
+
+    @classmethod
+    def parse(cls, wif):
+        secret_bytes = decode_base58(wif, num_bytes=40)
+        # delete all 0's at beginning
+        count = 0
+        for b in secret_bytes:
+            if b == 0:
+                count += 1
+            else:
+                break
+        secret_bytes = secret_bytes[count:]
+        # remove the first and last if we have 34, only the first if we have 33
+        if len(secret_bytes) == 34:
+            secret_bytes = secret_bytes[1:-1]
+        elif len(secret_bytes) == 33:
+            secret_bytes = secret_bytes[1:]
+        else:
+            raise RuntimeError('not valid WIF')
+        return cls(int.from_bytes(secret_bytes, 'big'))
 
 
 class PrivateKeyTest(TestCase):
@@ -718,3 +740,18 @@ class PrivateKeyTest(TestCase):
         pk = PrivateKey(0x1cca23de92fd1862fb5b76e5f4f50eb082165e5191e116c18ed1a6b24be6a53f)
         expected = 'cNYfWuhDpbNM1JWc3c6JTrtrFVxU4AGhUKgw5f93NP2QaBqmxKkg'
         self.assertEqual(pk.wif(compressed=True, testnet=True), expected)
+
+    def test_parse(self):
+        pk = PrivateKey.parse('L5oLkpV3aqBJ4BgssVAsax1iRa77G5CVYnv9adQ6Z87te7TyUdSC')
+        expected = 2**256-2**199
+        self.assertEqual(pk.secret, expected)
+        pk = PrivateKey.parse('93XfLeifX7Jx7n7ELGMAf1SUR6f9kgQs8Xke8WStMwUtrDucMzn')
+        expected = 2**256-2**201
+        self.assertEqual(pk.secret, expected)
+        pk = PrivateKey.parse('5HvLFPDVgFZRK9cd4C5jcWki5Skz6fmKqi1GQJf5ZoMofid2Dty')
+        expected = 0x0dba685b4511dbd3d368e5c4358a1277de9486447af7b3604a69b8d9d8b7889d
+        self.assertEqual(pk.secret, expected)
+        pk = PrivateKey.parse('cNYfWuhDpbNM1JWc3c6JTrtrFVxU4AGhUKgw5f93NP2QaBqmxKkg')
+        expected = 0x1cca23de92fd1862fb5b76e5f4f50eb082165e5191e116c18ed1a6b24be6a53f
+        self.assertEqual(pk.secret, expected)
+        

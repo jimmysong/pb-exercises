@@ -65,13 +65,13 @@ def p2pkh_script(h160):
     return b'\x76\xa9\x14' + h160 + b'\x88\xac'
 
 
-def decode_base58(s):
+def decode_base58(s, num_bytes=25):
     num = 0
     for c in s.encode('ascii'):
         num *= 58
         num += BASE58_ALPHABET.index(c)
     # disregard the prefix and checksum
-    return num.to_bytes(25, byteorder='big')[1:-4]
+    return num.to_bytes(num_bytes, byteorder='big')[1:-4]
 
 
 def read_varint(s):
