@@ -206,3 +206,19 @@ class HDTest(TestCase):
 
         hd_public_key = HDPublicKey.parse(pub)
         self.assertEqual(hd_public_key.child(0).xpub(), want)
+
+        seed = unhexlify('fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542')
+        hd_private_key = HDPrivateKey.from_seed(seed, b'm')
+        want = 'xprv9s21ZrQH143K31xYSDQpPDxsXRTUcvj2iNHm5NUtrGiGG5e2DtALGdso3pGz6ssrdK4PFmM8NSpSBHNqPqm55Qn3LqFtT2emdEXVYsCzC2U'
+        self.assertEqual(hd_private_key.xprv(), want)
+        hd_private_key = HDPrivateKey.parse(want)
+        self.assertEqual(hd_private_key.xprv(), want)
+        want = 'xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB'
+        self.assertEqual(hd_private_key.xpub(), want)
+        hd_public_key = HDPublicKey.parse(want)
+        self.assertEqual(hd_public_key.xpub(), want)
+
+        hd_private_key = HDPrivateKey.from_seed(seed, b'm/0')
+        want = 'xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH'
+        self.assertEqual(hd_private_key.xpub(), want)
+        self.assertEqual(hd_public_key.child(0).xpub(), want)
