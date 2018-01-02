@@ -21,12 +21,13 @@ from script import Script
 
 class Tx:
 
-    def __init__(self, version, tx_ins, tx_outs, locktime, testnet=False):
+    def __init__(self, version, tx_ins, tx_outs, locktime, testnet=False, prev_block_hash=b''):
         self.version = version
         self.tx_ins = tx_ins
         self.tx_outs = tx_outs
         self.locktime = locktime
         self.testnet = testnet
+        self.prev_block_hash = prev_block_hash
         self._hash_prevouts = None
         self._hash_sequence = None
         self._hash_outputs = None
@@ -34,22 +35,33 @@ class Tx:
     def __repr__(self):
         tx_ins = ''
         for tx_in in self.tx_ins:
-            tx_ins += tx_in.__repr__()
+            tx_ins += tx_in.__repr__() + '\n'
         tx_outs = ''
         for tx_out in self.tx_outs:
-            tx_outs += tx_out.__repr__()
-        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
-            self.version, tx_ins, tx_outs, self.locktime,
+            tx_outs += tx_out.__repr__() + '\n'
+        return '{}\nversion: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            hexlify(self.hash()).decode('ascii'),
+            self.version,
+            tx_ins,
+            tx_outs,
+            self.locktime,
         )
 
+    def hash(self):
+        return double_sha256(self.serialize())[::-1]
+    
     @classmethod
-    def parse(cls, s):
+    def parse(cls, s, prev_block=False):
         '''Takes a byte stream and parses the transaction at the start
         return a Tx object
         '''
         # s.read(n) will return n bytes
         # version has 4 bytes, little-endian, interpret as int
         version = little_endian_to_int(s.read(4))
+        if prev_block:
+            prev_block_hash = s.read(32)[::-1]
+        else:
+            prev_block_hash = None
         # num_inputs is a varint, use read_varint(s)
         num_inputs = read_varint(s)
         # each input needs parsing
@@ -65,12 +77,14 @@ class Tx:
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
-        return cls(version, inputs, outputs, locktime)
+        return cls(version, inputs, outputs, locktime, prev_block_hash=prev_block_hash)
 
-    def serialize(self):
+    def serialize(self, prev_block=False):
         '''Returns the byte serialization of the transaction'''
         # serialize version (4 bytes, little endian)
         result = int_to_little_endian(self.version, 4)
+        if prev_block:
+            result += self.prev_block_hash[::-1]
         # encode_varint on the number of inputs
         result += encode_varint(len(self.tx_ins))
         # iterate inputs
@@ -126,12 +140,14 @@ class Tx:
             self._hash_outputs = double_sha256(all_outputs)
         return self._hash_outputs
     
-    def sig_hash_bip143(self, input_index, hash_type):
+    def sig_hash_bip143(self, input_index, hash_type, prev_block=False, sbtc=False):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
         tx_in = self.tx_ins[input_index]
         # per BIP143 spec
         s = int_to_little_endian(self.version, 4)
+        if prev_block:
+            s += self.prev_block_hash[::-1]
         s += self.hash_prevouts() + self.hash_sequence()
         s += tx_in.prev_tx[::-1] + int_to_little_endian(tx_in.prev_index, 4)
         ser = tx_in.script_pubkey()
@@ -141,9 +157,11 @@ class Tx:
         s += self.hash_outputs()
         s += int_to_little_endian(self.locktime, 4)
         s += int_to_little_endian(hash_type, 4)
+        if sbtc:
+            s += b'sbtc'
         return int.from_bytes(double_sha256(s), 'big')
     
-    def sig_hash(self, input_index, hash_type):
+    def sig_hash(self, input_index, hash_type, prev_block=False, sbtc=False):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
         # create a transaction serialization where
@@ -155,6 +173,8 @@ class Tx:
                 prev_index=tx_in.prev_index,
                 script_sig=b'',
                 sequence=tx_in.sequence,
+                value=tx_in.value(),
+                script_pubkey=tx_in.script_pubkey(),
             ))
         # replace the input's scriptSig with the scriptPubKey
         signing_input = alt_tx_ins[input_index]
@@ -180,12 +200,16 @@ class Tx:
             version=self.version,
             tx_ins=alt_tx_ins,
             tx_outs=self.tx_outs,
-            locktime=self.locktime)
+            locktime=self.locktime,
+            prev_block_hash=self.prev_block_hash,
+        )
         # add the hash_type
-        result = alt_tx.serialize() + int_to_little_endian(hash_type, 4)
+        result = alt_tx.serialize(prev_block=prev_block) + int_to_little_endian(hash_type, 4)
+        if sbtc:
+            result += b'sbtc'
         return int.from_bytes(double_sha256(result), 'big')
 
-    def verify_input(self, input_index, fork_id=0):
+    def verify_input(self, input_index, fork_id=0, bip143=False, prev_block=False, sbtc=False):
         '''Returns whether the input has a valid signature'''
         # Exercise 1.1: get the relevant input
         tx_in = self.tx_ins[input_index]
@@ -202,16 +226,22 @@ class Tx:
             # Exercise 1.1: get the signature from der format
             signature = Signature.parse(der)
             # Exercise 1.1: get the hash to sign
-            z = self.sig_hash_bip143(input_index, hash_type|fork_id)
+            if bip143:
+                z = self.sig_hash_bip143(input_index, hash_type|fork_id, prev_block=prev_block, sbtc=sbtc)
+            else:
+                z = self.sig_hash(input_index, hash_type|fork_id, prev_block=prev_block, sbtc=sbtc)
             # Exercise 1.1: use point.verify on the hash to sign and signature
             if not point.verify(z, signature):
                 return False
         return True
 
-    def sign_input(self, input_index, private_key, hash_type, compressed=True, fork_id=0):
+    def sign_input(self, input_index, private_key, hash_type, compressed=True, fork_id=0, prev_block=False, sbtc=False, bip143=False):
         '''Signs the input using the private key'''
         # get the hash to sign
-        z = self.sig_hash_bip143(input_index, hash_type|fork_id)
+        if bip143:
+            z = self.sig_hash_bip143(input_index, hash_type|fork_id, prev_block=prev_block, sbtc=sbtc)
+        else:
+            z = self.sig_hash(input_index, hash_type|fork_id, prev_block=prev_block, sbtc=sbtc)
         # get der signature of z from private key
         der = private_key.sign(z).der()
         # append the hash_type to der (use bytes([hash_type]))
@@ -223,7 +253,7 @@ class Tx:
         # change input's script_sig to new script
         self.tx_ins[input_index].script_sig = script_sig
         # return whether sig is valid using self.verify_input
-        return self.verify_input(input_index)
+        return self.verify_input(input_index, fork_id=fork_id, bip143=bip143, prev_block=prev_block, sbtc=sbtc)
 
     def is_coinbase(self):
         '''Returns whether this transaction is a coinbase transaction or not'''
@@ -254,15 +284,21 @@ class Tx:
         # convert the first element from little endian to int
         return little_endian_to_int(first_element)
 
-    def verify(self):
+    def verify(self, fork_id=0, bip143=False, prev_block=False, sbtc=False):
         for i in range(len(self.tx_ins)):
-            if not self.verify_input(i):
+            if not self.verify_input(i, fork_id=fork_id, bip143=bip143, prev_block=prev_block, sbtc=sbtc):
                 return False
         return True
 
-    def sign(self, private_key, compressed=True, fork_id=0):
+    def sign(self, private_key, compressed=True, fork_id=0, bip143=False, prev_block=False, sbtc=False, fork=False):
+        if fork:
+            hash_type = 0x40|SIGHASH_ALL
+        else:
+            hash_type = SIGHASH_ALL
         for i in range(len(self.tx_ins)):
-            self.sign_input(i, private_key, 0x40|SIGHASH_ALL, compressed=compressed, fork_id=fork_id)
+            print('signing {}'.format(i))
+            if not self.sign_input(i, private_key, hash_type, compressed=compressed, fork_id=fork_id, bip143=bip143, prev_block=prev_block, sbtc=sbtc):
+                raise RuntimeError('signing failed')
 
 
 class TxIn:
@@ -275,6 +311,9 @@ class TxIn:
         self._value = value
         self._script_pubkey = script_pubkey
 
+    def __repr__(self):
+        return '{}:{}'.format(hexlify(self.prev_tx).decode('ascii'), self.prev_index)
+        
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses the tx_input at the start
@@ -353,6 +392,9 @@ class TxOut:
     def __init__(self, amount, script_pubkey):
         self.amount = amount
         self.script_pubkey = Script.parse(script_pubkey)
+
+    def __repr__(self):
+        return '{}:{}'.format(self.amount, self.script_pubkey.address())
 
     @classmethod
     def parse(cls, s):
