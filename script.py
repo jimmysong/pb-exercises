@@ -105,14 +105,12 @@ class Script:
         sig_type = self.type()
         if sig_type == 'p2pkh':
             # hash160 is the 3rd element
-            h160 = self.elements[2]
             # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
-            return h160_to_p2pkh_address(h160, testnet)
+            raise NotImplementedError
         elif sig_type == 'p2sh':
             # hash160 is the 2nd element
-            h160 = self.elements[1]
             # convert to p2sh address using h160_to_p2sh_address (remember testnet)
-            return h160_to_p2sh_address(h160, testnet)
+            raise NotImplementedError
 
 
 class ScriptTest(TestCase):
