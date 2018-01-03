@@ -204,9 +204,10 @@ class Tx:
             prev_block_hash=self.prev_block_hash,
         )
         # add the hash_type
-        result = alt_tx.serialize(prev_block=prev_block) + int_to_little_endian(hash_type, 4)
+        result = alt_tx.serialize(prev_block=prev_block)
+        result += int_to_little_endian(hash_type, 4)
         if sbtc:
-            result += b'sbtc'
+            result += b'\x04sbtc'
         return int.from_bytes(double_sha256(result), 'big')
 
     def verify_input(self, input_index, fork_id=0, bip143=False, prev_block=False, sbtc=False):
@@ -296,7 +297,6 @@ class Tx:
         else:
             hash_type = SIGHASH_ALL
         for i in range(len(self.tx_ins)):
-            print('signing {}'.format(i))
             if not self.sign_input(i, private_key, hash_type, compressed=compressed, fork_id=fork_id, bip143=bip143, prev_block=prev_block, sbtc=sbtc):
                 raise RuntimeError('signing failed')
 
