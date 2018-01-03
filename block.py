@@ -34,23 +34,15 @@ class Proof:
     def verify(self):
         '''Returns whether this proof is valid'''
         # current hash starts with self.tx_hash, reversed
-        current = self.tx_hash[::-1]
         # initialize the current_index to be the index at at base level
-        current_index = self.index
         # Loop through proof hashes
-        for proof_hash in self.proof_hashes:
             # if current_index is odd, proof_hash goes on left
-            if current_index % 2 == 1:
                 # current hash becomes merkle parent of proof_hash and current
-                current = merkle_parent(proof_hash, current)
             # if current_index is even, proof_hash goes on right
-            else:
                 # current hash becomes merkle parent of current and proof_hash
-                current = merkle_parent(current, proof_hash)
             # update the current_index to be integer divide by 2
-            current_index //= 2
         # if final result reversed is equal to merkle_root, return True
-        return current[::-1] == self.merkle_root
+        raise NotImplementedError
 
     
 class Block:
@@ -159,54 +151,35 @@ class Block:
         the same as the merkle root of this block.
         '''
         # reverse all the transaction hashes (self.tx_hashes)
-        hashes = [h[::-1] for h in self.tx_hashes]
         # get the Merkle Root
-        root = merkle_root(hashes)
         # reverse the Merkle Root
         # return whether self.merkle root is the same as 
         # the reverse of the calculated merkle root
-        return root[::-1] == self.merkle_root
+        raise NotImplementedError
 
     def calculate_merkle_tree(self):
         '''Calculate and store the entire Merkle Tree'''
         # store the result in self.merkle_tree, an array, 0 representing
         # the bottom level and 1 the parent level of level 0 and so on.
         # initialize self.merkle_tree to be an empty list
-        self.merkle_tree = []
         # reverse all the transaction hashes (self.tx_hashes) store as current level
-        current_level = [h[::-1] for h in self.tx_hashes]
         # while there is more than 1 hash:
-        while len(current_level) > 1:
             # store current level in self.merkle_tree
-            self.merkle_tree.append(current_level)
             # Make current level Merkle Parent level
-            current_level = merkle_parent_level(current_level)
-    
+        raise NotImplementedError
+
     def create_merkle_proof(self, tx_hash):
         # if self.merkle_tree is empty, go and calculate the merkle tree
-        if self.merkle_tree is None:
-            self.calculate_merkle_tree()
         # find the index of this tx_hash
-        index = self.tx_hashes.index(tx_hash)
         # initialize proof hashes
-        proof_hashes = []
         # initialize the current index to be the index at the base level
-        current_index = index
         # Loop over the levels in the merkle tree
-        for level in self.merkle_tree:
             # Find the partner index (-1 for odd, +1 for even)
-            if current_index % 2 == 1:
-                partner_index = current_index - 1
-            else:
-                partner_index = current_index + 1
             # partner is at the level's partner index
-            partner = level[partner_index]
             # add partner to proof hashes
-            proof_hashes.append(partner)
             # update the current_index to be integer divide by 2
-            current_index //= 2
         # Return a Proof instance Proof(root, tx_hash, index, proof_hashes)
-        return Proof(self.merkle_root, tx_hash, index, proof_hashes)
+        raise NotImplementedError
 
 
 class BlockTest(TestCase):
