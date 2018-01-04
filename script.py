@@ -1,8 +1,6 @@
 from io import BytesIO
 from unittest import TestCase
 
-from helper import h160_to_p2pkh_address, h160_to_p2sh_address
-
 
 class Script:
 
@@ -100,18 +98,6 @@ class Script:
             redeem_script = Script.parse(self.elements[-1])
             return redeem_script.elements[index+1]
 
-    def address(self, testnet=False):
-        '''Returns the address corresponding to the script'''
-        sig_type = self.type()
-        if sig_type == 'p2pkh':
-            # hash160 is the 3rd element
-            # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
-            raise NotImplementedError
-        elif sig_type == 'p2sh':
-            # hash160 is the 2nd element
-            # convert to p2sh address using h160_to_p2sh_address (remember testnet)
-            raise NotImplementedError
-
 
 class ScriptTest(TestCase):
 
@@ -142,20 +128,6 @@ class ScriptTest(TestCase):
         self.assertEqual(script_sig.signature(index=1), bytes.fromhex('3045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201'))
         self.assertEqual(script_sig.sec_pubkey(index=0), bytes.fromhex('022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb70'))
         self.assertEqual(script_sig.sec_pubkey(index=1), bytes.fromhex('03b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb71'))
-
-    def test_address(self):
-        script_raw = bytes.fromhex('76a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac')
-        script_pubkey = Script.parse(script_raw)
-        want = '15hZo812Lx266Dot6T52krxpnhrNiaqHya'
-        self.assertEqual(script_pubkey.address(testnet=False), want)
-        want = 'mkDX6B619yTLsLHVp23QanB9ehT5bcf89D'
-        self.assertEqual(script_pubkey.address(testnet=True), want)
-        script_raw = bytes.fromhex('a91474d691da1574e6b3c192ecfb52cc8984ee7b6c5687')
-        script_pubkey = Script.parse(script_raw)
-        want = '3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'
-        self.assertEqual(script_pubkey.address(testnet=False), want)
-        want = '2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B'
-        self.assertEqual(script_pubkey.address(testnet=True), want)
 
 
 OP_CODES = {
