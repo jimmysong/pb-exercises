@@ -136,34 +136,23 @@ class Tx:
     def verify_input(self, input_index):
         '''Returns whether the input has a valid signature'''
         # get the relevant input
-        tx_in = self.tx_ins[input_index]
         # parse the point from the sec format (tx_in.sec_pubkey())
-        point = S256Point.parse(tx_in.sec_pubkey())
         # parse the signature from the der format (tx_in.der_signature())
-        signature = Signature.parse(tx_in.der_signature())
         # get the hash type from the input (tx_in.hash_type())
-        hash_type = tx_in.hash_type()
         # get the sig_hash (z)
-        z = self.sig_hash(input_index, hash_type)
         # use point.verify on the z and signature
-        return point.verify(z, signature)
+        raise NotImplementedError
 
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
         # get the hash to sign
-        z = self.sig_hash(input_index, hash_type)
         # get der signature of z from private key
-        der = private_key.sign(z).der()
         # append the hash_type to der (use bytes([hash_type]))
-        sig = der + bytes([hash_type])
         # calculate the sec
-        sec = private_key.point.sec()
         # initialize a new script with [sig, sec] as the elements
-        script_sig = Script([sig, sec])
         # change input's script_sig to new script
-        self.tx_ins[input_index].script_sig = script_sig
         # return whether sig is valid using self.verify_input
-        return self.verify_input(input_index)
+        raise NotImplementedError
 
 
 class TxIn:
