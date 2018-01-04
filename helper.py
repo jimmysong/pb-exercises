@@ -71,11 +71,6 @@ def encode_base58_checksum(s):
     return encode_base58(s + double_sha256(s)[:4]).decode('ascii')
 
 
-def p2pkh_script(h160):
-    '''Takes a hash160 and returns the scriptPubKey'''
-    return b'\x76\xa9\x14' + h160 + b'\x88\xac'
-
-
 def decode_base58(s):
     num = 0
     for c in s.encode('ascii'):
@@ -119,18 +114,6 @@ def encode_varint(i):
         raise RuntimeError('integer too large: {}'.format(i))
 
 
-def h160_to_p2pkh_address(h160, testnet=False):
-    '''Takes a byte sequence hash160 and returns a p2pkh address string'''
-    # p2pkh has a prefix of b'\x00' for mainnet, b'\x6f' for testnet
-    raise NotImplementedError
-
-
-def h160_to_p2sh_address(h160, testnet=False):
-    '''Takes a byte sequence hash160 and returns a p2sh address string'''
-    # p2sh has a prefix of b'\x05' for mainnet, b'\xc4 for testnet
-    raise NotImplementedError
-
-
 class HelperTest(TestCase):
 
     def test_bytes(self):
@@ -154,25 +137,3 @@ class HelperTest(TestCase):
         n = 10011545
         want = b'\x99\xc3\x98\x00\x00\x00\x00\x00'
         self.assertEqual(int_to_little_endian(n, 8), want)
-
-    def test_base58(self):
-        addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'
-        h160 = decode_base58(addr).hex()
-        want = '507b27411ccf7f16f10297de6cef3f291623eddf'
-        self.assertEqual(h160, want)
-        got = encode_base58_checksum(b'\x6f' + bytes.fromhex(h160))
-        self.assertEqual(got, addr)
-
-    def test_p2pkh_address(self):
-        h160 = bytes.fromhex('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
-        want = '1BenRpVUFK65JFWcQSuHnJKzc4M8ZP8Eqa'
-        self.assertEqual(h160_to_p2pkh_address(h160, testnet=False), want)
-        want = 'mrAjisaT4LXL5MzE81sfcDYKU3wqWSvf9q'
-        self.assertEqual(h160_to_p2pkh_address(h160, testnet=True), want)
-
-    def test_p2sh_address(self):
-        h160 = bytes.fromhex('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
-        want = '3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'
-        self.assertEqual(h160_to_p2sh_address(h160, testnet=False), want)
-        want = '2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B'
-        self.assertEqual(h160_to_p2sh_address(h160, testnet=True), want)
