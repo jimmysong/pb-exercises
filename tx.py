@@ -66,70 +66,40 @@ class Tx:
     def serialize(self):
         '''Returns the byte serialization of the transaction'''
         # serialize version (4 bytes, little endian)
-        result = int_to_little_endian(self.version, 4)
         # encode_varint on the number of inputs
-        result += encode_varint(len(self.tx_ins))
         # iterate inputs
-        for tx_in in self.tx_ins:
             # serialize each input
-            result += tx_in.serialize()
         # encode_varint on the number of inputs
-        result += encode_varint(len(self.tx_outs))
         # iterate outputs
-        for tx_out in self.tx_outs:
             # serialize each output
-            result += tx_out.serialize()
         # serialize locktime (4 bytes, little endian)
-        result += int_to_little_endian(self.locktime, 4)
-        return result
+        raise NotImplementedError
 
     def fee(self):
         '''Returns the fee of this transaction in satoshi'''
         # initialize input sum and output sum
-        input_sum, output_sum = 0, 0
         # iterate through inputs
-        for tx_in in self.tx_ins:
             # for each input get the value and add to input sum
-            input_sum += tx_in.value()
         # iterate through outputs
-        for tx_out in self.tx_outs:
             # for each output get the amount and add to output sum
-            output_sum += tx_out.amount
         # return input sum - output sum
-        return input_sum - output_sum
+        raise NotImplementedError
 
     def sig_hash(self, input_index, hash_type):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
         # create a new set of tx_ins (alt_tx_ins)
-        alt_tx_ins = []
         # iterate over self.tx_ins
-        for tx_in in self.tx_ins:
             # create a new TxIn that has a blank script_sig (b'') and add to alt_tx_ins
-            alt_tx_ins.append(TxIn(
-                prev_tx=tx_in.prev_tx,
-                prev_index=tx_in.prev_index,
-                script_sig=b'',
-                sequence=tx_in.sequence,
-            ))
         # grab the input at the input_index
-        signing_input = alt_tx_ins[input_index]
         # grab the script_pubkey of the input
-        script_pubkey = signing_input.script_pubkey(self.testnet)
         # the script_sig of the signing_input should be script_pubkey
         signing_input.script_sig = script_pubkey
         # create an alternate transaction with the modified tx_ins
-        alt_tx = self.__class__(
-            version=self.version,
-            tx_ins=alt_tx_ins,
-            tx_outs=self.tx_outs,
-            locktime=self.locktime)
         # add the hash_type int 4 bytes, little endian
-        result = alt_tx.serialize() + int_to_little_endian(hash_type, 4)
         # get the double_sha256 of the tx serialization
-        s256 = double_sha256(result)
         # convert this to a big-endian integer using int.from_bytes(x, 'big')
-        return int.from_bytes(s256, 'big')
+        raise NotImplementedError
 
 
 class TxIn:
@@ -170,18 +140,12 @@ class TxIn:
     def serialize(self):
         '''Returns the byte serialization of the transaction input'''
         # serialize prev_tx, little endian
-        result = self.prev_tx[::-1]
         # serialize prev_index, 4 bytes, little endian
-        result += int_to_little_endian(self.prev_index, 4)
         # get the scriptSig ready (use self.script_sig.serialize())
-        raw_script_sig = self.script_sig.serialize()
         # encode_varint on the length of the scriptSig
-        result += encode_varint(len(raw_script_sig))
         # add the scriptSig
-        result += raw_script_sig
         # serialize sequence, 4 bytes, little endian
-        result += int_to_little_endian(self.sequence, 4)
-        return result
+        raise NotImplementedError
 
     @classmethod
     def get_url(cls, testnet=False):
@@ -208,20 +172,18 @@ class TxIn:
         Returns the amount in satoshi
         '''
         # use self.fetch_tx to get the transaction
-        tx = self.fetch_tx(testnet=testnet)
         # get the output at self.prev_index
         # return the amount property
-        return tx.tx_outs[self.prev_index].amount
+        raise NotImplementedError
 
     def script_pubkey(self, testnet=False):
         '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
         Returns the binary scriptpubkey
         '''
         # use self.fetch_tx to get the transaction
-        tx = self.fetch_tx(testnet=testnet)
         # get the output at self.prev_index
-        # return the script_pubkey property and serialize
-        return tx.tx_outs[self.prev_index].script_pubkey
+        # return the script_pubkey property
+        raise NotImplementedError
 
     def der_signature(self, index=0):
         '''returns a DER format signature and hash_type if the script_sig
@@ -269,14 +231,10 @@ class TxOut:
     def serialize(self):
         '''Returns the byte serialization of the transaction output'''
         # serialize amount, 8 bytes, little endian
-        result = int_to_little_endian(self.amount, 8)
         # get the scriptPubkey ready (use self.script_pubkey.serialize())
-        raw_script_pubkey = self.script_pubkey.serialize()
         # encode_varint on the length of the scriptPubkey
-        result += encode_varint(len(raw_script_pubkey))
         # add the scriptPubKey
-        result += raw_script_pubkey
-        return result
+        raise NotImplementedError
 
 
 class TxTest(TestCase):
