@@ -3,7 +3,6 @@ from subprocess import check_output
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
-import json
 
 
 SIGHASH_ALL = 1
@@ -64,8 +63,11 @@ def decode_base58(s):
     for c in s.encode('ascii'):
         num *= 58
         num += BASE58_ALPHABET.index(c)
-    # disregard the prefix and checksum
-    return num.to_bytes(25, byteorder='big')[1:-4]
+    combined = num.to_bytes(25, byteorder='big')
+    checksum = combined[-4:]
+    if double_sha256(combined[:-4])[:4] != checksum:
+        raise RuntimeError('bad address: {} {}'.format(checksum, double_sha256(combined)[:4]))
+    return combined[1:-4]
 
 
 def read_varint(s):
@@ -99,32 +101,6 @@ def encode_varint(i):
         raise RuntimeError('integer too large: {}'.format(i))
 
 
-def fetch_tx(tx_hash, testnet=False):
-    '''Returns the transaction json from a libbitcoin server'''
-    command = ['bx', 'fetch-tx', '-f', 'json', '-c']
-    if testnet:
-        command.append('bx-testnet.cfg')
-    else:
-        command.append('bx.cfg')
-    command.append(hexlify(tx_hash).decode('ascii'))
-    return json.loads(check_output(command).decode('ascii'))
-
-
-def fetch_script_pubkey(tx_hash, tx_index, testnet=False):
-    '''Returns the scriptPubKey from the libbitcoin server'''
-    tx_data = fetch_tx(tx_hash, testnet)
-    output = tx_data['transaction']['outputs'][tx_index]
-    script = output['script']
-    h160 = output['address_hash']
-    # hacky: interpret the script as p2pkh or p2sh
-    if script.startswith('dup hash160 [') and script.endswith('] equalverify checksig'):
-        return unhexlify('76a914' + h160 + '88ac')
-    elif script.startswith('hash160 [') and script.endswith('] equal'):
-        return unhexlify('a914' + h160 + '87')
-    else:
-        raise RuntimeError('unknown script: {}'.format(script))
-
-
 def flip_endian(h):
     '''flip_endian takes a hex string and flips the endianness
     Returns a hexadecimal string
@@ -154,7 +130,6 @@ def int_to_little_endian(n, length):
 class HelperTest(TestCase):
 
     def test_bytes(self):
-
         b = b'hello world'
         s = 'hello world'
         self.assertEqual(b, str_to_bytes(s))

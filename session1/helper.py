@@ -20,7 +20,6 @@ def str_to_bytes(s, encoding='ascii'):
 class HelperTest(TestCase):
 
     def test_bytes(self):
-
         b = b'hello world'
         s = 'hello world'
         self.assertEqual(b, str_to_bytes(s))

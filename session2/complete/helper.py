@@ -1,7 +1,10 @@
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
+
+
+BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def run_test(test):
@@ -18,9 +21,6 @@ def bytes_to_str(b, encoding='ascii'):
 def str_to_bytes(s, encoding='ascii'):
     '''Returns a bytes version of the string'''
     return s.encode(encoding)
-
-
-BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def hash160(s):
@@ -50,10 +50,10 @@ def encode_base58(s):
     return prefix + bytes(result)
 
 
+
 class HelperTest(TestCase):
 
     def test_bytes(self):
-
         b = b'hello world'
         s = 'hello world'
         self.assertEqual(b, str_to_bytes(s))

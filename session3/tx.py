@@ -2,7 +2,10 @@ from binascii import hexlify, unhexlify
 from io import BytesIO
 from unittest import TestCase
 
-from helper import little_endian_to_int, read_varint
+from helper import (
+    little_endian_to_int,
+    read_varint,
+)
 
 class Tx:
 
@@ -15,12 +18,15 @@ class Tx:
     def __repr__(self):
         tx_ins = ''
         for tx_in in self.tx_ins:
-            tx_ins += tx_in.__repr__()
+            tx_ins += tx_in.__repr__() + '\n'
         tx_outs = ''
         for tx_out in self.tx_outs:
-            tx_outs += tx_out.__repr__()
+            tx_outs += tx_out.__repr__() + '\n'
         return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
-            self.version, tx_ins, tx_outs, self.locktime,
+            self.version,
+            tx_ins,
+            tx_outs,
+            self.locktime,
         )
 
     @classmethod
@@ -47,6 +53,12 @@ class TxIn:
         self.script_sig = script_sig
         self.sequence = sequence
 
+    def __repr__(self):
+        return '{}:{}'.format(
+            hexlify(self.prev_tx).decode('ascii'),
+            self.prev_index,
+        )
+
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses the tx_input at the start
@@ -68,6 +80,9 @@ class TxOut:
         self.amount = amount
         self.script_pubkey = script_pubkey
 
+    def __repr__(self):
+        return '{}:{}'.format(self.amount, hexlify(self.script_pubkey))
+
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses the tx_output at the start
@@ -80,7 +95,7 @@ class TxOut:
         # return an instance of the class (cls(...))
         raise NotImplementedError
 
-    
+
 class TxTest(TestCase):
 
     def test_parse_version(self):

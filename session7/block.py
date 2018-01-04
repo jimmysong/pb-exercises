@@ -169,7 +169,7 @@ class Block:
             # Make current level Merkle Parent level
         # store root as the final level
         raise NotImplementedError
-    
+
     def create_merkle_proof(self, tx_hash):
         # if self.merkle_tree is empty, go and calculate the merkle tree
         # find the index of this tx_hash

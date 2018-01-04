@@ -247,12 +247,11 @@ class Script:
         if sig_type == 'p2pkh':
             # hash160 is the 3rd element
             # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
-            pass  # REMOVE THIS LINE
+            raise NotImplementedError
         elif sig_type == 'p2sh':
             # hash160 is the 2nd element
             # convert to p2sh address using h160_to_p2sh_address (remember testnet)
-            pass  # REMOVE THIS LINE
-        raise NotImplementedError
+            raise NotImplementedError
 
 
 class ScriptTest(TestCase):

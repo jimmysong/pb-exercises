@@ -561,7 +561,6 @@ class S256Test(TestCase):
         self.assertTrue(point.verify(z, Signature(r, s)))
 
 
-
 class Signature:
 
     def __init__(self, r, s):

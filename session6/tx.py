@@ -2,15 +2,14 @@ from binascii import hexlify, unhexlify
 from io import BytesIO
 from unittest import TestCase
 
-import requests
+import random
+import zmq
 
 from ecc import PrivateKey, S256Point, Signature
 from helper import (
     decode_base58,
     double_sha256,
     encode_varint,
-    fetch_tx,
-    fetch_script_pubkey,
     int_to_little_endian,
     little_endian_to_int,
     p2pkh_script,
@@ -31,12 +30,15 @@ class Tx:
     def __repr__(self):
         tx_ins = ''
         for tx_in in self.tx_ins:
-            tx_ins += tx_in.__repr__()
+            tx_ins += tx_in.__repr__() + '\n'
         tx_outs = ''
         for tx_out in self.tx_outs:
-            tx_outs += tx_out.__repr__()
+            tx_outs += tx_out.__repr__() + '\n'
         return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
-            self.version, tx_ins, tx_outs, self.locktime,
+            self.version,
+            tx_ins,
+            tx_outs,
+            self.locktime,
         )
 
     @classmethod
@@ -102,20 +104,21 @@ class Tx:
     def sig_hash(self, input_index, hash_type):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
-        # create a transaction serialization where
-        # all the input script_sigs are blanked out
+        # create a new set of tx_ins (alt_tx_ins)
         alt_tx_ins = []
+        # iterate over self.tx_ins
         for tx_in in self.tx_ins:
+            # create a new TxIn that has a blank script_sig (b'') and add to alt_tx_ins
             alt_tx_ins.append(TxIn(
                 prev_tx=tx_in.prev_tx,
                 prev_index=tx_in.prev_index,
                 script_sig=b'',
                 sequence=tx_in.sequence,
             ))
-        # replace the input's scriptSig with the scriptPubKey
+        # grab the input at the input_index
         signing_input = alt_tx_ins[input_index]
-        # Exercise 6.2: grab the script_pubkey (use Script.parse(signing_input.script_pubkey(self.testnet)))
-        script_pubkey = Script.parse(signing_input.script_pubkey(self.testnet))
+        # grab the script_pubkey of the input
+        script_pubkey = signing_input.script_pubkey(self.testnet)
         # Exercise 6.2: get the sig type from script_pubkey.type()
         sig_type = script_pubkey.type()
         # Exercise 6.2: the script_sig of the signing_input should be script_pubkey for p2pkh
@@ -132,14 +135,18 @@ class Tx:
                 current_input.redeem_script())
         else:
             raise RuntimeError('no valid sig_type')
+        # create an alternate transaction with the modified tx_ins
         alt_tx = self.__class__(
             version=self.version,
             tx_ins=alt_tx_ins,
             tx_outs=self.tx_outs,
             locktime=self.locktime)
-        # add the hash_type
+        # add the hash_type int 4 bytes, little endian
         result = alt_tx.serialize() + int_to_little_endian(hash_type, 4)
-        return int.from_bytes(double_sha256(result), 'big')
+        # get the double_sha256 of the tx serialization
+        s256 = double_sha256(result)
+        # convert this to a big-endian integer using int.from_bytes(x, 'big')
+        return int.from_bytes(s256, 'big')
 
     def verify_input(self, input_index):
         '''Returns whether the input has a valid signature'''
@@ -158,7 +165,7 @@ class Tx:
             # Exercise 1.1: get the signature from der format
             signature = Signature.parse(der)
             # Exercise 1.1: get the hash to sign
-            z = self.hash_to_sign(input_index, hash_type)
+            z = self.sig_hash(input_index, hash_type)
             # Exercise 1.1: use point.verify on the hash to sign and signature
             if not point.verify(z, signature):
                 return False
@@ -167,7 +174,7 @@ class Tx:
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
         # get the hash to sign
-        z = self.hash_to_sign(input_index, hash_type)
+        z = self.sig_hash(input_index, hash_type)
         # get der signature of z from private key
         der = private_key.sign(z).der()
         # append the hash_type to der (use bytes([hash_type]))
@@ -202,11 +209,22 @@ class Tx:
 
 class TxIn:
 
+    context = zmq.Context()
+    mainnet_socket = None
+    testnet_socket = None
+    cache = {}
+
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
         self.script_sig = Script.parse(script_sig)
         self.sequence = sequence
+
+    def __repr__(self):
+        return '{}:{}'.format(
+            hexlify(self.prev_tx).decode('ascii'),
+            self.prev_index,
+        )
 
     @classmethod
     def parse(cls, s):
@@ -243,23 +261,59 @@ class TxIn:
         result += int_to_little_endian(self.sequence, 4)
         return result
 
+    @classmethod
+    def get_socket(cls, testnet=False):
+        if testnet:
+            if cls.testnet_socket is None:
+                cls.testnet_socket = cls.context.socket(zmq.DEALER)
+                cls.testnet_socket.connect('tcp://testnet.libbitcoin.net:19091')
+            return cls.testnet_socket
+        else:
+            if cls.mainnet_socket is None:
+                cls.mainnet_socket = cls.context.socket(zmq.DEALER)
+                cls.mainnet_socket.connect('tcp://mainnet.libbitcoin.net:9091')
+            return cls.mainnet_socket
+
+    def fetch_tx(self, testnet=False):
+        if self.prev_tx not in self.cache:
+            socket = self.get_socket(testnet=testnet)
+            nonce = int_to_little_endian(random.randint(0, 2**32), 4)
+            msg = b'blockchain.fetch_transaction2'
+            socket.send(msg, zmq.SNDMORE)
+            socket.send(nonce, zmq.SNDMORE)
+            socket.send(self.prev_tx[::-1])
+            response_msg = socket.recv()
+            response_nonce = socket.recv()
+            if response_msg != msg or response_nonce != nonce:
+                raise RuntimeError('received wrong msg: {}'.format(
+                    response_msg.decode('ascii')))
+            response_tx = socket.recv()
+            response_code = little_endian_to_int(response_tx[:4])
+            if response_code != 0:
+                raise RuntimeError('got code from server: {}'.format(response_code))
+            stream = BytesIO(response_tx[4:])
+            self.cache[self.prev_tx] = Tx.parse(stream)
+        return self.cache[self.prev_tx]
+
     def value(self, testnet=False):
         '''Get the outpoint value by looking up the tx hash on libbitcoin server
         Returns the amount in satoshi
         '''
-        # use fetch_tx to get the transaction
-        tx_data = fetch_tx(self.prev_tx)
-        # get the output at self.prev_index: tx_data['transaction']['outputs'][self.prev_index]
-        output = tx_data['transaction']['outputs'][self.prev_index]
-        # grab the value and cast to int
-        return int(output['value'])
+        # use self.fetch_tx to get the transaction
+        tx = self.fetch_tx(testnet=testnet)
+        # get the output at self.prev_index
+        # return the amount property
+        return tx.tx_outs[self.prev_index].amount
 
     def script_pubkey(self, testnet=False):
         '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
         Returns the binary scriptpubkey
         '''
-        # use fetch_script_pubkey from helper.py
-        return fetch_script_pubkey(self.prev_tx, self.prev_index, testnet)
+        # use self.fetch_tx to get the transaction
+        tx = self.fetch_tx(testnet=testnet)
+        # get the output at self.prev_index
+        # return the script_pubkey property and serialize
+        return tx.tx_outs[self.prev_index].script_pubkey
 
     def der_signature(self, index=0):
         '''returns a DER format signature and hash_type if the script_sig
@@ -282,6 +336,9 @@ class TxOut:
     def __init__(self, amount, script_pubkey):
         self.amount = amount
         self.script_pubkey = Script.parse(script_pubkey)
+
+    def __repr__(self):
+        return '{}:{}'.format(self.amount, self.script_pubkey.address())
 
     @classmethod
     def parse(cls, s):
@@ -312,6 +369,15 @@ class TxOut:
 
 
 class TxTest(TestCase):
+
+    @classmethod
+    def tearDownClass(cls):
+        if TxIn.mainnet_socket is not None:
+            TxIn.mainnet_socket.close()
+            TxIn.mainnet_socket = None
+        if TxIn.testnet_socket is not None:
+            TxIn.testnet_socket.close()
+            TxIn.testnet_socket = None
 
     def test_parse_version(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
@@ -395,7 +461,7 @@ class TxTest(TestCase):
             sequence=0,
         )
         want = unhexlify('76a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
-        self.assertEqual(tx_in.script_pubkey(), want)
+        self.assertEqual(tx_in.script_pubkey().serialize(), want)
 
     def test_fee(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')

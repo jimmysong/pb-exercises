@@ -4,6 +4,9 @@ from unittest import TestCase, TestSuite, TextTestRunner
 import hashlib
 
 
+BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+
 def run_test(test):
     suite = TestSuite()
     suite.addTest(test)
@@ -18,9 +21,6 @@ def bytes_to_str(b, encoding='ascii'):
 def str_to_bytes(s, encoding='ascii'):
     '''Returns a bytes version of the string'''
     return s.encode(encoding)
-
-
-BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def hash160(s):
@@ -59,8 +59,11 @@ def decode_base58(s):
     for c in s.encode('ascii'):
         num *= 58
         num += BASE58_ALPHABET.index(c)
-    # disregard the prefix and checksum
-    return num.to_bytes(25, byteorder='big')[1:-4]
+    combined = num.to_bytes(25, byteorder='big')
+    checksum = combined[-4:]
+    if double_sha256(combined[:-4])[:4] != checksum:
+        raise RuntimeError('bad address: {} {}'.format(checksum, double_sha256(combined)[:4]))
+    return combined[1:-4]
 
 
 def read_varint(s):
@@ -92,7 +95,7 @@ def encode_varint(i):
         return b'\xff' + int_to_little_endian(i, 8)
     else:
         raise RuntimeError('integer too large: {}'.format(i))
-    
+
 
 def flip_endian(h):
     '''flip_endian takes a hex string and flips the endianness
@@ -123,7 +126,6 @@ def int_to_little_endian(n, length):
 class HelperTest(TestCase):
 
     def test_bytes(self):
-
         b = b'hello world'
         s = 'hello world'
         self.assertEqual(b, str_to_bytes(s))

@@ -1,4 +1,4 @@
-from binascii import unhexlify
+from binascii import hexlify, unhexlify
 from io import BytesIO
 from unittest import TestCase
 
