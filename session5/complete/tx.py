@@ -3,7 +3,7 @@ from io import BytesIO
 from unittest import TestCase
 
 import random
-import zmq
+import requests
 
 from ecc import PrivateKey, S256Point, Signature
 from helper import (
@@ -191,9 +191,6 @@ class Tx:
 
 class TxIn:
 
-    context = zmq.Context()
-    mainnet_socket = None
-    testnet_socket = None
     cache = {}
 
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
@@ -244,37 +241,23 @@ class TxIn:
         return result
 
     @classmethod
-    def get_socket(cls, testnet=False):
+    def get_url(cls, testnet=False):
         if testnet:
-            if cls.testnet_socket is None:
-                cls.testnet_socket = cls.context.socket(zmq.DEALER)
-                cls.testnet_socket.connect('tcp://testnet.libbitcoin.net:19091')
-            return cls.testnet_socket
+            return 'https://testnet.blockexplorer.com/api'
         else:
-            if cls.mainnet_socket is None:
-                cls.mainnet_socket = cls.context.socket(zmq.DEALER)
-                cls.mainnet_socket.connect('tcp://mainnet.libbitcoin.net:9091')
-            return cls.mainnet_socket
+            return 'https://btc-bitcore3.trezor.io/api'
 
     def fetch_tx(self, testnet=False):
         if self.prev_tx not in self.cache:
-            socket = self.get_socket(testnet=testnet)
-            nonce = int_to_little_endian(random.randint(0, 2**32), 4)
-            msg = b'blockchain.fetch_transaction2'
-            socket.send(msg, zmq.SNDMORE)
-            socket.send(nonce, zmq.SNDMORE)
-            socket.send(self.prev_tx[::-1])
-            response_msg = socket.recv()
-            response_nonce = socket.recv()
-            if response_msg != msg or response_nonce != nonce:
-                raise RuntimeError('received wrong msg: {}'.format(
-                    response_msg.decode('ascii')))
-            response_tx = socket.recv()
-            response_code = little_endian_to_int(response_tx[:4])
-            if response_code != 0:
-                raise RuntimeError('got code from server: {}'.format(response_code))
-            stream = BytesIO(response_tx[4:])
-            self.cache[self.prev_tx] = Tx.parse(stream)
+            url = self.get_url(testnet) + '/rawtx/{}'.format(hexlify(self.prev_tx).decode('ascii'))
+            response = requests.get(url)
+            js_response = response.json()
+            if 'rawtx' not in js_response:
+                raise RuntimeError('got from server: {}'.format(js_response))
+            raw = unhexlify(js_response['rawtx'])
+            stream = BytesIO(raw)
+            tx = Tx.parse(stream)
+            self.cache[self.prev_tx] = tx
         return self.cache[self.prev_tx]
 
     def value(self, testnet=False):
@@ -351,15 +334,6 @@ class TxOut:
 
 
 class TxTest(TestCase):
-
-    @classmethod
-    def tearDownClass(cls):
-        if TxIn.mainnet_socket is not None:
-            TxIn.mainnet_socket.close()
-            TxIn.mainnet_socket = None
-        if TxIn.testnet_socket is not None:
-            TxIn.testnet_socket.close()
-            TxIn.testnet_socket = None
 
     def test_parse_version(self):
         raw_tx = unhexlify('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')

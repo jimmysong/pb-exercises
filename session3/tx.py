@@ -46,7 +46,6 @@ class Tx:
 
 
 class TxIn:
-
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
@@ -72,7 +71,6 @@ class TxIn:
         # sequence is 4 bytes, little-endian, interpret as int
         # return an instance of the class (cls(...))
         raise NotImplementedError
-
 
 class TxOut:
 

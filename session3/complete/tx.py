@@ -56,7 +56,6 @@ class Tx:
 
 
 class TxIn:
-
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
@@ -87,7 +86,6 @@ class TxIn:
         sequence = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
         return cls(prev_tx, prev_index, script_sig, sequence)
-
 
 class TxOut:
 
