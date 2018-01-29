@@ -76,7 +76,7 @@ class Tx:
         for tx_in in self.tx_ins:
             # serialize each input
             result += tx_in.serialize()
-        # encode_varint on the number of inputs
+        # encode_varint on the number of outputs
         result += encode_varint(len(self.tx_outs))
         # iterate outputs
         for tx_out in self.tx_outs:
