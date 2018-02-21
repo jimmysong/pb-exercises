@@ -85,7 +85,7 @@ class Block:
     def check_pow(self):
         '''Returns whether this block satisfies proof of work'''
         # get the double_sha256 of the serialization of this block
-        # interpret this hash as an integer using int.from_bytes(sha, 'little')
+        # interpret this hash as a little endian integer
         # return whether this integer is less than the target
         raise NotImplementedError
 

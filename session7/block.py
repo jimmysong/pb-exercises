@@ -35,13 +35,13 @@ class Proof:
     def verify(self):
         '''Returns whether this proof is valid'''
         # current hash starts with self.tx_hash, reversed
-        # Get the Merkle Path for the index and 2**len(merkle_proof)
-        # Loop through Merkle Path and proof hashes
-        # for proof_hash, index_at_level in zip(self.merkle_proof, path):
-            # if index_at_level is odd, proof_hash goes on left
+        # initialize the current_index to be the index at at base level
+        # Loop through proof hashes
+            # if current_index is odd, proof_hash goes on left
                 # current hash becomes merkle parent of proof_hash and current
-            # if index_at_level is even, proof_hash goes on right
+            # if current_index is even, proof_hash goes on right
                 # current hash becomes merkle parent of current and proof_hash
+            # update the current_index to be integer divide by 2
         # if final result reversed is equal to merkle_root, return True
         raise NotImplementedError
 
@@ -167,19 +167,18 @@ class Block:
         # if there is more than 1 hash:
             # store current level in self.merkle_tree
             # Make current level Merkle Parent level
-        # store root as the final level
         raise NotImplementedError
 
     def create_merkle_proof(self, tx_hash):
         # if self.merkle_tree is empty, go and calculate the merkle tree
         # find the index of this tx_hash
-        # Get the Merkle Path
         # initialize merkle_proof list
-        # Loop over the items in the Merkle Path
-        # for level, index_at_level in enumerate(path):
+        # initialize the current index to be the index at the base level
+        # Loop over the levels in the merkle tree
             # Find the partner index (-1 for odd, +1 for even)
             # add partner to merkle_proof list
-        # Return a Proof instance
+            # update the current_index to be integer divide by 2
+        # Return a Proof instance Proof(root, tx_hash, index, proof_list)
         raise NotImplementedError
 
 
@@ -331,14 +330,10 @@ class BlockTest(TestCase):
             'b9f5560ce9630ea4177a7ac56d18dea73c8f76b59e02ab4805eaeebd84a4c5b1',
             '00aa9ad6a7841ffbbf262eb775f8357674f1ea23af11c01cfb6d481fec879701',
         ]
-        want4 = [
-            'acbcab8bcc1af95d8d563b77d24c3d19b18f1486383d75a5085c4e86c86beed6',
-        ]
         self.assertEqual(block.merkle_tree[0], [unhexlify(x) for x in want0])
         self.assertEqual(block.merkle_tree[1], [unhexlify(x) for x in want1])
         self.assertEqual(block.merkle_tree[2], [unhexlify(x) for x in want2])
         self.assertEqual(block.merkle_tree[3], [unhexlify(x) for x in want3])
-        self.assertEqual(block.merkle_tree[4], [unhexlify(x) for x in want4])
 
     def test_create_merkle_proof(self):
         hashes_hex = [
