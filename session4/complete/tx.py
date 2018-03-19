@@ -226,9 +226,16 @@ class TxIn:
     def der_signature(self, index=0):
         '''returns a DER format signature and hash_type if the script_sig
         has a signature'''
-        signature = self.script_sig.der_signature(index=index)
+        signature = self.script_sig.signature(index=index)
         # last byte is the hash_type, rest is the signature
-        return signature[:-1], signature[-1]
+        return signature[:-1]
+
+    def hash_type(self, index=0):
+        '''returns a DER format signature and hash_type if the script_sig
+        has a signature'''
+        signature = self.script_sig.signature(index=index)
+        # last byte is the hash_type, rest is the signature
+        return signature[-1]
 
     def sec_pubkey(self, index=0):
         '''returns the SEC format public if the script_sig has one'''
