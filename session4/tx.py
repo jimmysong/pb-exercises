@@ -70,7 +70,7 @@ class Tx:
         # encode_varint on the number of inputs
         # iterate inputs
             # serialize each input
-        # encode_varint on the number of inputs
+        # encode_varint on the number of outputs
         # iterate outputs
             # serialize each output
         # serialize locktime (4 bytes, little endian)
