@@ -262,7 +262,7 @@ class HelperTest(TestCase):
         h160 = unhexlify('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
         want = '3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'
         self.assertEqual(h160_to_p2sh_address(h160, testnet=False), want)
-        want = '2LSYbUfinZx4JKUHF6zrUtNb3SupF4HmKwH'
+        want = '2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B'
         self.assertEqual(h160_to_p2sh_address(h160, testnet=True), want)
 
     def test_merkle_parent(self):

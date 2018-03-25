@@ -295,6 +295,6 @@ class ScriptTest(TestCase):
         script_pubkey = Script.parse(script_raw)
         want = '3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'
         self.assertEqual(script_pubkey.address(testnet=False), want)
-        want = '2LSYbUfinZx4JKUHF6zrUtNb3SupF4HmKwH'
+        want = '2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B'
         self.assertEqual(script_pubkey.address(testnet=True), want)
 
