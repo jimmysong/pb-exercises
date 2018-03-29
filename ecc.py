@@ -1,4 +1,3 @@
-from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import randint
 from unittest import TestCase
@@ -278,8 +277,8 @@ class ECCTest(TestCase):
         # iterate over valid points
         for x_raw, y_raw in valid_points:
             # Initialize points this way:
-            # x = FieldElement(192, prime)
-            # y = FieldElement(105, prime)
+            # x = FieldElement(x_raw, prime)
+            # y = FieldElement(y_raw, prime)
             # Point(x, y, a, b)
             x = FieldElement(x_raw, prime)
             y = FieldElement(y_raw, prime)
@@ -289,8 +288,8 @@ class ECCTest(TestCase):
         # iterate over invalid points
         for x_raw, y_raw in invalid_points:
             # Initialize points this way:
-            # x = FieldElement(192, prime)
-            # y = FieldElement(105, prime)
+            # x = FieldElement(x_raw, prime)
+            # y = FieldElement(y_raw, prime)
             # Point(x, y, a, b)
             x = FieldElement(x_raw, prime)
             y = FieldElement(y_raw, prime)
@@ -318,9 +317,15 @@ class ECCTest(TestCase):
         # iterate over the additions
         for x1_raw, y1_raw, x2_raw, y2_raw, x3_raw, y3_raw in additions:
             # Initialize points this way:
-            # x = FieldElement(192, prime)
-            # y = FieldElement(105, prime)
-            # p1 = Point(x, y, a, b)
+            # x1 = FieldElement(x1_raw, prime)
+            # y1 = FieldElement(y1_raw, prime)
+            # p1 = Point(x1, y1, a, b)
+            # x2 = FieldElement(x2_raw, prime)
+            # y2 = FieldElement(y2_raw, prime)
+            # p2 = Point(x2, y2, a, b)
+            # x3 = FieldElement(x3_raw, prime)
+            # y3 = FieldElement(y3_raw, prime)
+            # p3 = Point(x3, y3, a, b)
             x1 = FieldElement(x1_raw, prime)
             y1 = FieldElement(y1_raw, prime)
             p1 = Point(x1, y1, a, b)
@@ -358,13 +363,16 @@ class ECCTest(TestCase):
         # iterate over the multiplications
         for s, x1_raw, y1_raw, x2_raw, y2_raw in multiplications:
             # Initialize points this way:
-            # x = FieldElement(192, prime)
-            # y = FieldElement(105, prime)
-            # p = Point(x, y, a, b)
+            # x1 = FieldElement(x1_raw, prime)
+            # y1 = FieldElement(y1_raw, prime)
+            # p1 = Point(x1, y1, a, b)
             x1 = FieldElement(x1_raw, prime)
             y1 = FieldElement(y1_raw, prime)
             p1 = Point(x1, y1, a, b)
             # initialize the second point based on whether it's the point at infinity
+            # x2 = FieldElement(x2_raw, prime)
+            # y2 = FieldElement(y2_raw, prime)
+            # p2 = Point(x2, y2, a, b)
             if x2_raw is None:
                 p2 = Point(None, None, a, b)
             else:
@@ -416,6 +424,8 @@ class S256Point(Point):
             return 'Point({},{})'.format(self.x, self.y)
 
     def __rmul__(self, coefficient):
+        # we want to mod by N to make this simple
+        coef = coefficient % N
         # current will undergo binary expansion
         current = self
         # result is what we return, starts at 0
@@ -423,11 +433,11 @@ class S256Point(Point):
         # we double 256 times and add where there is a 1 in the binary
         # representation of coefficient
         for i in range(self.bits):
-            if coefficient & 1:
+            if coef & 1:
                 result += current
             current += current
             # we shift the coefficient to the right
-            coefficient >>= 1
+            coef >>= 1
         return result
 
     def sec(self, compressed=True):
@@ -480,11 +490,11 @@ class S256Point(Point):
         '''returns a Point object from a compressed sec binary (not hex)
         '''
         if sec_bin[0] == 4:
-            x = int(hexlify(sec_bin[1:33]), 16)
-            y = int(hexlify(sec_bin[33:65]), 16)
+            x = int(sec_bin[1:33].hex(), 16)
+            y = int(sec_bin[33:65].hex(), 16)
             return S256Point(x=x, y=y)
         is_even = sec_bin[0] == 2
-        x = S256Field(int(hexlify(sec_bin[1:]), 16))
+        x = S256Field(int(sec_bin[1:].hex(), 16))
         # right side of the equation y^2 = x^3 + 7
         alpha = x**3 + S256Field(B)
         # solve for left side
@@ -534,20 +544,20 @@ class S256Test(TestCase):
         uncompressed = '049d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d56fa15cc7f3d38cda98dee2419f415b7513dde1301f8643cd9245aea7f3f911f9'
         compressed = '039d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d5'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
-        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
+        self.assertEqual(point.sec(compressed=False), bytes.fromhex(uncompressed))
+        self.assertEqual(point.sec(compressed=True), bytes.fromhex(compressed))
         coefficient = 123
         uncompressed = '04a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5204b5d6f84822c307e4b4a7140737aec23fc63b65b35f86a10026dbd2d864e6b'
         compressed = '03a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
-        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
+        self.assertEqual(point.sec(compressed=False), bytes.fromhex(uncompressed))
+        self.assertEqual(point.sec(compressed=True), bytes.fromhex(compressed))
         coefficient = 42424242
         uncompressed = '04aee2e7d843f7430097859e2bc603abcc3274ff8169c1a469fee0f20614066f8e21ec53f40efac47ac1c5211b2123527e0e9b57ede790c4da1e72c91fb7da54a3'
         compressed = '03aee2e7d843f7430097859e2bc603abcc3274ff8169c1a469fee0f20614066f8e'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
-        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
+        self.assertEqual(point.sec(compressed=False), bytes.fromhex(uncompressed))
+        self.assertEqual(point.sec(compressed=True), bytes.fromhex(compressed))
 
     def test_address(self):
         secret = 888**3
@@ -589,7 +599,7 @@ class S256Test(TestCase):
         self.assertTrue(point.verify(z, Signature(r, s)))
 
     def test_parse(self):
-        sec = unhexlify('0349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a')
+        sec = bytes.fromhex('0349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a')
         point = S256Point.parse(sec)
         want = 0xa56c896489c71dfc65701ce25050f542f336893fb8cd15f4e8e5c124dbf58e47
         self.assertEqual(point.y.num, want)
@@ -631,12 +641,12 @@ class Signature:
         if marker != 0x02:
             raise RuntimeError("Bad Signature")
         rlength = s.read(1)[0]
-        r = int(hexlify(s.read(rlength)), 16)
+        r = int(s.read(rlength).hex(), 16)
         marker = s.read(1)[0]
         if marker != 0x02:
             raise RuntimeError("Bad Signature")
         slength = s.read(1)[0]
-        s = int(hexlify(s.read(slength)), 16)
+        s = int(s.read(slength).hex(), 16)
         if len(signature_bin) != 6 + rlength + slength:
             raise RuntimeError("Signature too long")
         return cls(r, s)
