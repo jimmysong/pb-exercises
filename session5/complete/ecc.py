@@ -416,6 +416,8 @@ class S256Point(Point):
             return 'Point({},{})'.format(self.x, self.y)
 
     def __rmul__(self, coefficient):
+        # we want to mod by N to make this simple
+        coef = coefficient % N
         # current will undergo binary expansion
         current = self
         # result is what we return, starts at 0
@@ -423,11 +425,11 @@ class S256Point(Point):
         # we double 256 times and add where there is a 1 in the binary
         # representation of coefficient
         for i in range(self.bits):
-            if coefficient & 1:
+            if coef & 1:
                 result += current
             current += current
             # we shift the coefficient to the right
-            coefficient >>= 1
+            coef >>= 1
         return result
 
     def sec(self, compressed=True):
@@ -676,8 +678,6 @@ class PrivateKey:
         k_inv = pow(k, N-2, N)
         # s = (z+r*secret) / k
         s = (z + r*self.secret) * k_inv % N
-        if s > N // 2:
-            s = N - s
         # return an instance of Signature:
         # Signature(r, s)
         return Signature(r, s)

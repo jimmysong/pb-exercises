@@ -119,8 +119,22 @@ class Tx:
         signing_input = alt_tx_ins[input_index]
         # grab the script_pubkey of the input
         script_pubkey = signing_input.script_pubkey(self.testnet)
-        # the script_sig of the signing_input should be script_pubkey for p2pkh
-        signing_input.script_sig = script_pubkey
+        # Exercise 6.2: get the sig type from script_pubkey.type()
+        sig_type = script_pubkey.type()
+        # Exercise 6.2: the script_sig of the signing_input should be script_pubkey for p2pkh
+        if sig_type == 'p2pkh':
+            # Exercise 6.2: replace the input's scriptSig with the scriptPubKey
+            signing_input.script_sig = script_pubkey
+        # Exercise 6.2: the script_sig of the signing_input should be the redeemScript
+        #               of the current input of the real tx_in (self.tx_ins[input_index].redeem_script()
+        elif sig_type == 'p2sh':
+            # Exercise 6.2: replace the input's scriptSig with the RedeemScript
+            current_input = self.tx_ins[input_index]
+            # Exercise 6.2: replace the input's scriptSig with the Script.parse(redeem_script)
+            signing_input.script_sig = Script.parse(
+                current_input.redeem_script())
+        else:
+            raise RuntimeError('no valid sig_type')
         # create an alternate transaction with the modified tx_ins
         alt_tx = self.__class__(
             version=self.version,
@@ -151,7 +165,7 @@ class Tx:
 
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
-        # get the sig_hash (z)
+        # get the hash to sign
         z = self.sig_hash(input_index, hash_type)
         # get der signature of z from private key
         der = private_key.sign(z).der()
@@ -363,7 +377,8 @@ class TxTest(TestCase):
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         want = b'3045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed'
-        der, hash_type = tx.tx_ins[0].der_signature()
+        der = tx.tx_ins[0].der_signature()
+        hash_type = tx.tx_ins[0].hash_type()
         self.assertEqual(hexlify(der), want)
         self.assertEqual(hash_type, SIGHASH_ALL)
 

@@ -28,6 +28,20 @@ def str_to_bytes(s, encoding='ascii'):
     return s.encode(encoding)
 
 
+def little_endian_to_int(b):
+    '''little_endian_to_int takes byte sequence as a little-endian number.
+    Returns an integer'''
+    # use the from_bytes method of int
+    return int.from_bytes(b, 'little')
+
+
+def int_to_little_endian(n, length):
+    '''endian_to_little_endian takes an integer and returns the little-endian
+    byte sequence of length'''
+    # use the to_bytes method of n
+    return n.to_bytes(length, 'little')
+
+
 def hash160(s):
     return hashlib.new('ripemd160', hashlib.sha256(s).digest()).digest()
 
@@ -107,32 +121,6 @@ def encode_varint(i):
         raise RuntimeError('integer too large: {}'.format(i))
 
 
-def flip_endian(h):
-    '''flip_endian takes a hex string and flips the endianness
-    Returns a hexadecimal string
-    '''
-    # convert hex to binary (use unhexlify)
-    b = unhexlify(h)
-    # reverse the binary (use [::-1])
-    b_rev = b[::-1]
-    # convert binary to hex (use hexlify and then .decode('ascii'))
-    return hexlify(b_rev).decode('ascii')
-
-
-def little_endian_to_int(b):
-    '''little_endian_to_int takes byte sequence as a little-endian number.
-    Returns an integer'''
-    # use the from_bytes method of int
-    return int.from_bytes(b, 'little')
-
-
-def int_to_little_endian(n, length):
-    '''endian_to_little_endian takes an integer and returns the little-endian
-    byte sequence of length'''
-    # use the to_bytes method of n
-    return n.to_bytes(length, 'little')
-
-
 def h160_to_p2pkh_address(h160, testnet=False):
     '''Takes a byte sequence hash160 and returns a p2pkh address string'''
     # p2pkh has a prefix of b'\x00' for mainnet, b'\x6f' for testnet
@@ -202,22 +190,6 @@ class HelperTest(TestCase):
         self.assertEqual(b, str_to_bytes(s))
         self.assertEqual(s, bytes_to_str(b))
 
-    def test_base58(self):
-        addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'
-        h160 = hexlify(decode_base58(addr))
-        want = b'507b27411ccf7f16f10297de6cef3f291623eddf'
-        self.assertEqual(h160, want)
-        got = encode_base58_checksum(b'\x6f' + unhexlify(h160))
-        self.assertEqual(got, addr)
-
-    def test_flip_endian(self):
-        h = '03ee4f7a4e68f802303bc659f8f817964b4b74fe046facc3ae1be4679d622c45'
-        w = '452c629d67e41baec3ac6f04fe744b4b9617f8f859c63b3002f8684e7a4fee03'
-        self.assertEqual(flip_endian(h), w)
-        h = '813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1'
-        w = 'd1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81'
-        self.assertEqual(flip_endian(h), w)
-
     def test_little_endian_to_int(self):
         h = unhexlify('99c3980000000000')
         want = 10011545
@@ -233,6 +205,14 @@ class HelperTest(TestCase):
         n = 10011545
         want = b'\x99\xc3\x98\x00\x00\x00\x00\x00'
         self.assertEqual(int_to_little_endian(n, 8), want)
+
+    def test_base58(self):
+        addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'
+        h160 = hexlify(decode_base58(addr))
+        want = b'507b27411ccf7f16f10297de6cef3f291623eddf'
+        self.assertEqual(h160, want)
+        got = encode_base58_checksum(b'\x6f' + unhexlify(h160))
+        self.assertEqual(got, addr)
 
     def test_p2pkh_address(self):
         h160 = unhexlify('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')

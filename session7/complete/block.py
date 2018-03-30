@@ -15,11 +15,11 @@ from helper import (
 
 class Proof:
 
-    def __init__(self, merkle_root, tx_hash, index, merkle_proof):
+    def __init__(self, merkle_root, tx_hash, index, proof_hashes):
         self.merkle_root = merkle_root
         self.tx_hash = tx_hash
         self.index = index
-        self.merkle_proof = merkle_proof
+        self.proof_hashes = proof_hashes
 
     def __repr__(self):
         s = '{}:{}:{}:['.format(
@@ -27,7 +27,7 @@ class Proof:
             hexlify(self.tx_hash).decode('ascii'),
             self.index,
         )
-        for p in self.merkle_proof:
+        for p in self.proof_hashes:
             s += '{},'.format(hexlify(p).decode('ascii'))
         s += ']'
         return s
@@ -39,7 +39,7 @@ class Proof:
         # initialize the current_index to be the index at at base level
         current_index = self.index
         # Loop through proof hashes
-        for proof_hash in self.merkle_proof:
+        for proof_hash in self.proof_hashes:
             # if current_index is odd, proof_hash goes on left
             if current_index % 2 == 1:
                 # current hash becomes merkle parent of proof_hash and current
@@ -389,7 +389,7 @@ class BlockTest(TestCase):
             '26906cb2caeb03626102f7606ea332784281d5d20e2b4839fbb3dbb37262dbc1',
             '00aa9ad6a7841ffbbf262eb775f8357674f1ea23af11c01cfb6d481fec879701',
         ]
-        self.assertEqual(proof.merkle_proof, [unhexlify(x) for x in want])
+        self.assertEqual(proof.proof_hashes, [unhexlify(x) for x in want])
 
     def test_verify_merkle_proof(self):
         merkle_root = unhexlify('d6ee6bc8864e5c08a5753d3886148fb1193d4cd2773b568d5df91acc8babbcac')
@@ -402,5 +402,5 @@ class BlockTest(TestCase):
             '00aa9ad6a7841ffbbf262eb775f8357674f1ea23af11c01cfb6d481fec879701',
         ]
         proof_hashes = [unhexlify(x) for x in proof_hex_hashes]
-        proof = Proof(merkle_root=merkle_root, tx_hash=tx_hash, index=index, merkle_proof=proof_hashes)
+        proof = Proof(merkle_root=merkle_root, tx_hash=tx_hash, index=index, proof_hashes=proof_hashes)
         self.assertTrue(proof.verify())

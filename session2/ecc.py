@@ -277,15 +277,15 @@ class ECCTest(TestCase):
         
         # iterate over valid points
             # Initialize points this way:
-            # x = FieldElement(x_raw, prime)
-            # y = FieldElement(y_raw, prime)
+            # x = FieldElement(192, prime)
+            # y = FieldElement(105, prime)
             # Point(x, y, a, b)
             # Creating the point should not result in an error
 
         # iterate over invalid points
             # Initialize points this way:
-            # x = FieldElement(x_raw, prime)
-            # y = FieldElement(y_raw, prime)
+            # x = FieldElement(192, prime)
+            # y = FieldElement(105, prime)
             # Point(x, y, a, b)
             # check that creating the point results in a RuntimeError
             # with self.assertRaises(RuntimeError):
@@ -309,15 +309,9 @@ class ECCTest(TestCase):
         )
         # iterate over the additions
             # Initialize points this way:
-            # x1 = FieldElement(x1_raw, prime)
-            # y1 = FieldElement(y1_raw, prime)
-            # p1 = Point(x1, y1, a, b)
-            # x2 = FieldElement(x2_raw, prime)
-            # y2 = FieldElement(y2_raw, prime)
-            # p2 = Point(x2, y2, a, b)
-            # x3 = FieldElement(x3_raw, prime)
-            # y3 = FieldElement(y3_raw, prime)
-            # p3 = Point(x3, y3, a, b)
+            # x = FieldElement(192, prime)
+            # y = FieldElement(105, prime)
+            # p1 = Point(x, y, a, b)
             # check that p1 + p2 == p3
         raise NotImplementedError
 
@@ -345,8 +339,8 @@ class ECCTest(TestCase):
 
         # iterate over the multiplications
             # Initialize points this way:
-            # x = FieldElement(x_raw, prime)
-            # y = FieldElement(y_raw, prime)
+            # x = FieldElement(192, prime)
+            # y = FieldElement(105, prime)
             # p = Point(x, y, a, b)
             # initialize the second point based on whether it's the point at infinity
             # check that the product is equal to the expected point
@@ -390,6 +384,8 @@ class S256Point(Point):
             return 'Point({},{})'.format(self.x, self.y)
 
     def __rmul__(self, coefficient):
+        # we want to mod by N to make this simple
+        coef = coefficient % N
         # current will undergo binary expansion
         current = self
         # result is what we return, starts at 0
@@ -397,11 +393,11 @@ class S256Point(Point):
         # we double 256 times and add where there is a 1 in the binary
         # representation of coefficient
         for i in range(self.bits):
-            if coefficient & 1:
+            if coef & 1:
                 result += current
             current += current
             # we shift the coefficient to the right
-            coefficient >>= 1
+            coef >>= 1
         return result
 
     def sec(self, compressed=True):

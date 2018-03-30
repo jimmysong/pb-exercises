@@ -103,8 +103,8 @@ class Block:
         '''Returns whether this block satisfies proof of work'''
         # get the double_sha256 of the serialization of this block
         sha = double_sha256(self.serialize())
-        # interpret this hash as a little endian integer
-        proof = little_endian_to_int(sha)
+        # interpret this hash as an integer using int.from_bytes(sha, 'little')
+        proof = int.from_bytes(sha, 'little')
         # return whether this integer is less than the target
         return proof < self.target()
 

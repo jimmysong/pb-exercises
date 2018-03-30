@@ -119,8 +119,14 @@ class Tx:
         signing_input = alt_tx_ins[input_index]
         # grab the script_pubkey of the input
         script_pubkey = signing_input.script_pubkey(self.testnet)
-        # the script_sig of the signing_input should be script_pubkey for p2pkh
-        signing_input.script_sig = script_pubkey
+        signing_input.script_sig = script_pubkey  # Exercise 6.2 REPLACE THIS LINE!!!
+        # Exercise 6.2: get the sig type from script_pubkey.type()
+        # Exercise 6.2: the script_sig of the signing_input should be script_pubkey for p2pkh
+            # Exercise 6.2: replace the input's scriptSig with the scriptPubKey
+        # Exercise 6.2: the script_sig of the signing_input should be the redeemScript
+        #               of the current input of the real tx_in (self.tx_ins[input_index].redeem_script()
+            # Exercise 6.2: replace the input's scriptSig with the RedeemScript
+            # Exercise 6.2: replace the input's scriptSig with the Script.parse(redeem_script)
         # create an alternate transaction with the modified tx_ins
         alt_tx = self.__class__(
             version=self.version,
@@ -146,7 +152,7 @@ class Tx:
 
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
-        # get the sig_hash (z)
+        # get the hash to sign
         # get der signature of z from private key
         # append the hash_type to der (use bytes([hash_type]))
         # calculate the sec
@@ -352,7 +358,8 @@ class TxTest(TestCase):
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         want = b'3045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed'
-        der, hash_type = tx.tx_ins[0].der_signature()
+        der = tx.tx_ins[0].der_signature()
+        hash_type = tx.tx_ins[0].hash_type()
         self.assertEqual(hexlify(der), want)
         self.assertEqual(hash_type, SIGHASH_ALL)
 

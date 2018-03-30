@@ -324,7 +324,8 @@ class TxTest(TestCase):
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
         want = b'3045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed'
-        der, hash_type = tx.tx_ins[0].der_signature()
+        der = tx.tx_ins[0].der_signature()
+        hash_type = tx.tx_ins[0].hash_type()
         self.assertEqual(hexlify(der), want)
         self.assertEqual(hash_type, SIGHASH_ALL)
 

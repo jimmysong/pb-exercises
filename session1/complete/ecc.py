@@ -62,8 +62,7 @@ class FieldElement:
         # self.num**(p-1) % p == 1
         # you might want to use % operator on n
         prime = self.prime
-        exponent = n % (self.prime - 1)
-        num = pow(self.num, exponent, prime)
+        num = pow(self.num, n % (prime-1), prime)
         return self.__class__(num, prime)
 
     def __truediv__(self, other):
