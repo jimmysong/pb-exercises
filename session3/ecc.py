@@ -1,4 +1,3 @@
-from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import randint
 from unittest import TestCase
@@ -25,7 +24,7 @@ class FieldElement:
         if other is None:
             return True
         return self.num != other.num or self.prime != other.prime
-
+v
     def __repr__(self):
         return 'FieldElement_{}({})'.format(self.prime, self.num)
 
@@ -508,20 +507,20 @@ class S256Test(TestCase):
         uncompressed = '049d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d56fa15cc7f3d38cda98dee2419f415b7513dde1301f8643cd9245aea7f3f911f9'
         compressed = '039d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d5'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
-        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
+        self.assertEqual(point.sec(compressed=False), bytes.fromhex(uncompressed))
+        self.assertEqual(point.sec(compressed=True), bytes.fromhex(compressed))
         coefficient = 123
         uncompressed = '04a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5204b5d6f84822c307e4b4a7140737aec23fc63b65b35f86a10026dbd2d864e6b'
         compressed = '03a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
-        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
+        self.assertEqual(point.sec(compressed=False), bytes.fromhex(uncompressed))
+        self.assertEqual(point.sec(compressed=True), bytes.fromhex(compressed))
         coefficient = 42424242
         uncompressed = '04aee2e7d843f7430097859e2bc603abcc3274ff8169c1a469fee0f20614066f8e21ec53f40efac47ac1c5211b2123527e0e9b57ede790c4da1e72c91fb7da54a3'
         compressed = '03aee2e7d843f7430097859e2bc603abcc3274ff8169c1a469fee0f20614066f8e'
         point = coefficient*G
-        self.assertEqual(point.sec(compressed=False), unhexlify(uncompressed))
-        self.assertEqual(point.sec(compressed=True), unhexlify(compressed))
+        self.assertEqual(point.sec(compressed=False), bytes.fromhex(uncompressed))
+        self.assertEqual(point.sec(compressed=True), bytes.fromhex(compressed))
 
     def test_address(self):
         secret = 888**3
@@ -598,12 +597,12 @@ class Signature:
         if marker != 0x02:
             raise RuntimeError("Bad Signature")
         rlength = s.read(1)[0]
-        r = int(hexlify(s.read(rlength)), 16)
+        r = int(s.read(rlength).hex(), 16)
         marker = s.read(1)[0]
         if marker != 0x02:
             raise RuntimeError("Bad Signature")
         slength = s.read(1)[0]
-        s = int(hexlify(s.read(slength)), 16)
+        s = int(s.read(slength).hex(), 16)
         if len(signature_bin) != 6 + rlength + slength:
             raise RuntimeError("Signature too long")
         return cls(r, s)

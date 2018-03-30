@@ -1,4 +1,3 @@
-from binascii import unhexlify
 from unittest import TestCase, TestSuite, TextTestRunner
 
 
@@ -41,10 +40,10 @@ class HelperTest(TestCase):
         self.assertEqual(s, bytes_to_str(b))
 
     def test_little_endian_to_int(self):
-        h = unhexlify('99c3980000000000')
+        h = bytes.fromhex('99c3980000000000')
         want = 10011545
         self.assertEqual(little_endian_to_int(h), want)
-        h = unhexlify('a135ef0100000000')
+        h = bytes.fromhex('a135ef0100000000')
         want = 32454049
         self.assertEqual(little_endian_to_int(h), want)
 

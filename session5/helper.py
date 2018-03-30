@@ -1,4 +1,3 @@
-from binascii import hexlify, unhexlify
 from subprocess import check_output
 from unittest import TestCase, TestSuite, TextTestRunner
 
@@ -59,7 +58,7 @@ def encode_base58(s):
             break
     prefix = b'1' * count
     # convert from binary to hex, then hex to integer
-    num = int(hexlify(s), 16)
+    num = int(s.hex(), 16)
     result = bytearray()
     while num > 0:
         num, mod = divmod(num, 58)
@@ -141,10 +140,10 @@ class HelperTest(TestCase):
         self.assertEqual(s, bytes_to_str(b))
 
     def test_little_endian_to_int(self):
-        h = unhexlify('99c3980000000000')
+        h = bytes.fromhex('99c3980000000000')
         want = 10011545
         self.assertEqual(little_endian_to_int(h), want)
-        h = unhexlify('a135ef0100000000')
+        h = bytes.fromhex('a135ef0100000000')
         want = 32454049
         self.assertEqual(little_endian_to_int(h), want)
 
@@ -158,21 +157,21 @@ class HelperTest(TestCase):
 
     def test_base58(self):
         addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'
-        h160 = hexlify(decode_base58(addr))
-        want = b'507b27411ccf7f16f10297de6cef3f291623eddf'
+        h160 = decode_base58(addr).hex()
+        want = '507b27411ccf7f16f10297de6cef3f291623eddf'
         self.assertEqual(h160, want)
-        got = encode_base58_checksum(b'\x6f' + unhexlify(h160))
+        got = encode_base58_checksum(b'\x6f' + bytes.fromhex(h160))
         self.assertEqual(got, addr)
 
     def test_p2pkh_address(self):
-        h160 = unhexlify('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
+        h160 = bytes.fromhex('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
         want = '1BenRpVUFK65JFWcQSuHnJKzc4M8ZP8Eqa'
         self.assertEqual(h160_to_p2pkh_address(h160, testnet=False), want)
         want = 'mrAjisaT4LXL5MzE81sfcDYKU3wqWSvf9q'
         self.assertEqual(h160_to_p2pkh_address(h160, testnet=True), want)
 
     def test_p2sh_address(self):
-        h160 = unhexlify('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
+        h160 = bytes.fromhex('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
         want = '3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'
         self.assertEqual(h160_to_p2sh_address(h160, testnet=False), want)
         want = '2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B'

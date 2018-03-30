@@ -1,4 +1,3 @@
-from binascii import hexlify, unhexlify
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
@@ -55,7 +54,7 @@ def encode_base58(s):
             break
     prefix = b'1' * count
     # convert from binary to hex, then hex to integer
-    num = int(hexlify(s), 16)
+    num = int(s.hex(), 16)
     result = bytearray()
     while num > 0:
         num, mod = divmod(num, 58)
@@ -74,10 +73,10 @@ class HelperTest(TestCase):
         self.assertEqual(s, bytes_to_str(b))
 
     def test_little_endian_to_int(self):
-        h = unhexlify('99c3980000000000')
+        h = bytes.fromhex('99c3980000000000')
         want = 10011545
         self.assertEqual(little_endian_to_int(h), want)
-        h = unhexlify('a135ef0100000000')
+        h = bytes.fromhex('a135ef0100000000')
         want = 32454049
         self.assertEqual(little_endian_to_int(h), want)
 
