@@ -24,7 +24,7 @@ class FieldElement:
         if other is None:
             return True
         return self.num != other.num or self.prime != other.prime
-v
+
     def __repr__(self):
         return 'FieldElement_{}({})'.format(self.prime, self.num)
 
@@ -276,15 +276,15 @@ class ECCTest(TestCase):
         
         # iterate over valid points
             # Initialize points this way:
-            # x = FieldElement(192, prime)
-            # y = FieldElement(105, prime)
+            # x = FieldElement(x_raw, prime)
+            # y = FieldElement(y_raw, prime)
             # Point(x, y, a, b)
             # Creating the point should not result in an error
 
         # iterate over invalid points
             # Initialize points this way:
-            # x = FieldElement(192, prime)
-            # y = FieldElement(105, prime)
+            # x = FieldElement(x_raw, prime)
+            # y = FieldElement(y_raw, prime)
             # Point(x, y, a, b)
             # check that creating the point results in a RuntimeError
             # with self.assertRaises(RuntimeError):
@@ -308,9 +308,15 @@ class ECCTest(TestCase):
         )
         # iterate over the additions
             # Initialize points this way:
-            # x = FieldElement(192, prime)
-            # y = FieldElement(105, prime)
-            # p1 = Point(x, y, a, b)
+            # x1 = FieldElement(x1_raw, prime)
+            # y1 = FieldElement(y1_raw, prime)
+            # p1 = Point(x1, y1, a, b)
+            # x2 = FieldElement(x2_raw, prime)
+            # y2 = FieldElement(y2_raw, prime)
+            # p2 = Point(x2, y2, a, b)
+            # x3 = FieldElement(x3_raw, prime)
+            # y3 = FieldElement(y3_raw, prime)
+            # p3 = Point(x3, y3, a, b)
             # check that p1 + p2 == p3
         raise NotImplementedError
 
@@ -338,10 +344,13 @@ class ECCTest(TestCase):
 
         # iterate over the multiplications
             # Initialize points this way:
-            # x = FieldElement(192, prime)
-            # y = FieldElement(105, prime)
-            # p = Point(x, y, a, b)
+            # x1 = FieldElement(x1_raw, prime)
+            # y1 = FieldElement(y1_raw, prime)
+            # p1 = Point(x1, y1, a, b)
             # initialize the second point based on whether it's the point at infinity
+            # x2 = FieldElement(x2_raw, prime)
+            # y2 = FieldElement(y2_raw, prime)
+            # p2 = Point(x2, y2, a, b)
             # check that the product is equal to the expected point
         raise NotImplementedError
 
