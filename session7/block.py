@@ -141,8 +141,8 @@ class Block:
         '''Returns whether this block satisfies proof of work'''
         # get the double_sha256 of the serialization of this block
         sha = double_sha256(self.serialize())
-        # interpret this hash as an integer using int.from_bytes(sha, 'little')
-        proof = int.from_bytes(sha, 'little')
+        # interpret this hash as a little-endian number
+        proof = little_endian_to_int(sha)
         # return whether this integer is less than the target
         return proof < self.target()
 
@@ -163,7 +163,7 @@ class Block:
         # the bottom level and 1 the parent level of level 0 and so on.
         # initialize self.merkle_tree to be an empty list
         # reverse all the transaction hashes (self.tx_hashes) store as current level
-        # if there is more than 1 hash:
+        # while there is more than 1 hash:
             # store current level in self.merkle_tree
             # Make current level Merkle Parent level
         raise NotImplementedError
@@ -171,13 +171,14 @@ class Block:
     def create_merkle_proof(self, tx_hash):
         # if self.merkle_tree is empty, go and calculate the merkle tree
         # find the index of this tx_hash
-        # initialize merkle_proof list
+        # initialize proof hashes
         # initialize the current index to be the index at the base level
         # Loop over the levels in the merkle tree
             # Find the partner index (-1 for odd, +1 for even)
-            # add partner to merkle_proof list
+            # partner is at the level's partner index
+            # add partner to proof hashes
             # update the current_index to be integer divide by 2
-        # Return a Proof instance Proof(root, tx_hash, index, proof_list)
+        # Return a Proof instance Proof(root, tx_hash, index, proof_hashes)
         raise NotImplementedError
 
 

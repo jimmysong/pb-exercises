@@ -149,8 +149,8 @@ class Block:
         '''Returns whether this block satisfies proof of work'''
         # get the double_sha256 of the serialization of this block
         sha = double_sha256(self.serialize())
-        # interpret this hash as an integer using int.from_bytes(sha, 'little')
-        proof = int.from_bytes(sha, 'little')
+        # interpret this hash as a little-endian number
+        proof = little_endian_to_int(sha)
         # return whether this integer is less than the target
         return proof < self.target()
 
@@ -175,7 +175,7 @@ class Block:
         self.merkle_tree = []
         # reverse all the transaction hashes (self.tx_hashes) store as current level
         current_level = [h[::-1] for h in self.tx_hashes]
-        # if there is more than 1 hash:
+        # while there is more than 1 hash:
         while len(current_level) > 1:
             # store current level in self.merkle_tree
             self.merkle_tree.append(current_level)
@@ -188,7 +188,7 @@ class Block:
             self.calculate_merkle_tree()
         # find the index of this tx_hash
         index = self.tx_hashes.index(tx_hash)
-        # initialize merkle_proof list
+        # initialize proof hashes
         proof_hashes = []
         # initialize the current index to be the index at the base level
         current_index = index
@@ -196,14 +196,16 @@ class Block:
         for level in self.merkle_tree:
             # Find the partner index (-1 for odd, +1 for even)
             if current_index % 2 == 1:
-                partner = current_index - 1
+                partner_index = current_index - 1
             else:
-                partner = current_index + 1
-            # add partner to merkle_proof list
-            proof_hashes.append(level[partner])
+                partner_index = current_index + 1
+            # partner is at the level's partner index
+            partner = level[partner_index]
+            # add partner to proof hashes
+            proof_hashes.append(partner)
             # update the current_index to be integer divide by 2
             current_index //= 2
-        # Return a Proof instance Proof(root, tx_hash, index, proof_list)
+        # Return a Proof instance Proof(root, tx_hash, index, proof_hashes)
         return Proof(self.merkle_root, tx_hash, index, proof_hashes)
 
 

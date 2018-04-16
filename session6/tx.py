@@ -118,22 +118,8 @@ class Tx:
         signing_input = alt_tx_ins[input_index]
         # grab the script_pubkey of the input
         script_pubkey = signing_input.script_pubkey(self.testnet)
-        # Exercise 6.2: get the sig type from script_pubkey.type()
-        sig_type = script_pubkey.type()
-        # Exercise 6.2: the script_sig of the signing_input should be script_pubkey for p2pkh
-        if sig_type == 'p2pkh':
-            # Exercise 6.2: replace the input's scriptSig with the scriptPubKey
-            signing_input.script_sig = script_pubkey
-        # Exercise 6.2: the script_sig of the signing_input should be the redeemScript
-        #               of the current input of the real tx_in (self.tx_ins[input_index].redeem_script()
-        elif sig_type == 'p2sh':
-            # Exercise 6.2: replace the input's scriptSig with the RedeemScript
-            current_input = self.tx_ins[input_index]
-            # Exercise 6.2: replace the input's scriptSig with the Script.parse(redeem_script)
-            signing_input.script_sig = Script.parse(
-                current_input.redeem_script())
-        else:
-            raise RuntimeError('no valid sig_type')
+        # the script_sig of the signing_input should be script_pubkey
+        signing_input.script_sig = script_pubkey
         # create an alternate transaction with the modified tx_ins
         alt_tx = self.__class__(
             version=self.version,

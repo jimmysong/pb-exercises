@@ -93,6 +93,7 @@ class Tx:
             # create a new TxIn that has a blank script_sig (b'') and add to alt_tx_ins
         # grab the input at the input_index
         # grab the script_pubkey of the input
+        # the script_sig of the signing_input should be script_pubkey
         # create an alternate transaction with the modified tx_ins
         # add the hash_type int 4 bytes, little endian
         # get the double_sha256 of the tx serialization
