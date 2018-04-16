@@ -26,9 +26,9 @@ class NetworkEnvelope:
     @classmethod
     def parse(cls, s):
         '''Takes a stream and creates a NetworkEnvelope'''
-        # check the network magic b'\xf9\xbe\xb4\xd9'
+        # check the network magic NETWORK_MAGIC
         magic = s.read(4)
-        if magic != b'\xf9\xbe\xb4\xd9':
+        if magic != NETWORK_MAGIC:
             raise RuntimeError('magic is not right')
         # command 12 bytes
         command = s.read(12)
@@ -46,8 +46,8 @@ class NetworkEnvelope:
 
     def serialize(self):
         '''Returns the byte serialization of the entire network message'''
-        # add the network magic b'\xf9\xbe\xb4\xd9'
-        result = b'\xf9\xbe\xb4\xd9'
+        # add the network magic NETWORK_MAGIC
+        result = NETWORK_MAGIC
         # command 12 bytes
         result += self.command
         # payload length 4 bytes, little endian
