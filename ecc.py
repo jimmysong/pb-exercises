@@ -686,6 +686,8 @@ class PrivateKey:
         k_inv = pow(k, N-2, N)
         # s = (z+r*secret) / k
         s = (z + r*self.secret) * k_inv % N
+        if s > N/2:
+            s = N - s
         # return an instance of Signature:
         # Signature(r, s)
         return Signature(r, s)
