@@ -21,13 +21,13 @@ class Proof:
         self.proof_hashes = proof_hashes
 
     def __repr__(self):
-        s = '{}:{}:{}:['.format(
+        s = '{}:{}:{}:[\n'.format(
             self.merkle_root.hex(),
             self.tx_hash.hex(),
             self.index,
         )
         for p in self.proof_hashes:
-            s += '{},'.format(p.hex())
+            s += '\t{}\n'.format(p.hex())
         s += ']'
         return s
 
