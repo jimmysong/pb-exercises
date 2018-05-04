@@ -473,14 +473,10 @@ class S256Point(Point):
     def verify(self, z, sig):
         # remember sig.r and sig.s are the main things we're checking
         # remember 1/s = pow(s, N-2, N)
-        s_inv = pow(sig.s, N-2, N)
         # u = z / s
-        u = z * s_inv % N
         # v = r / s
-        v = sig.r * s_inv % N
         # u*G + v*P should have as the x coordinate, r
-        total = u*G + v*self
-        return total.x.num == sig.r
+        raise NotImplementedError
 
 
 G = S256Point(
@@ -557,111 +553,3 @@ class S256Test(TestCase):
         self.assertEqual(
             point.address(compressed=False, testnet=True), testnet_address)
 
-    def test_verify(self):
-        point = S256Point(
-            0x887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c,
-            0x61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34)
-        z = 0xec208baa0fc1c19f708a9ca96fdeff3ac3f230bb4a7ba4aede4942ad003c0f60
-        r = 0xac8d1c87e51d0d441be8b3dd5b05c8795b48875dffe00b7ffcfac23010d3a395
-        s = 0x68342ceff8935ededd102dd876ffd6ba72d6a427a3edb13d26eb0781cb423c4
-        self.assertTrue(point.verify(z, Signature(r, s)))
-        z = 0x7c076ff316692a3d7eb3c3bb0f8b1488cf72e1afcd929e29307032997a838a3d
-        r = 0xeff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c
-        s = 0xc7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6
-        self.assertTrue(point.verify(z, Signature(r, s)))
-
-
-class Signature:
-
-    def __init__(self, r, s):
-        self.r = r
-        self.s = s
-
-    def __repr__(self):
-        return 'Signature({:x},{:x})'.format(self.r, self.s)
-
-    def der(self):
-        rbin = self.r.to_bytes(32, byteorder='big')
-        # if rbin has a high bit, add a 00
-        if rbin[0] > 128:
-            rbin = b'\x00' + rbin
-        result = bytes([2, len(rbin)]) + rbin
-        sbin = self.s.to_bytes(32, byteorder='big')
-        # if sbin has a high bit, add a 00
-        if sbin[0] > 128:
-            sbin = b'\x00' + sbin
-        result += bytes([2, len(sbin)]) + sbin
-        return bytes([0x30, len(result)]) + result
-
-    @classmethod
-    def parse(cls, signature_bin):
-        s = BytesIO(signature_bin)
-        compound = s.read(1)[0]
-        if compound != 0x30:
-            raise RuntimeError("Bad Signature")
-        length = s.read(1)[0]
-        if length + 2 != len(signature_bin):
-            raise RuntimeError("Bad Signature Length")
-        marker = s.read(1)[0]
-        if marker != 0x02:
-            raise RuntimeError("Bad Signature")
-        rlength = s.read(1)[0]
-        r = int(s.read(rlength).hex(), 16)
-        marker = s.read(1)[0]
-        if marker != 0x02:
-            raise RuntimeError("Bad Signature")
-        slength = s.read(1)[0]
-        s = int(s.read(slength).hex(), 16)
-        if len(signature_bin) != 6 + rlength + slength:
-            raise RuntimeError("Signature too long")
-        return cls(r, s)
-
-
-class SignatureTest(TestCase):
-
-    def test_der(self):
-        testcases = (
-            (1, 2),
-            (randint(0, 2**256), randint(0, 2**255)),
-            (randint(0, 2**256), randint(0, 2**255)),
-        )
-        for r, s in testcases:
-            sig = Signature(r, s)
-            der = sig.der()
-            sig2 = Signature.parse(der)
-            self.assertEqual(sig2.r, r)
-            self.assertEqual(sig2.s, s)
-
-
-class PrivateKey:
-
-    def __init__(self, secret):
-        self.secret = secret
-        self.point = secret*G
-
-    def hex(self):
-        return '{:x}'.format(self.secret).zfill(64)
-
-    def sign(self, z):
-        # we need a random number k: randint(0, 2**256)
-        k = randint(0, 2**256)
-        # r is the x coordinate of the resulting point k*G
-        r = (k*G).x.num
-        # remember 1/k = pow(k, N-2, N)
-        k_inv = pow(k, N-2, N)
-        # s = (z+r*secret) / k
-        s = (z + r*self.secret) * k_inv % N
-        if s > N/2:
-            s = N - s
-        # return an instance of Signature:
-        # Signature(r, s)
-        return Signature(r, s)
-
-
-class PrivateKeyTest(TestCase):
-
-    def test_sign(self):
-        pk = PrivateKey(randint(0, 2**256))
-        z = randint(0, 2**256)
-        sig = pk.sign(z)
-        self.assertTrue(pk.point.verify(z, sig))

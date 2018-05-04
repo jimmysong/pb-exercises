@@ -94,7 +94,6 @@ class Tx:
         # grab the input at the input_index
         # grab the script_pubkey of the input
         # the script_sig of the signing_input should be script_pubkey
-        signing_input.script_sig = script_pubkey
         # create an alternate transaction with the modified tx_ins
         # add the hash_type int 4 bytes, little endian
         # get the double_sha256 of the tx serialization
@@ -158,9 +157,12 @@ class TxIn:
         if self.prev_tx not in self.cache:
             url = self.get_url(testnet) + '/rawtx/{}'.format(self.prev_tx.hex())
             response = requests.get(url)
-            js_response = response.json()
-            if 'rawtx' not in js_response:
-                raise RuntimeError('got from server: {}'.format(js_response))
+            try:
+                js_response = response.json()
+                if 'rawtx' not in js_response:
+                    raise RuntimeError('got from server: {}'.format(js_response))
+            except:
+                raise RuntimeError('got from server: {}'.format(response.text))
             raw = bytes.fromhex(js_response['rawtx'])
             stream = BytesIO(raw)
             tx = Tx.parse(stream)

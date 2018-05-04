@@ -87,6 +87,7 @@ class TxIn:
         # return an instance of the class (cls(...))
         return cls(prev_tx, prev_index, script_sig, sequence)
 
+
 class TxOut:
 
     def __init__(self, amount, script_pubkey):

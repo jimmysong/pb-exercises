@@ -228,9 +228,12 @@ class TxIn:
         if self.prev_tx not in self.cache:
             url = self.get_url(testnet) + '/rawtx/{}'.format(self.prev_tx.hex())
             response = requests.get(url)
-            js_response = response.json()
-            if 'rawtx' not in js_response:
-                raise RuntimeError('got from server: {}'.format(js_response))
+            try:
+                js_response = response.json()
+                if 'rawtx' not in js_response:
+                    raise RuntimeError('got from server: {}'.format(js_response))
+            except:
+                raise RuntimeError('got from server: {}'.format(response.text))
             raw = bytes.fromhex(js_response['rawtx'])
             stream = BytesIO(raw)
             tx = Tx.parse(stream)

@@ -21,13 +21,13 @@ class Proof:
         self.proof_hashes = proof_hashes
 
     def __repr__(self):
-        s = '{}:{}:{}:['.format(
+        s = '{}:{}:{}:[\n'.format(
             self.merkle_root.hex(),
             self.tx_hash.hex(),
             self.index,
         )
         for p in self.proof_hashes:
-            s += '{},'.format(p.hex())
+            s += '\t{}\n'.format(p.hex())
         s += ']'
         return s
 
@@ -164,6 +164,7 @@ class Block:
         # initialize self.merkle_tree to be an empty list
         # reverse all the transaction hashes (self.tx_hashes) store as current level
         # while there is more than 1 hash:
+        # if there is more than 1 hash:
             # store current level in self.merkle_tree
             # Make current level Merkle Parent level
         raise NotImplementedError

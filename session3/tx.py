@@ -72,6 +72,7 @@ class TxIn:
         # return an instance of the class (cls(...))
         raise NotImplementedError
 
+
 class TxOut:
 
     def __init__(self, amount, script_pubkey):

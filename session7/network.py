@@ -27,6 +27,7 @@ class NetworkEnvelope:
     def parse(cls, s):
         '''Takes a stream and creates a NetworkEnvelope'''
         # check the network magic NETWORK_MAGIC
+        # check the network magic b'\xf9\xbe\xb4\xd9'
         # command 12 bytes
         # payload length 4 bytes, little endian
         # checksum 4 bytes, first four of double-sha256 of payload

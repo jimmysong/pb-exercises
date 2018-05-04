@@ -581,6 +581,7 @@ class Signature:
         return 'Signature({:x},{:x})'.format(self.r, self.s)
 
     def der(self):
+        # convert the r part to bytes
         rbin = self.r.to_bytes(32, byteorder='big')
         # if rbin has a high bit, add a 00
         if rbin[0] > 128:
