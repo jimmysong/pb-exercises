@@ -448,7 +448,7 @@ class S256Point(Point):
             else:
                 return b'\x03' + self.x.num.to_bytes(32, 'big')
         else:
-        # if non-compressed, starts with b'\x04' followod by self.x and then self.y
+        # if non-compressed, starts with b'\x04' followed by self.x and then self.y
             return b'\x04' + self.x.num.to_bytes(32, 'big') + self.y.num.to_bytes(32, 'big')
 
     def address(self, compressed=True, testnet=False):

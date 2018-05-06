@@ -413,7 +413,7 @@ class S256Point(Point):
         # if compressed, starts with b'\x02' if self.y.num is even, b'\x03' if self.y is odd
         # then self.x.num
         # remember, you have to convert self.x.num/self.y.num to binary (some_integer.to_bytes(32, 'big'))
-        # if non-compressed, starts with b'\x04' followod by self.x and then self.y
+        # if non-compressed, starts with b'\x04' followed by self.x and then self.y
         raise NotImplementedError
 
     def address(self, compressed=True, testnet=False):
