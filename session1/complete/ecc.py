@@ -166,9 +166,9 @@ class Point:
         if other.x is None:
             return self
 
-        # Case 1: self.x == other.x, self.y != other.y
+        # Case 1: self.x == other.x, self.y == other.y * -1
         # Result is point at infinity
-        if self.x == other.x and self.y != other.y:
+        if self.x == other.x and self.y == other.y * -1:
         # Remember to return an instance of this class:
         # self.__class__(x, y, a, b)
             return self.__class__(None, None, self.a, self.b)
