@@ -147,7 +147,7 @@ class Point:
         # Case 0.0: self is the point at infinity, return other
         # Case 0.1: other is the point at infinity, return self
 
-        # Case 1: self.x == other.x, self.y != other.y
+        # Case 1: self.x == other.x, self.y == other.y * -1
         # Result is point at infinity
         # Remember to return an instance of this class:
         # self.__class__(x, y, a, b)
