@@ -401,6 +401,9 @@ class S256Field(FieldElement):
     def __repr__(self):
         return self.hex()
 
+    def sqrt(self):
+        return self**((P+1)//4)
+
 
 class S256Point(Point):
     bits = 256
@@ -481,6 +484,31 @@ class S256Point(Point):
         # u*G + v*P should have as the x coordinate, r
         total = u*G + v*self
         return total.x.num == sig.r
+
+    @classmethod
+    def parse(self, sec_bin):
+        '''returns a Point object from a compressed sec binary (not hex)
+        '''
+        if sec_bin[0] == 4:
+            x = int(sec_bin[1:33].hex(), 16)
+            y = int(sec_bin[33:65].hex(), 16)
+            return S256Point(x=x, y=y)
+        is_even = sec_bin[0] == 2
+        x = S256Field(int(sec_bin[1:].hex(), 16))
+        # right side of the equation y^2 = x^3 + 7
+        alpha = x**3 + S256Field(B)
+        # solve for left side
+        beta = alpha.sqrt()
+        if beta.num % 2 == 0:
+            even_beta = beta
+            odd_beta = S256Field(P - beta.num)
+        else:
+            even_beta = S256Field(P - beta.num)
+            odd_beta = beta
+        if is_even:
+            return S256Point(x, even_beta)
+        else:
+            return S256Point(x, odd_beta)
 
 
 G = S256Point(
