@@ -618,12 +618,12 @@ class Signature:
     def der(self):
         rbin = self.r.to_bytes(32, byteorder='big')
         # if rbin has a high bit, add a 00
-        if rbin[0] > 128:
+        if rbin[0] >= 128:
             rbin = b'\x00' + rbin
         result = bytes([2, len(rbin)]) + rbin
         sbin = self.s.to_bytes(32, byteorder='big')
         # if sbin has a high bit, add a 00
-        if sbin[0] > 128:
+        if sbin[0] >= 128:
             sbin = b'\x00' + sbin
         result += bytes([2, len(sbin)]) + sbin
         return bytes([0x30, len(result)]) + result
