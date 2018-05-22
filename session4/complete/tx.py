@@ -117,6 +117,7 @@ class Tx:
         # grab the script_pubkey of the input
         script_pubkey = signing_input.script_pubkey(self.testnet)
         # the script_sig of the signing_input should be script_pubkey
+        signing_input.script_sig = script_pubkey
         # create an alternate transaction with the modified tx_ins
         alt_tx = self.__class__(
             version=self.version,
