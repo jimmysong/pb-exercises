@@ -188,7 +188,7 @@ class TxIn:
         if testnet:
             return 'https://testnet.blockexplorer.com/api'
         else:
-            return 'https://btc-bitcore3.trezor.io/api'
+            return 'https://blockexplorer.com/api'
 
     def fetch_tx(self, testnet=False):
         if self.prev_tx not in self.cache:

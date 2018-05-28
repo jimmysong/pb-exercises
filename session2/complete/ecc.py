@@ -470,14 +470,6 @@ class S256Point(Point):
         # return as a string, you can use .decode('ascii') to do this.
         return address.decode('ascii')
 
-    def verify(self, z, sig):
-        # remember sig.r and sig.s are the main things we're checking
-        # remember 1/s = pow(s, N-2, N)
-        # u = z / s
-        # v = r / s
-        # u*G + v*P should have as the x coordinate, r
-        raise NotImplementedError
-
 
 G = S256Point(
     0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798,

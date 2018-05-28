@@ -85,14 +85,14 @@ class Tx:
         result += int_to_little_endian(self.locktime, 4)
         return result
 
-    def fee(self):
+    def fee(self, testnet=False):
         '''Returns the fee of this transaction in satoshi'''
         # initialize input sum and output sum
         input_sum, output_sum = 0, 0
         # iterate through inputs
         for tx_in in self.tx_ins:
             # for each input get the value and add to input sum
-            input_sum += tx_in.value()
+            input_sum += tx_in.value(testnet=testnet)
         # iterate through outputs
         for tx_out in self.tx_outs:
             # for each output get the amount and add to output sum
@@ -222,7 +222,7 @@ class TxIn:
         if testnet:
             return 'https://testnet.blockexplorer.com/api'
         else:
-            return 'https://btc-bitcore3.trezor.io/api'
+            return 'https://blockexplorer.com/api'
 
     def fetch_tx(self, testnet=False):
         if self.prev_tx not in self.cache:
@@ -233,7 +233,7 @@ class TxIn:
                 if 'rawtx' not in js_response:
                     raise RuntimeError('got from server: {}'.format(js_response))
             except:
-                raise RuntimeError('got from server: {}'.format(response.text))
+                raise RuntimeError('got from server: {} {}'.format(response.text, url))
             raw = bytes.fromhex(js_response['rawtx'])
             stream = BytesIO(raw)
             tx = Tx.parse(stream)
