@@ -154,8 +154,8 @@ class Tx:
         z = self.sig_hash(input_index, hash_type)
         # get der signature of z from private key
         der = private_key.sign(z).der()
-        # append the hash_type to der (use bytes([hash_type]))
-        sig = der + bytes([hash_type])
+        # append the hash_type to der (use hash_type.to_bytes(1, 'big'))
+        sig = der + hash_type.to_bytes(1, 'big')
         # calculate the sec
         sec = private_key.point.sec()
         # initialize a new script with [sig, sec] as the elements

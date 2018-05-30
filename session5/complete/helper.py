@@ -126,6 +126,7 @@ def h160_to_p2pkh_address(h160, testnet=False):
         prefix = b'\x6f'
     else:
         prefix = b'\x00'
+    # return the encode_base58_checksum the prefix and h160
     return encode_base58_checksum(prefix + h160)
 
 
@@ -136,6 +137,7 @@ def h160_to_p2sh_address(h160, testnet=False):
         prefix = b'\xc4'
     else:
         prefix = b'\x05'
+    # return the encode_base58_checksum the prefix and h160    
     return encode_base58_checksum(prefix + h160)
 
 
