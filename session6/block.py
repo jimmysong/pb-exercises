@@ -72,7 +72,7 @@ class Block:
         # last byte is exponent
         # the first three bytes are the coefficient in little endian
         # the formula is:
-        # coefficient * 2**(8*(exponent-3))
+        # coefficient * 256**(exponent-3)
         raise NotImplementedError
 
     def difficulty(self):

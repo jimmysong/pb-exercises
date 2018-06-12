@@ -58,9 +58,9 @@ class FieldElement:
         return self.__class__(num, prime)
 
     def __pow__(self, n):
-        # remember fermat's little theorem:
-        # self.num**(p-1) % p == 1
-        # you might want to use % operator on n
+        # Exercise 3.2: remember fermat's little theorem:
+        # Exercise 3.2: self.num**(p-1) % p == 1
+        # Exercise 3.2: you might want to use % operator on n
         prime = self.prime
         num = pow(self.num, n % (prime-1), prime)
         return self.__class__(num, prime)
@@ -139,7 +139,7 @@ class Point:
         # make sure that the elliptic curve equation is satisfied
         # y**2 == x**3 + a*x + b
         if self.y**2 != self.x**3 + a*x + b:
-        # if not, throw a RuntimeError
+        # if not, raise a RuntimeError
             raise RuntimeError('({}, {}) is not on the curve'.format(self.x, self.y))
 
     def __eq__(self, other):

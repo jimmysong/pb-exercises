@@ -150,7 +150,7 @@ class Tx:
 
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
-        # get the hash to sign
+        # get the sig_hash (z)
         z = self.sig_hash(input_index, hash_type)
         # get der signature of z from private key
         der = private_key.sign(z).der()

@@ -164,8 +164,7 @@ class Block:
         # initialize self.merkle_tree to be an empty list
         # reverse all the transaction hashes (self.tx_hashes) store as current level
         # while there is more than 1 hash:
-        # if there is more than 1 hash:
-            # store current level in self.merkle_tree
+            # append current level to self.merkle_tree
             # Make current level Merkle Parent level
         raise NotImplementedError
 

@@ -177,7 +177,7 @@ class Block:
         current_level = [h[::-1] for h in self.tx_hashes]
         # while there is more than 1 hash:
         while len(current_level) > 1:
-            # store current level in self.merkle_tree
+            # append current level to self.merkle_tree
             self.merkle_tree.append(current_level)
             # Make current level Merkle Parent level
             current_level = merkle_parent_level(current_level)

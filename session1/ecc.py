@@ -52,9 +52,9 @@ class FieldElement:
         raise NotImplementedError
 
     def __pow__(self, n):
-        # remember fermat's little theorem:
-        # self.num**(p-1) % p == 1
-        # you might want to use % operator on n
+        # Exercise 3.2: remember fermat's little theorem:
+        # Exercise 3.2: self.num**(p-1) % p == 1
+        # Exercise 3.2: you might want to use % operator on n
         raise NotImplementedError
 
     def __truediv__(self, other):
@@ -125,7 +125,7 @@ class Point:
         # Exercise 5.1: with None values for both.
         # Exercise 4.2: make sure that the elliptic curve equation is satisfied
         # y**2 == x**3 + a*x + b
-        # if not, throw a RuntimeError
+        # if not, raise a RuntimeError
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \

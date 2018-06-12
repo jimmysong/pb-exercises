@@ -416,9 +416,9 @@ class S256Point(Point):
 
     def __repr__(self):
         if self.x is None:
-            return 'Point(infinity)'
+            return 'S256Point(infinity)'
         else:
-            return 'Point({},{})_{}'.format(self.x.num, self.y.num, self.x.prime)
+            return 'S256Point({},{})'.format(self.x, self.y)
 
     def __rmul__(self, coefficient):
         # we want to mod by N to make this simple

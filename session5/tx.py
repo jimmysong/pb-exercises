@@ -145,7 +145,7 @@ class Tx:
 
     def sign_input(self, input_index, private_key, hash_type):
         '''Signs the input using the private key'''
-        # get the hash to sign
+        # get the sig hash (z)
         # get der signature of z from private key
         # append the hash_type to der (use hash_type.to_bytes(1, 'big'))
         # calculate the sec
