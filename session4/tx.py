@@ -233,8 +233,8 @@ class TxOut:
     def serialize(self):
         '''Returns the byte serialization of the transaction output'''
         # serialize amount, 8 bytes, little endian
-        # get the scriptPubkey ready (use self.script_pubkey.serialize())
-        # encode_varint on the length of the scriptPubkey
+        # get the scriptPubKey ready (use self.script_pubkey.serialize())
+        # encode_varint on the length of the scriptPubKey
         # add the scriptPubKey
         raise NotImplementedError
 
