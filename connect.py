@@ -37,8 +37,9 @@ class NodeConnection:
         user_agent = b'nobody'
         ua = bytes([len(user_agent)]) + user_agent
         latest_block = int_to_little_endian(0, 4)
-
-        payload = version + services + timestamp + ip + ip + nonce + ua + latest_block
+        # set relay to false so we don't get inv messages just yet
+        relay = b'\x00' 
+        payload = version + services + timestamp + ip + ip + nonce + ua + latest_block + relay
         self.send(b'version', payload)
         print('sent version')
         await asyncio.wait([self.receive(), self.process_queue()])
@@ -53,14 +54,14 @@ class NodeConnection:
         while True:
             magic = await self.reader.read(4)
             if magic != self.magic:
-                raise RuntimeError('Network Magic not at beginning of stream {}'.format(magic))
+                raise RuntimeError('Network Magic not at beginning of stream {}'.format(magic.hex()))
             command = await self.reader.read(12)
             payload_length = little_endian_to_int(await self.reader.read(4))
             checksum = await self.reader.read(4)
-            payload = await self.reader.read(payload_length)
+            payload = await self.reader.readexactly(payload_length)
             # check the checksum
-#            if double_sha256(payload)[:4] != checksum:
-#                raise RuntimeError('Payload and Checksum do not match: {}\n{}'.format(command, payload.hex()))
+            if double_sha256(payload)[:4] != checksum:
+                raise RuntimeError('Payload and Checksum do not match: {} vs {}'.format(checksum.hex(), double_sha256(payload)[:4].hex()))
             await self.q.put(NetworkEnvelope(command, payload))
 
     async def process_queue(self):
@@ -75,25 +76,36 @@ class NodeConnection:
                 version = int_to_little_endian(70015, 4)
                 hash_count = encode_varint(1)
                 # testnet genesis block
-                genesis_block = bytes.fromhex('000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943')[::-1]
+                self.last_block = bytes.fromhex('000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943')[::-1]
                 end_block = b'\x00' * 32
-                payload = version + hash_count + genesis_block + end_block
+                payload = version + hash_count + self.last_block + end_block
 
                 self.send(b'getheaders', payload)
             elif envelope.command.startswith(b'headers'):
+                print('received headers')
                 stream = BytesIO(envelope.payload)
                 num_headers = read_varint(stream)
-                print(num_headers)
                 blocks = []
-                for _ in range(num_headers):
-                    blocks.append(Block.parse(stream))
-                print(blocks[-1].hash().hex())
+                b = b''
+                first = True
+                with open('blocks.db', 'ab') as f:
+                    for _ in range(num_headers):
+                        b = stream.read(80)
+                        if first:
+                            if b[4:36] != self.last_block:
+                                raise RuntimeError('not continuous')
+                            else:
+                                first = False
+                        num_txs = little_endian_to_int(stream.read(1))
+                        if num_txs != 0:
+                            raise RuntimeError('got more than 0 txs')
+                        f.write(b)
+                self.last_block = double_sha256(b)
                 print(stream.read(10).hex())
                 version = int_to_little_endian(70015, 4)
                 hash_count = encode_varint(1)
-                # testnet genesis block
                 end_block = b'\x00' * 32
-                payload = version + hash_count + blocks[-1].hash()[::-1] + end_block
+                payload = version + hash_count + self.last_block + end_block
                 self.send(b'getheaders', payload)
             else:
                 print(envelope)
