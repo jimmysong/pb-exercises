@@ -107,13 +107,13 @@ class NodeConnection:
                 end_block = b'\x00' * 32
                 payload = version + hash_count + self.last_block + end_block
                 self.send(b'getheaders', payload)
-            else:
+gpg2            else:
                 print(envelope)
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     node_list = [
-        '54.65.177.93',
+        'tbtc.programmingblockchain.com',
 	'13.58.133.145',
 	'139.59.69.9',
 	'186.19.136.144',
@@ -137,7 +137,7 @@ if __name__ == '__main__':
 	'159.203.84.97',
 	'88.99.162.199',
     ]
-    node = NodeConnection(host=node_list[5], port=18333)
+    node = NodeConnection(host=node_list[0], port=18333)
     task = loop.run_until_complete(node.connect(loop))
     loop.close()
 
