@@ -65,6 +65,9 @@ class Block:
         self.tx_hashes = tx_hashes
         self.merkle_tree = None
 
+    def __repr__(self):
+        return 'Block {}'.format(self.hash().hex())
+
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses a block. Returns a Block object'''

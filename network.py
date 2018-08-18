@@ -1,5 +1,6 @@
-import asyncio
+import socket
 import time
+
 from io import BytesIO
 from random import randint
 
@@ -35,10 +36,10 @@ class NetworkEnvelope:
         )
 
     @classmethod
-    async def parse(cls, s, testnet=False):
+    def parse(cls, s, testnet=False):
         '''Takes a stream and creates a NetworkEnvelope'''
         # check the network magic
-        magic = await s.read(4)
+        magic = s.read(4)
         if magic == b'':
             raise RuntimeError('Connection reset!')
         if testnet:
@@ -48,13 +49,13 @@ class NetworkEnvelope:
         if magic != expected_magic:
             raise RuntimeError('magic is not right {} vs {}'.format(magic.hex(), expected_magic.hex()))
         # command 12 bytes
-        command = await s.read(12)
+        command = s.read(12)
         # payload length 4 bytes, little endian
-        payload_length = little_endian_to_int(await s.read(4))
+        payload_length = little_endian_to_int(s.read(4))
         # checksum 4 bytes, first four of double-sha256 of payload
-        checksum = await s.read(4)
+        checksum = s.read(4)
         # payload is of length payload_length
-        payload = await s.read(payload_length)
+        payload = s.read(payload_length)
         # verify checksum
         calculated_checksum = double_sha256(payload)[:4]
         if calculated_checksum != checksum:
@@ -76,93 +77,39 @@ class NetworkEnvelope:
         return result
 
 
-class TxSender:
-
-    def __init__(self, raw_tx, host, port, testnet=False, timeout=10):
-        self.raw_tx = raw_tx
-        self.tx_hash = double_sha256(raw_tx)
-        self.inv_payload = b'\x01' + int_to_little_endian(1, 4) + self.tx_hash
-        self._sent = False
-        self._accepted = False
-        self.host = host
-        self.port = port
-        self.magic = magic
-        self.reader = None
-        self.writer = None
-        self.q = asyncio.Queue()
-        self.keep_looping = True
-        self.timeout = timeout
-
-    async def connect(self, loop):
-        self.reader, self.writer = await asyncio.open_connection(
-            host=self.host, port=self.port)
-        print('connected to {}:{}'.format(self.host, self.port))
-
-        # construct version message
-        version = int_to_little_endian(70015, 4)
-        services = int_to_little_endian(0, 8)
-        timestamp = int_to_little_endian(int(time.time()), 8)
-        ip = b'\x00' * 18 + b'\xff\xff' + b'\x00' * 6
-        nonce = int_to_little_endian(randint(0, 2**64), 8)
-        user_agent = b'nobody'
-        ua = bytes([len(user_agent)]) + user_agent
-        latest_block = int_to_little_endian(0, 4)
-
-        payload = version + services + timestamp + ip + ip + nonce + ua + latest_block
-        self.send(b'version', payload)
-        await asyncio.wait([self.receive(), self.process_queue()])
+class SocketController:
+    
+    def __init__(self, host, port=None, testnet=False):
+        if port is None:
+            if testnet:
+                port = 18333
+            else:
+                port = 8333
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((host, port))
+        self.testnet= testnet
+        self.stream = self.socket.makefile('rb', None)
 
     def send(self, command, payload):
-        network_message = NetworkEnvelope(command, payload, self.magic)
-        print('sending {}'.format(network_message))
-        self.writer.write(network_message.serialize())
+        envelope = NetworkEnvelope(command, payload, testnet=self.testnet)
+        self.socket.sendall(envelope.serialize())
 
-    async def receive(self):
-        print("start receiving")
-        while self.keep_looping:
-            network_envelope = await NetworkEnvelope.parse(self.reader, self.magic)
-            print(network_envelope)
-            await self.q.put(network_envelope)
+    def wait_for_commands(self, commands):
+        envelope = self.read()
+        last_command = envelope.command
+        if last_command.startswith(b'version'):
+            # send verack
+            self.send(b'verack', b'')
+        elif last_command.startswith(b'ping'):
+            # send pong
+            self.send(b'pong', envelope.payload)
+        if last_command in commands:
+            return envelope
+        else:
+            return self.wait_for_commands(commands)
+        
 
-    async def process_queue(self):
-        print("start processing")
-        start = time.time()
-        while self.keep_looping:
-            envelope = await self.q.get()
-            command = envelope.command.strip(b'\x00').decode('ascii')
-            if command == 'version':
-                self.send(b'verack', b'')
-            elif command == 'sendheaders':
-                self.send(b'headers', encode_varint(0))
-            elif command == 'ping':
-                self.send(b'pong', envelope.payload)
-                if not self._sent:
-                    # tell them we have a tx
-                    self.send(b'inv', self.inv_payload)
-                elif not self._accepted:
-                    self.send(b'tx', self.raw_tx)
-                self.send(b'mempool', b'')
-            elif command == 'getdata':
-                if envelope.payload == self.inv_payload:
-                    self.send(b'tx', self.raw_tx)
-                    self._sent = True
-                elif self._sent:
-                    print('TX rejected')
-                    self.keep_looping = False
-            elif command == 'feefilter':
-                minimum = little_endian_to_int(envelope.payload)
-                print('TX requires fee: {} minimum'.format(minimum))
-            elif command == 'inv':
-                stream = BytesIO(envelope.payload)
-                num_inv = read_varint(stream)
-                for _ in range(num_inv):
-                    inv_type = little_endian_to_int(stream.read(4))
-                    inv_hash = stream.read(32)
-                    if inv_type == 1 and inv_hash == self.tx_hash:
-                        print('TX successfully sent')
-                        self.keep_looping = False
-                self.send(b'inv', self.inv_payload)
-            else:
-                print(envelope)
-            if time.time()-start < self.timeout:
-                self.keep_looping = False
+    def read(self):
+        envelope = NetworkEnvelope.parse(self.stream, testnet=self.testnet)
+        print(envelope)
+        return envelope

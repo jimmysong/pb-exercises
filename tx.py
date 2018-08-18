@@ -40,6 +40,9 @@ class Tx:
             self.locktime,
         )
 
+    def hash(self):
+        return double_sha256(self.serialize())
+
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses the transaction at the start
@@ -354,6 +357,14 @@ class TxOut:
         # add the scriptPubKey
         result += raw_script_pubkey
         return result
+
+    def hash160(self):
+        if self.script_pubkey.type() == 'p2pkh':
+            return self.script_pubkey.elements[2]
+        elif self.script_pubkey.type() == 'p2sh':
+            return self.script_pubkey.elements[1]
+        else:
+            raise RuntimeError('not a script with a hash160')
 
 
 class TxTest(TestCase):

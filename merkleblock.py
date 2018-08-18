@@ -96,6 +96,9 @@ class MerkleBlock:
                 right = self.get_hash(depth+1, right_index)
                 return merkle_parent(left, right)
 
+    def is_valid(self):
+        return self.compute_root() == self.merkle_root
+            
 class MerkleBlockTest(TestCase):
 
     def test_compute_root(self):
