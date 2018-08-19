@@ -59,7 +59,7 @@ class BloomFilter:
 
     def __init__(self, size, function_count, tweak):
         self.size = size
-        self.filter = b'\x00' * self.size
+        self.filter = bytearray(self.size)
         self.function_count = function_count
         self.tweak = tweak
 
@@ -72,9 +72,7 @@ class BloomFilter:
             bit = h % (self.size * 8)
             filter_index, bit_index = divmod(bit, 8)
             # now we set that particular bit
-            if not self.is_set(bit):
-                new_byte = self.filter[filter_index] | (1 << bit_index)
-                self.filter = self.filter[:filter_index] + bytes([new_byte]) + self.filter[filter_index+1:]
+            self.filter[filter_index] |= (1 << bit_index)
 
     def is_set(self, bit):
         # check to see if the particular bit is set
@@ -82,10 +80,9 @@ class BloomFilter:
         return self.filter[filter_index] & (1 << (bit_index)) != 0
 
     def filterload(self, flag=0):
-        payload = bytes([self.size]) + self.filter
+        payload = bytes([self.size]) + bytes(self.filter)
         payload += int_to_little_endian(self.function_count, 4)
         payload += int_to_little_endian(self.tweak, 4)
         payload += int_to_little_endian(flag, 1)
-        print(payload.hex())
         return payload
         
