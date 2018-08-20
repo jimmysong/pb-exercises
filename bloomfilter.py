@@ -74,11 +74,6 @@ class BloomFilter:
             # now we set that particular bit
             self.filter[filter_index] |= (1 << bit_index)
 
-    def is_set(self, bit):
-        # check to see if the particular bit is set
-        filter_index, bit_index = divmod(bit, 8)
-        return self.filter[filter_index] & (1 << (bit_index)) != 0
-
     def filterload(self, flag=0):
         payload = bytes([self.size]) + bytes(self.filter)
         payload += int_to_little_endian(self.function_count, 4)

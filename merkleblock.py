@@ -54,7 +54,7 @@ class MerkleBlock:
         nonce = s.read(4)
         # total number of transactions
         total = little_endian_to_int(s.read(4))
-        # number of transactions that match our filter
+        # number of transactions in this merkle proof
         num_txs = read_varint(s)
         # hashes of these transactions
         hashes = []
@@ -63,42 +63,64 @@ class MerkleBlock:
         flags_size = read_varint(s)
         flags = s.read(flags_size)
         # initialize class
-        return cls(version, prev_block, merkle_root, timestamp, bits, nonce, total, hashes, flags)
+        return cls(version, prev_block, merkle_root, timestamp, bits, nonce,
+                   total, hashes, flags)
 
     def compute_root(self):
         # compute the flag bits
         self.flag_bits = []
+        # iterate over each byte of flags
         for byte in self.flags:
-            tmp = []
+            # iterate over each bit, right-to-left
             for _ in range(8):
-                tmp.append(byte & 1)
+                self.flag_bits.append(byte & 1)
                 byte >>= 1
-            self.flag_bits.extend(tmp)
         # hashes to be consumed
         self.tmp_hashes = [h[::-1] for h in self.hashes]
+        # return the computed merkle root, which should be at depth 0 index 0
         return self.get_hash(0, 0)[::-1]
 
     def get_hash(self, depth, index):
+        # we need to get the hash at a certain depth and index
+        # grab the bit associated with this node in the merkle tree
         current_bit = self.flag_bits.pop(0)
         if current_bit == 0:
+            # if the bit is 0, the next hash on the list is this current hash
             return self.tmp_hashes.pop(0)
         elif depth == self.max_depth:
+            # similarly, if we are a leaf node (that is, at the max depth)
+            # the next hash on the list is the current hash
             return self.tmp_hashes.pop(0)
         else:
-            left_index = index*2
+            # we are an internal node or something on the merkle path
+            # we need to compute this node's hash by calculating the two
+            # child node hashes
+            # the left child's index is double the current node's
+            left_index = index * 2
+            # the right child index is one more than the left one
             right_index = left_index + 1
+            # the left one can be computed using recursion with a depth + 1
             left = self.get_hash(depth+1, left_index)
-            max_index = math.ceil(self.total / 2**(self.max_depth - depth-1))
+            # the right one may or may not exist
+            # we have to determine the maximum index at this level
+            # and that's given by this formula:
+            # math.ceil(self.total / 2**(self.max_depth - depth - 1))
+            max_index = math.ceil(self.total / 2**(self.max_depth - depth - 1))
             if right_index > max_index:
-                print(right_index, max_index, depth)
+                # if the right index is bigger than the max, we can compute
+                # this node's hash by using the left one twice
                 return merkle_parent(left, left)
             else:
+                # otherwise, we need to also get the right hash to calculate
+                # this node's hash
                 right = self.get_hash(depth+1, right_index)
                 return merkle_parent(left, right)
 
     def is_valid(self):
+        # check if the computed root is the same as the merkle root
         return self.compute_root() == self.merkle_root
-            
+
+
 class MerkleBlockTest(TestCase):
 
     def test_compute_root(self):
