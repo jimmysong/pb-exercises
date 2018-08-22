@@ -171,7 +171,6 @@ class SimpleNode:
 
     def handshake(self):
         # send a version message
-        # now send the version message
         payload = VersionMessage().serialize()
         self.send(b'version', payload)
         # wait for a verack message

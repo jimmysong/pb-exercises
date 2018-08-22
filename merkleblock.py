@@ -139,11 +139,11 @@ class MerkleBlockTest(TestCase):
             '3c0372a0a5d428de0e8604b9aa36f88431bc7a94315ef9a1f2fc127824dd091d'
         ]
         hashes = [bytes.fromhex(h) for h in hex_hashes]
-
-        mb = MerkleBlock(0,0,0,0,0,0, 1833, hashes, bytes.fromhex('5d7505'))
-        self.assertEqual(
-            mb.compute_root().hex(),
-            '3737a795b537b2dbeeb0c07a2253cc4b0da8174aabb4f9e55d59d61ede3abf4d')
+        merkle_root_hex =             '3737a795b537b2dbeeb0c07a2253cc4b0da8174aabb4f9e55d59d61ede3abf4d'
+        merkle_root = bytes.fromhex(merkle_root_hex)
+        mb = MerkleBlock(0,0,merkle_root,0,0,0, 1833, hashes, bytes.fromhex('5d7505'))
+        self.assertEqual(mb.compute_root().hex(), merkle_root_hex)
         self.assertEqual(mb.tmp_hashes, [])
         for bit in mb.flag_bits:
             self.assertEqual(bit, 0)
+        self.assertTrue(mb.is_valid())

@@ -1,58 +1,9 @@
 from unittest import TestCase
 
-from helper import int_to_little_endian
+from helper import encode_varint, int_to_little_endian, murmur3
 
 
 BIP37_CONSTANT = 0xfba4c795
-
-# http://stackoverflow.com/questions/13305290/is-there-a-pure-python-implementation-of-murmurhash
-def murmur3(data, seed=0):
-    c1 = 0xcc9e2d51
-    c2 = 0x1b873593
-
-    length = len(data)
-    h1 = seed
-    roundedEnd = (length & 0xfffffffc)  # round down to 4 byte block
-    for i in range(0, roundedEnd, 4):
-        # little endian load order
-        k1 = (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | \
-            ((data[i + 2] & 0xff) << 16) | (data[i + 3] << 24)
-        k1 *= c1
-        k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)  # ROTL32(k1,15)
-        k1 *= c2
-
-        h1 ^= k1
-        h1 = (h1 << 13) | ((h1 & 0xffffffff) >> 19)  # ROTL32(h1,13)
-        h1 = h1 * 5 + 0xe6546b64
-
-    # tail
-    k1 = 0
-
-    val = length & 0x03
-    if val == 3:
-        k1 = (data[roundedEnd + 2] & 0xff) << 16
-    # fallthrough
-    if val in [2, 3]:
-        k1 |= (data[roundedEnd + 1] & 0xff) << 8
-    # fallthrough
-    if val in [1, 2, 3]:
-        k1 |= data[roundedEnd] & 0xff
-        k1 *= c1
-        k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)  # ROTL32(k1,15)
-        k1 *= c2
-        h1 ^= k1
-
-    # finalization
-    h1 ^= length
-
-    # fmix(h1)
-    h1 ^= ((h1 & 0xffffffff) >> 16)
-    h1 *= 0x85ebca6b
-    h1 ^= ((h1 & 0xffffffff) >> 13)
-    h1 *= 0xc2b2ae35
-    h1 ^= ((h1 & 0xffffffff) >> 16)
-
-    return h1 & 0xffffffff
 
 
 class BloomFilter:
@@ -64,20 +15,58 @@ class BloomFilter:
         self.tweak = tweak
 
     def add(self, item):
+        '''Add an item to the filter'''
+        # iterate self.function_count number of times
         for i in range(self.function_count):
-            # BIP0037 spec seed
+            # BIP0037 spec seed is i*BIP37_CONSTANT + tweak
             seed = i * BIP37_CONSTANT + self.tweak
+            # get the murmur3 hash given that seed
             h = murmur3(item, seed=seed)
-            # the bit we need to set
+            # set the bit at the hash mod the bitfield size (self.size*8)
             bit = h % (self.size * 8)
+            # get the byte index and bit index
+            # the byte index will be the bit number // 8
+            # the bit index will be the bit number % 8
+            # use the divmod function
             filter_index, bit_index = divmod(bit, 8)
-            # now we set that particular bit
+            # the filter's byte index needs the bit at the bit_index set
+            # set the bit (1 << bit_index) to be 1
             self.filter[filter_index] |= (1 << bit_index)
 
     def filterload(self, flag=1):
-        payload = bytes([self.size]) + bytes(self.filter)
+        '''Return the payload that goes in a filterload message'''
+        # start with the size of the filter in bytes
+        payload = encode_varint(self.size)
+        # next cast the filter to bytes
+        payload += bytes(self.filter)
+        # function count is 4 bytes little endian
         payload += int_to_little_endian(self.function_count, 4)
+        # tweak is 4 bytes little endian
         payload += int_to_little_endian(self.tweak, 4)
+        # flag is 1 byte little endian
         payload += int_to_little_endian(flag, 1)
         return payload
+
+    
+class BloomFilterTest(TestCase):
+    
+    def test_add(self):
+        bf = BloomFilter(10, 5, 99)
+        item = b'Hello World'
+        bf.add(item)
+        expected = '0000000a080000000140'
+        self.assertEqual(bytes(bf.filter).hex(), expected)
+        item = b'Goodbye!'
+        bf.add(item)
+        expected = '4000600a080000010940'
+        self.assertEqual(bytes(bf.filter).hex(), expected)
         
+    def test_filterload(self):
+        bf = BloomFilter(10, 5, 99)
+        item = b'Hello World'
+        bf.add(item)
+        item = b'Goodbye!'
+        bf.add(item)
+        expected = '0a4000600a080000010940050000006300000001'
+        self.assertEqual(bf.filterload().hex(), expected)
+
