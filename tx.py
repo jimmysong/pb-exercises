@@ -32,8 +32,9 @@ class Tx:
             tx_ins += tx_in.__repr__() + '\n'
         tx_outs = ''
         for tx_out in self.tx_outs:
-            tx_outs += tx_out.__repr__() + '\n'
-        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            tx_outs += tx_out.__repr__(testnet=self.testnet) + '\n'
+        return '{}:\nversion: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            self.hash().hex(),
             self.version,
             tx_ins,
             tx_outs,
@@ -41,10 +42,10 @@ class Tx:
         )
 
     def hash(self):
-        return double_sha256(self.serialize())
+        return double_sha256(self.serialize())[::-1]
 
     @classmethod
-    def parse(cls, s):
+    def parse(cls, s, testnet=False):
         '''Takes a byte stream and parses the transaction at the start
         return a Tx object
         '''
@@ -66,7 +67,7 @@ class Tx:
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
-        return cls(version, inputs, outputs, locktime)
+        return cls(version, inputs, outputs, locktime, testnet=testnet)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction'''
@@ -328,8 +329,8 @@ class TxOut:
         self.amount = amount
         self.script_pubkey = Script.parse(script_pubkey)
 
-    def __repr__(self):
-        return '{}:{}'.format(self.amount, self.script_pubkey.address())
+    def __repr__(self, testnet=False):
+        return '{}:{}'.format(self.amount, self.script_pubkey.address(testnet=testnet))
 
     @classmethod
     def parse(cls, s):

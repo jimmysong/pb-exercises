@@ -74,7 +74,7 @@ class BloomFilter:
             # now we set that particular bit
             self.filter[filter_index] |= (1 << bit_index)
 
-    def filterload(self, flag=0):
+    def filterload(self, flag=1):
         payload = bytes([self.size]) + bytes(self.filter)
         payload += int_to_little_endian(self.function_count, 4)
         payload += int_to_little_endian(self.tweak, 4)
