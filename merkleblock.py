@@ -102,9 +102,9 @@ class MerkleBlock:
             # the left one can be computed using recursion with a depth + 1
             left = self.get_hash(depth+1, left_index)
             # the right one may or may not exist
-            # we have to determine the maximum index at this level
+            # we have to determine the maximum index at the next level
             # and that's given by this formula:
-            # math.ceil(self.total / 2**(self.max_depth - depth - 1))
+            # math.ceil(self.total / 2**(self.max_depth - (depth+1) ))
             max_index = math.ceil(self.total / 2**(self.max_depth - depth - 1))
             if right_index > max_index:
                 # if the right index is bigger than the max, we can compute
@@ -123,7 +123,7 @@ class MerkleBlock:
 
 class MerkleBlockTest(TestCase):
 
-    def test_compute_root(self):
+    def test_is_valid(self):
         hex_hashes = [
             '588435cd03b7e16949376739849cd0becf45e8b348d7e4f3dbf0a33cb29d9796',
             'fe82bf2b781279df33995d73dc18a911e3a80b5d4af164733bbb7f8a2d11f0c9',
@@ -139,11 +139,11 @@ class MerkleBlockTest(TestCase):
             '3c0372a0a5d428de0e8604b9aa36f88431bc7a94315ef9a1f2fc127824dd091d'
         ]
         hashes = [bytes.fromhex(h) for h in hex_hashes]
-        merkle_root_hex =             '3737a795b537b2dbeeb0c07a2253cc4b0da8174aabb4f9e55d59d61ede3abf4d'
+        merkle_root_hex = '3737a795b537b2dbeeb0c07a2253cc4b0da8174aabb4f9e55d59d61ede3abf4d'
         merkle_root = bytes.fromhex(merkle_root_hex)
-        mb = MerkleBlock(0,0,merkle_root,0,0,0, 1833, hashes, bytes.fromhex('5d7505'))
-        self.assertEqual(mb.compute_root().hex(), merkle_root_hex)
+        flag_bits = bytes.fromhex('5d7505')
+        mb = MerkleBlock(0,0,merkle_root,0,0,0, 1833, hashes, flag_bits)
+        self.assertTrue(mb.is_valid())
         self.assertEqual(mb.tmp_hashes, [])
         for bit in mb.flag_bits:
             self.assertEqual(bit, 0)
-        self.assertTrue(mb.is_valid())
