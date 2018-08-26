@@ -16,6 +16,100 @@ from helper import (
 )
 
 
+class MerkleTree:
+
+    def __init__(self, total):
+        self.total = total
+        self.max_depth = math.ceil(math.log(self.total, 2))
+        self.nodes = []
+        # loop over the number of levels (max_depth+1)
+        for depth in range(self.max_depth+1):
+            # the number of items at this depth is
+            # math.ceil(self.total / 2**(self.max_depth - depth))
+            num_items = math.ceil(self.total / 2**(self.max_depth - depth))
+            # create this level's hashes list with the right number of items
+            level_hashes = [None] * num_items
+            # append this level's hashes to the merkle tree
+            self.nodes.append(level_hashes)
+        # set the pointer to the root (depth=0, index=0)
+        self.current_depth = 0
+        self.current_index = 0
+
+    def up(self):
+        # reduce depth by 1 and halve the index
+        self.current_depth -= 1
+        self.current_index //= 2
+        
+    def left(self):
+        # increase depth by 1 and double the index
+        self.current_depth += 1
+        self.current_index *= 2
+        
+    def right(self):
+        # increase depth by 1 and double the index + 1
+        self.current_depth += 1
+        self.current_index = self.current_index * 2 + 1
+
+    def root(self):
+        return self.nodes[0][0]
+
+    def set_current_node(self, value):
+        self.nodes[self.current_depth][self.current_index] = value
+        self.up()
+
+    def get_current_node(self):
+        return self.nodes[self.current_depth][self.current_index]
+    
+    def get_left_node(self):
+        return self.nodes[self.current_depth+1][self.current_index*2]        
+
+    def get_right_node(self):
+        return self.nodes[self.current_depth+1][self.current_index*2+1]
+    
+    def is_leaf(self):
+        return self.current_depth == self.max_depth
+
+    def right_exists(self):
+        return len(self.nodes[self.current_depth + 1]) >= self.current_index * 2 + 1
+    
+    def fill_tree(self, flag_bits, hashes):
+        while self.root() is None:
+            # if we are a leaf, we know this position's hash
+            if self.is_leaf():
+                # get the next bit
+                flag_bits.pop(0)
+                # set the current node in the merkle tree to the next hash and go up
+                self.set_current_node(hashes.pop(0))
+            else:
+                left_hash = self.get_left_node()
+                if left_hash is None:
+                    # if the next flag bit is 0, the next hash is our current node
+                    if flag_bits.pop(0) == 0:
+                        # set the current node to be the next hash and go up
+                        self.set_current_node(hashes.pop(0))
+                    else:
+                        # go to the left node
+                        self.left()
+                else:
+                    # see if the right index exists or not
+                    if self.right_exists():
+                        right_hash = self.get_right_node()
+                        if right_hash:
+                            # combine the left and right hashes and go up
+                            self.set_current_node(merkle_parent(left_hash, right_hash))
+                        else:
+                            # go to the right node
+                            self.right()
+                    else:
+                        # we can combine the left hash twice and go up
+                        self.set_current_node(merkle_parent(left_hash, left_hash))
+        if len(hashes) != 0:
+            raise RuntimeError('hashes not all consumed')
+        for flag_bit in flag_bits:
+            if flag_bit != 0:
+                raise RuntimeError('flag bits not all consumed')
+    
+    
 class MerkleBlock:
 
     def __init__(self, version, prev_block, merkle_root, timestamp, bits, nonce, total, hashes, flags):
@@ -28,17 +122,16 @@ class MerkleBlock:
         self.total = total
         self.hashes = hashes
         self.flags = flags
-        self.max_depth = math.ceil(math.log(self.total, 2))
 
     def __repr__(self):
-        print(self.total)
+        result = '{}\n'.format(self.total)
         for h in self.hashes:
-            print(h.hex())
-        print(self.flags.hex())
+            result += '\t{}\n'.format(h.hex())
+        result += '{}'.format(self.flags.hex())
         
     @classmethod
     def parse(cls, s):
-        '''Takes a byte stream and parses a block. Returns a Block object'''
+        '''Takes a byte stream and parses a merkle block. Returns a Merkle Block object'''
         # s.read(n) will read n bytes from the stream
         # version - 4 bytes, little endian, interpret as int
         version = little_endian_to_int(s.read(4))
@@ -52,69 +145,46 @@ class MerkleBlock:
         bits = s.read(4)
         # nonce - 4 bytes
         nonce = s.read(4)
-        # total number of transactions
+        # total number of transactions (4 bytes, little endian)
         total = little_endian_to_int(s.read(4))
-        # number of transactions in this merkle proof
+        # number of transactions in this merkle proof (varint)
         num_txs = read_varint(s)
         # hashes of these transactions
         hashes = []
         for _ in range(num_txs):
+            # hashes are 32 bytes, little endian
             hashes.append(s.read(32)[::-1])
-        flags_size = read_varint(s)
-        flags = s.read(flags_size)
+        # length of flags field is a varint
+        flags_length = read_varint(s)
+        # read the flags field
+        flags = s.read(flags_length)
         # initialize class
         return cls(version, prev_block, merkle_root, timestamp, bits, nonce,
                    total, hashes, flags)
 
-    def compute_root(self):
-        # compute the flag bits
-        self.flag_bits = []
+    def flag_bits(self):
+        flag_bits = []
         # iterate over each byte of flags
         for byte in self.flags:
             # iterate over each bit, right-to-left
             for _ in range(8):
-                self.flag_bits.append(byte & 1)
+                # add the current bit (byte & 1)
+                flag_bits.append(byte & 1)
+                # rightshift the byte 1
                 byte >>= 1
-        # hashes to be consumed
-        self.tmp_hashes = [h[::-1] for h in self.hashes]
-        # return the computed merkle root, which should be at depth 0 index 0
-        return self.get_hash(0, 0)[::-1]
-
-    def get_hash(self, depth, index):
-        # we need to get the hash at a certain depth and index
-        # grab the bit associated with this node in the merkle tree
-        current_bit = self.flag_bits.pop(0)
-        if current_bit == 0:
-            # if the bit is 0, the next hash on the list is this current hash
-            return self.tmp_hashes.pop(0)
-        elif depth == self.max_depth:
-            # similarly, if we are a leaf node (that is, at the max depth)
-            # the next hash on the list is the current hash
-            return self.tmp_hashes.pop(0)
-        else:
-            # we are an internal node or something on the merkle path
-            # we need to compute this node's hash by calculating the two
-            # child node hashes
-            # the left child's index is double the current node's
-            left_index = index * 2
-            # the right child index is one more than the left one
-            right_index = left_index + 1
-            # the left one can be computed using recursion with a depth + 1
-            left = self.get_hash(depth+1, left_index)
-            # the right one may or may not exist
-            # we have to determine the maximum index at the next level
-            # and that's given by this formula:
-            # math.ceil(self.total / 2**(self.max_depth - (depth+1) ))
-            max_index = math.ceil(self.total / 2**(self.max_depth - depth - 1))
-            if right_index > max_index:
-                # if the right index is bigger than the max, we can compute
-                # this node's hash by using the left one twice
-                return merkle_parent(left, left)
-            else:
-                # otherwise, we need to also get the right hash to calculate
-                # this node's hash
-                right = self.get_hash(depth+1, right_index)
-                return merkle_parent(left, right)
+        return flag_bits
+        
+    def compute_root(self):
+        # initialize the flag bits
+        flag_bits = self.flag_bits()
+        # reverse the hashes to get our list of hashes for merkle root calculation
+        hashes = [h[::-1] for h in self.hashes]
+        # initialize the merkle tree
+        merkle_tree = MerkleTree(self.total)
+        # fill the tree with flag bits and hashes
+        merkle_tree.fill_tree(flag_bits, hashes)
+        # return the reversed root
+        return merkle_tree.root()[::-1]
 
     def is_valid(self):
         # check if the computed root is the same as the merkle root
@@ -144,6 +214,5 @@ class MerkleBlockTest(TestCase):
         flag_bits = bytes.fromhex('5d7505')
         mb = MerkleBlock(0,0,merkle_root,0,0,0, 1833, hashes, flag_bits)
         self.assertTrue(mb.is_valid())
-        self.assertEqual(mb.tmp_hashes, [])
-        for bit in mb.flag_bits:
-            self.assertEqual(bit, 0)
+#        relevant_tx_hex = '1926ebd39ea4ac13c3b54e9c9eb50e5daaa738164ed495b7a208c3b95c6f3dd0'
+#        self.assertEqual(mb.relevant_tx_hashes, [bytes.fromhex(relevant_tx_hex)])

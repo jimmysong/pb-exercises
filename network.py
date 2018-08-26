@@ -77,6 +77,10 @@ class NetworkEnvelope:
         result += self.payload
         return result
 
+    def stream(self):
+        '''Returns a stream for parsing the payload'''
+        return BytesIO(self.payload)
+
 
 class VersionMessage:
 
@@ -104,6 +108,7 @@ class VersionMessage:
         self.relay = relay
 
     def serialize(self):
+        '''Serialize this message to send over the network'''
         # version is 4 bytes little endian
         result = int_to_little_endian(self.version, 4)
         # services is 8 bytes little endian
@@ -147,9 +152,14 @@ class GetHeadersMessage:
             self.ending_block = ending_block
 
     def serialize(self):
+        '''Serialize this message to send over the network'''
+        # protocol version is 4 bytes little-endian
         result = int_to_little_endian(self.version, 4)
+        # number of hashes is a varint
         result += encode_varint(self.num_hashes)
+        # starting block is in little-endian
         result += self.starting_block[::-1]
+        # ending block is also in little-endian
         result += self.ending_block[::-1]
         return result
 
@@ -170,6 +180,7 @@ class SimpleNode:
         self.stream = self.socket.makefile('rb', None)
 
     def handshake(self):
+        '''Do a handshake with the other node. Handshake is sending a version message and getting a verack back.'''
         # send a version message
         payload = VersionMessage().serialize()
         self.send(b'version', payload)
@@ -177,29 +188,32 @@ class SimpleNode:
         self.wait_for_commands({b'verack'})
         
     def send(self, command, payload):
+        '''Send a message to the connected node'''
         # create a network envelope
         envelope = NetworkEnvelope(command, payload, testnet=self.testnet)
         # send the serialized envelope over the socket using sendall
         self.socket.sendall(envelope.serialize())
-
-    def wait_for_commands(self, commands):
-        # get the newest envelope
-        envelope = self.read()
-        # get the command to be evaluated
-        command = envelope.command
-        # we know how to respond to version and ping, handle that here
-        if command.startswith(b'version'):
-            # send verack
-            self.send(b'verack', b'')
-        elif command.startswith(b'ping'):
-            # send pong
-            self.send(b'pong', envelope.payload)
-        # if we got one of the commands we're waiting for, return it
-        # otherwise, parse the next command with wait_for_command
-        if command in commands:
-            return envelope
-        else:
-            return self.wait_for_commands(commands)
         
     def read(self):
+        '''Read a message from the socket'''
         return NetworkEnvelope.parse(self.stream, testnet=self.testnet)
+
+    def wait_for_commands(self, commands):
+        '''Wait for one of the commands in the list'''
+        # initialize the command we have, which should be None
+        command = None
+        # loop until the command is in the commands we want
+        while command not in commands:
+            # get the next network message
+            envelope = self.read()
+            # set the command to be evaluated
+            command = envelope.command
+            # we know how to respond to version and ping, handle that here
+            if command == b'version':
+                # send verack
+                self.send(b'verack', b'')
+            elif command == b'ping':
+                # send pong
+                self.send(b'pong', envelope.payload)
+        # return the last envelope we got
+        return envelope
