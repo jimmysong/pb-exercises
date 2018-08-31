@@ -129,15 +129,15 @@ class VersionMessage:
         # version is 4 bytes little endian
         # services is 8 bytes little endian
         # timestamp is 8 bytes little endian
-        # receiver services is 8 bytes little endian
-        # IPV4 is 10 00 bytes and 2 ff bytes then receiver ip
-        # receiver port is 2 bytes, little endian should be 0
-        # sender services is 8 bytes little endian
-        # IPV4 is 10 00 bytes and 2 ff bytes then sender ip
-        # sender port is 2 bytes, little endian should be 0
+        # receiver_services is 8 bytes little endian
+        # IPV4 is b'\x00'*10+b'\xff'*2 then receiver_ip
+        # receiver_port is 2 bytes, little endian
+        # sender_services is 8 bytes little endian
+        # IPV4 is b'\x00'*10+b'\xff'*2 then sender_ip
+        # sender_port is 2 bytes, little endian
         # nonce should be 8 bytes
-        # useragent is a variable string, so varint first
-        # latest block is 4 bytes little endian
+        # user_agent is a variable string, so varint first
+        # latest_block is 4 bytes little endian
         # relay is 00 if false, 01 if true
         return NotImplementedError
 
@@ -164,10 +164,10 @@ class GetHeadersMessage:
 
     def serialize(self):
         '''Serialize this message to send over the network'''
-        # protocol version is 4 bytes little-endian
-        # number of hashes is a varint
-        # starting block is in little-endian
-        # ending block is also in little-endian
+        # version is 4 bytes little-endian
+        # num_hashes is a varint
+        # starting_block is in little-endian
+        # ending_block is also in little-endian
         raise NotImplementedError
 
     
@@ -199,6 +199,7 @@ class SimpleNode:
         '''Do a handshake with the other node. Handshake is sending a version message and getting a verack back.'''
         # send a version message
         # wait for a verack message
+        raise NotImplementedError
         
     def send(self, command, payload):
         '''Send a message to the connected node'''
