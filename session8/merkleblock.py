@@ -225,20 +225,21 @@ class MerkleBlock:
         # bits - 4 bytes
         # nonce - 4 bytes
         # total number of transactions (4 bytes, little endian)
-        # number of transactions in this merkle proof (varint)
-        # hashes of these transactions
-            # hashes are 32 bytes, little endian
-        # length of flags field is a varint
+        # number of hashes is a varint
+        # initialize the hashes array
+        # loop through the number of hashes times
+            # each hash is 32 bytes, little endian
+        # get the length of the flags field as a varint
         # read the flags field
         # initialize class
         raise NotImplementedError
         
     def is_valid(self):
-        # convert the flags field to a bit field
+        # convert the flags field to a bit field using bytes_to_bit_field
         # reverse the hashes to get our list of hashes for merkle root calculation
         # initialize the merkle tree
         # populate the tree with flag bits and hashes
-        # check if the computed root reversed is the same as the merkle root
+        # check if the computed root [::-1] is the same as the merkle root
         raise NotImplementedError
 
 

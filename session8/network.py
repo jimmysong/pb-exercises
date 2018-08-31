@@ -224,8 +224,8 @@ class HeadersMessage:
         self.blocks = blocks
         
     @classmethod
-    def parse(cls, stream):
-        # number of headers is in a varint
+    def parse(cls, s):
+        # number of headers is a varint
         # initialize the blocks array
         # loop through number of headers times
             # add a block to the blocks array by parsing the stream
@@ -255,9 +255,10 @@ class GetDataMessage:
         self.data.append((data_type, identifier))
         
     def serialize(self):
-        # start with the number of items as a varint
-        # loop through the items
-            # data type is 4 bytes little endian
+        # number of data items should be a varint
+        # loop through the items using:
+        # for data_type, identifier in self.data:
+            # data type is converted from integer to 4 bytes little endian
             # identifier needs to be in little endian
         raise NotImplementedError
 

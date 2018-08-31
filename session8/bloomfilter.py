@@ -28,9 +28,9 @@ class BloomFilter:
 
     def filterload(self, flag=1):
         '''Return the payload that goes in a filterload message'''
-        # start with the size of the filter in bytes
-        # next cast the filter to bytes
-        # function count is 4 bytes little endian
+        # the size is a varint
+        # use bit_field_to_bytes to serialize the bit_field
+        # function_count is 4 bytes little endian
         # tweak is 4 bytes little endian
         # flag is 1 byte little endian
         raise NotImplementedError
