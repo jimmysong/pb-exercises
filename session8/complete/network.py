@@ -112,7 +112,7 @@ class NetworkEnvelopeTest(TestCase):
         envelope = NetworkEnvelope.parse(stream)
         self.assertEqual(envelope.serialize(), msg)
 
-        
+
 class VersionMessage:
 
     def __init__(self, version=70015, services=0, timestamp=None,
@@ -178,11 +178,11 @@ class VersionMessage:
 
 
 class VersionMessageTest(TestCase):
-    
+
     def test_serialize(self):
         v = VersionMessage(timestamp=0, nonce=b'\x00'*8)
         self.assertEqual(v.serialize().hex(), '7f11010000000000000000000000000000000000000000000000000000000000000000000000ffff000000008d20000000000000000000000000000000000000ffff000000008d2000000000000000001b2f70726f6772616d6d696e67626c6f636b636861696e3a302e312f0000000001')
-    
+
 
 class GetHeadersMessage:
 
@@ -209,20 +209,20 @@ class GetHeadersMessage:
         result += self.ending_block[::-1]
         return result
 
-    
+
 class GetHeadersMessageTest(TestCase):
-    
+
     def test_serialize(self):
         block_hex = '0000000000000000001237f46acddf58578a37e213d2a6edc4884a2fcad05ba3'
         gh = GetHeadersMessage(starting_block=bytes.fromhex(block_hex))
         self.assertEqual(gh.serialize().hex(), '7f11010001a35bd0ca2f4a88c4eda6d213e2378a5758dfcd6af437120000000000000000000000000000000000000000000000000000000000000000000000000000000000')
 
-        
+
 class HeadersMessage:
-    
+
     def __init__(self, blocks):
         self.blocks = blocks
-        
+
     @classmethod
     def parse(cls, stream):
         # number of headers is in a varint
@@ -241,9 +241,9 @@ class HeadersMessage:
         # return a class instance
         return cls(blocks)
 
-    
+
 class HeadersMessageTest(TestCase):
-    
+
     def test_parse(self):
         hex_msg = '0200000020df3b053dc46f162a9b00c7f0d5124e2676d47bbe7c5d0793a500000000000000ef445fef2ed495c275892206ca533e7411907971013ab83e3b47bd0d692d14d4dc7c835b67d8001ac157e670000000002030eb2540c41025690160a1014c577061596e32e426b712c7ca00000000000000768b89f07044e6130ead292a3f51951adbd2202df447d98789339937fd006bd44880835b67d8001ade09204600'
         stream = BytesIO(bytes.fromhex(hex_msg))
@@ -254,13 +254,13 @@ class HeadersMessageTest(TestCase):
 
 
 class GetDataMessage:
-    
+
     def __init__(self):
         self.data = []
-        
+
     def add_data(self, data_type, identifier):
         self.data.append((data_type, identifier))
-        
+
     def serialize(self):
         # start with the number of items as a varint
         result = encode_varint(len(self.data))
@@ -271,9 +271,9 @@ class GetDataMessage:
             result += identifier[::-1]
         return result
 
-    
+
 class GetDataMessageTest(TestCase):
-    
+
     def test_serialize(self):
         hex_msg = '020300000030eb2540c41025690160a1014c577061596e32e426b712c7ca00000000000000030000001049847939585b0652fba793661c361223446b6fc41089b8be00000000000000'
         stream = BytesIO(bytes.fromhex(hex_msg))
@@ -283,10 +283,10 @@ class GetDataMessageTest(TestCase):
         block2 = bytes.fromhex('00000000000000beb88910c46f6b442312361c6693a7fb52065b583979844910')
         get_data.add_data(FILTERED_BLOCK_DATA_TYPE, block2)
         self.assertEqual(get_data.serialize().hex(), hex_msg)
-        
-        
+
+
 class SimpleNode:
-    
+
     def __init__(self, host, port=None, testnet=False, logging=False):
         if port is None:
             if testnet:
@@ -308,7 +308,7 @@ class SimpleNode:
         self.send(b'version', payload)
         # wait for a verack message
         self.wait_for_commands({b'verack'})
-        
+
     def send(self, command, payload):
         '''Send a message to the connected node'''
         # create a network envelope
@@ -317,7 +317,7 @@ class SimpleNode:
             print('sending: {}'.format(envelope))
         # send the serialized envelope over the socket using sendall
         self.socket.sendall(envelope.serialize())
-        
+
     def read(self):
         '''Read a message from the socket'''
         envelope = NetworkEnvelope.parse(self.stream, testnet=self.testnet)

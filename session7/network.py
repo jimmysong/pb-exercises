@@ -5,6 +5,7 @@ from io import BytesIO
 from random import randint
 from unittest import TestCase
 
+from block import Block
 from helper import (
     double_sha256,
     encode_varint,
@@ -53,13 +54,13 @@ class NetworkEnvelope:
         # checksum 4 bytes, first four of double-sha256 of payload
         # payload is of length payload_length
         # verify checksum
-        # return an instance of cls
         raise NotImplementedError
 
     def serialize(self):
         '''Returns the byte serialization of the entire network message'''
         # add the network magic
-        # command 12 bytes (fill remaining bytes with 0's)
+        # command 12 bytes
+        # fill with 0's
         # payload length 4 bytes, little endian
         # checksum 4 bytes, first four of double-sha256 of payload
         # payload
@@ -94,8 +95,9 @@ class NetworkEnvelopeTest(TestCase):
         envelope = NetworkEnvelope.parse(stream)
         self.assertEqual(envelope.serialize(), msg)
 
-        
+
 class VersionMessage:
+    command = b'version'
 
     def __init__(self, version=70015, services=0, timestamp=None,
                  receiver_services=0,
@@ -129,58 +131,87 @@ class VersionMessage:
         # version is 4 bytes little endian
         # services is 8 bytes little endian
         # timestamp is 8 bytes little endian
-        # receiver_services is 8 bytes little endian
-        # IPV4 is b'\x00'*10+b'\xff'*2 then receiver_ip
-        # receiver_port is 2 bytes, little endian
-        # sender_services is 8 bytes little endian
-        # IPV4 is b'\x00'*10+b'\xff'*2 then sender_ip
-        # sender_port is 2 bytes, little endian
+        # receiver services is 8 bytes little endian
+        # IPV4 is 10 00 bytes and 2 ff bytes then receiver ip
+        # receiver port is 2 bytes, little endian should be 0
+        # sender services is 8 bytes little endian
+        # IPV4 is 10 00 bytes and 2 ff bytes then sender ip
+        # sender port is 2 bytes, little endian should be 0
         # nonce should be 8 bytes
-        # user_agent is a variable string, so varint first
-        # latest_block is 4 bytes little endian
+        # useragent is a variable string, so varint first
+        # latest block is 4 bytes little endian
         # relay is 00 if false, 01 if true
-        return NotImplementedError
+        raise NotImplementedError
 
 
 class VersionMessageTest(TestCase):
-    
+
     def test_serialize(self):
         v = VersionMessage(timestamp=0, nonce=b'\x00'*8)
         self.assertEqual(v.serialize().hex(), '7f11010000000000000000000000000000000000000000000000000000000000000000000000ffff000000008d20000000000000000000000000000000000000ffff000000008d2000000000000000001b2f70726f6772616d6d696e67626c6f636b636861696e3a302e312f0000000001')
-    
+
 
 class GetHeadersMessage:
+    command = b'getheaders'
 
-    def __init__(self, version=70015, num_hashes=1, starting_block=None, ending_block=None):
+    def __init__(self, version=70015, num_hashes=1, start_block=None, end_block=None):
         self.version = version
         self.num_hashes = num_hashes
-        if starting_block is None:
-            raise RuntimeError('a starting block is required')
-        self.starting_block = starting_block
-        if ending_block is None:
-            self.ending_block = b'\x00' * 32
+        if start_block is None:
+            raise RuntimeError('a start block is required')
+        self.start_block = start_block
+        if end_block is None:
+            self.end_block = b'\x00' * 32
         else:
-            self.ending_block = ending_block
+            self.end_block = end_block
 
     def serialize(self):
         '''Serialize this message to send over the network'''
-        # version is 4 bytes little-endian
-        # num_hashes is a varint
-        # starting_block is in little-endian
-        # ending_block is also in little-endian
+        # protocol version is 4 bytes little-endian
+        # number of hashes is a varint
+        # start block is in little-endian
+        # end block is also in little-endian
         raise NotImplementedError
 
-    
+
 class GetHeadersMessageTest(TestCase):
-    
+
     def test_serialize(self):
         block_hex = '0000000000000000001237f46acddf58578a37e213d2a6edc4884a2fcad05ba3'
-        gh = GetHeadersMessage(starting_block=bytes.fromhex(block_hex))
+        gh = GetHeadersMessage(start_block=bytes.fromhex(block_hex))
         self.assertEqual(gh.serialize().hex(), '7f11010001a35bd0ca2f4a88c4eda6d213e2378a5758dfcd6af437120000000000000000000000000000000000000000000000000000000000000000000000000000000000')
-    
-    
+
+class HeadersMessage:
+    command = b'headers'
+
+    def __init__(self, blocks):
+        self.blocks = blocks
+
+    @classmethod
+    def parse(cls, stream):
+        # number of headers is in a varint
+        # initialize the blocks array
+        # loop through number of headers times
+            # add a block to the blocks array by parsing the stream
+            # read the next varint (num_txs)
+            # num_txs should be 0 or raise a RuntimeError
+        # return a class instance
+        raise NotImplementedError
+
+
+class HeadersMessageTest(TestCase):
+
+    def test_parse(self):
+        hex_msg = '0200000020df3b053dc46f162a9b00c7f0d5124e2676d47bbe7c5d0793a500000000000000ef445fef2ed495c275892206ca533e7411907971013ab83e3b47bd0d692d14d4dc7c835b67d8001ac157e670000000002030eb2540c41025690160a1014c577061596e32e426b712c7ca00000000000000768b89f07044e6130ead292a3f51951adbd2202df447d98789339937fd006bd44880835b67d8001ade09204600'
+        stream = BytesIO(bytes.fromhex(hex_msg))
+        headers = HeadersMessage.parse(stream)
+        self.assertEqual(len(headers.blocks), 2)
+        for b in headers.blocks:
+            self.assertEqual(b.__class__, Block)
+
+
 class SimpleNode:
-    
+
     def __init__(self, host, port=None, testnet=False, logging=False):
         if port is None:
             if testnet:
@@ -197,10 +228,11 @@ class SimpleNode:
 
     def handshake(self):
         '''Do a handshake with the other node. Handshake is sending a version message and getting a verack back.'''
-        # send a version message
+        # create a version message
+        # send the command
         # wait for a verack message
         raise NotImplementedError
-        
+
     def send(self, command, payload):
         '''Send a message to the connected node'''
         # create a network envelope
@@ -209,7 +241,7 @@ class SimpleNode:
             print('sending: {}'.format(envelope))
         # send the serialized envelope over the socket using sendall
         self.socket.sendall(envelope.serialize())
-        
+
     def read(self):
         '''Read a message from the socket'''
         envelope = NetworkEnvelope.parse(self.stream, testnet=self.testnet)
@@ -236,3 +268,10 @@ class SimpleNode:
                 self.send(b'pong', envelope.payload)
         # return the last envelope we got
         return envelope
+
+
+class SimpleNodeTest(TestCase):
+
+    def test_handshake(self):
+        node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)
+        node.handshake()
