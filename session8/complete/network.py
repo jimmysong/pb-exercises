@@ -114,6 +114,7 @@ class NetworkEnvelopeTest(TestCase):
 
 
 class VersionMessage:
+    command = b'version'
 
     def __init__(self, version=70015, services=0, timestamp=None,
                  receiver_services=0,
@@ -185,17 +186,18 @@ class VersionMessageTest(TestCase):
 
 
 class GetHeadersMessage:
+    command = b'getheaders'
 
-    def __init__(self, version=70015, num_hashes=1, starting_block=None, ending_block=None):
+    def __init__(self, version=70015, num_hashes=1, start_block=None, end_block=None):
         self.version = version
         self.num_hashes = num_hashes
-        if starting_block is None:
-            raise RuntimeError('a starting block is required')
-        self.starting_block = starting_block
-        if ending_block is None:
-            self.ending_block = b'\x00' * 32
+        if start_block is None:
+            raise RuntimeError('a start block is required')
+        self.start_block = start_block
+        if end_block is None:
+            self.end_block = b'\x00' * 32
         else:
-            self.ending_block = ending_block
+            self.end_block = end_block
 
     def serialize(self):
         '''Serialize this message to send over the network'''
@@ -203,10 +205,10 @@ class GetHeadersMessage:
         result = int_to_little_endian(self.version, 4)
         # number of hashes is a varint
         result += encode_varint(self.num_hashes)
-        # starting block is in little-endian
-        result += self.starting_block[::-1]
-        # ending block is also in little-endian
-        result += self.ending_block[::-1]
+        # start block is in little-endian
+        result += self.start_block[::-1]
+        # end block is also in little-endian
+        result += self.end_block[::-1]
         return result
 
 
@@ -214,11 +216,12 @@ class GetHeadersMessageTest(TestCase):
 
     def test_serialize(self):
         block_hex = '0000000000000000001237f46acddf58578a37e213d2a6edc4884a2fcad05ba3'
-        gh = GetHeadersMessage(starting_block=bytes.fromhex(block_hex))
+        gh = GetHeadersMessage(start_block=bytes.fromhex(block_hex))
         self.assertEqual(gh.serialize().hex(), '7f11010001a35bd0ca2f4a88c4eda6d213e2378a5758dfcd6af437120000000000000000000000000000000000000000000000000000000000000000000000000000000000')
 
 
 class HeadersMessage:
+    command = b'headers'
 
     def __init__(self, blocks):
         self.blocks = blocks
@@ -254,6 +257,7 @@ class HeadersMessageTest(TestCase):
 
 
 class GetDataMessage:
+    command = b'getdata'
 
     def __init__(self):
         self.data = []
@@ -303,9 +307,10 @@ class SimpleNode:
 
     def handshake(self):
         '''Do a handshake with the other node. Handshake is sending a version message and getting a verack back.'''
-        # send a version message
-        payload = VersionMessage().serialize()
-        self.send(b'version', payload)
+        # create a version message
+        version = VersionMessage()
+        # send the command
+        self.send(version.command, version.serialize())
         # wait for a verack message
         self.wait_for_commands({b'verack'})
 
@@ -344,3 +349,9 @@ class SimpleNode:
                 self.send(b'pong', envelope.payload)
         # return the last envelope we got
         return envelope
+
+class SimpleNodeTest(TestCase):
+
+    def test_handshake(self):
+        node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)
+        node.handshake()
