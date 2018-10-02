@@ -23,9 +23,9 @@ class MerkleTree:
         # initialize the nodes property to hold the actual tree
         # loop over the number of levels (max_depth+1)
             # the number of items at this depth is
-            # math.ceil(self.total / 2**(self.max_depth - depth))
             # create this level's hashes list with the right number of items
             # append this level's hashes to the merkle tree
+        raise NotImplementedError
         # set the pointer to the root (depth=0, index=0)
         self.current_depth = 0
         self.current_index = 0
@@ -34,7 +34,10 @@ class MerkleTree:
         result = ''
         for depth, level in enumerate(self.nodes):
             for index, h in enumerate(level):
-                short = '{}...'.format(h.hex()[:8])
+                if h is None:
+                    short = 'None'
+                else:
+                    short = '{}...'.format(h.hex()[:8])
                 if depth == self.current_depth and index == self.current_index:
                     result += '*{}*, '.format(short[:-2])
                 else:
@@ -79,6 +82,7 @@ class MerkleTree:
         return len(self.nodes[self.current_depth + 1]) > self.current_index * 2 + 1
     
     def populate_tree(self, flag_bits, hashes):
+        '''Populate the tree with the hashes given from a peer and flag bits'''
         # populate until we have the root
             # if we are a leaf, we know this position's hash
                 # get the next bit from flag_bits: flag_bits.pop(0)

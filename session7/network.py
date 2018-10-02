@@ -133,12 +133,12 @@ class VersionMessage:
         # timestamp is 8 bytes little endian
         # receiver services is 8 bytes little endian
         # IPV4 is 10 00 bytes and 2 ff bytes then receiver ip
-        # receiver port is 2 bytes, little endian should be 0
+        # receiver port is 2 bytes
         # sender services is 8 bytes little endian
         # IPV4 is 10 00 bytes and 2 ff bytes then sender ip
-        # sender port is 2 bytes, little endian should be 0
+        # sender port is 2 bytes
         # nonce should be 8 bytes
-        # useragent is a variable string, so varint first
+        # user agent is a variable string, so varint first
         # latest block is 4 bytes little endian
         # relay is 00 if false, 01 if true
         raise NotImplementedError
