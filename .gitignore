@@ -7,4 +7,5 @@ lib/
 lib64
 pyvenv.cfg
 share/
-
+*.orig
+*.rej
