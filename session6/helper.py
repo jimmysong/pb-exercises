@@ -66,9 +66,14 @@ def encode_base58(s):
 
     return prefix + bytes(result)
 
-
-def encode_base58_checksum(s):
-    return encode_base58(s + double_sha256(s)[:4]).decode('ascii')
+def encode_base58_checksum(raw):
+    '''Takes bytes and turns it into base58 encoding with checksum'''
+    # checksum is the first 4 bytes of the double_sha256
+    checksum = double_sha256(raw)[:4]
+    # encode_base58 on the raw and the checksum
+    base58 = encode_base58(raw + checksum)
+    # turn to string with base58.decode('ascii')
+    return base58.decode('ascii')
 
 
 def p2pkh_script(h160):

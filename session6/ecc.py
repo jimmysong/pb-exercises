@@ -83,6 +83,10 @@ class FieldElement:
         # use: self.__class__(num, prime)
         return self.__class__(num, prime)
 
+    def __rmul__(self, coefficient):
+        num = (self.num * coefficient) % self.prime
+        return self.__class__(num=num, prime=self.prime)
+
 
 class FieldElementTest(TestCase):
 
@@ -442,13 +446,8 @@ class S256Point(Point):
             prefix = b'\x6f'
         else:
             prefix = b'\x00'
-        raw = prefix + h160
-        # checksum is first 4 bytes of double_sha256 of raw
-        checksum = double_sha256(raw)[:4]
-        # encode_base58 the raw + checksum
-        address = encode_base58(raw + checksum)
-        # return as a string, you can use .decode('ascii') to do this.
-        return address.decode('ascii')
+        # return the encode_base58_checksum of the prefix and h160
+        return encode_base58_checksum(prefix + h160)
 
     def verify(self, z, sig):
         # remember sig.r and sig.s are the main things we're checking

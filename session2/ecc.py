@@ -81,6 +81,10 @@ class FieldElement:
         # use: self.__class__(num, prime)
         return self.__class__(num, prime)
 
+    def __rmul__(self, coefficient):
+        num = (self.num * coefficient) % self.prime
+        return self.__class__(num=num, prime=self.prime)
+
 
 class FieldElementTest(TestCase):
 
@@ -377,7 +381,7 @@ class S256Point(Point):
         if self.x is None:
             return 'S256Point(infinity)'
         else:
-            return 'S256Point({},{})'.format(self.x, self.y)
+            return 'S256Point({},{})'.format(self.x.num, self.y.num)
 
     def __rmul__(self, coefficient):
         # we want to mod by N to make this simple
@@ -397,9 +401,7 @@ class S256Point(Point):
         # get the sec
         # hash160 the sec
         # raw is hash 160 prepended w/ b'\x00' for mainnet, b'\x6f' for testnet
-        # checksum is first 4 bytes of double_sha256 of raw
-        # encode_base58 the raw + checksum
-        # return as a string, you can use .decode('ascii') to do this.
+        # return the encode_base58_checksum of the prefix and h160
         raise NotImplementedError
 
 

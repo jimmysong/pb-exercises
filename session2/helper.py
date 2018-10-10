@@ -63,6 +63,13 @@ def encode_base58(s):
     return prefix + bytes(result)
 
 
+def encode_base58_checksum(raw):
+    '''Takes bytes and turns it into base58 encoding with checksum'''
+    # checksum is the first 4 bytes of the double_sha256
+    # encode_base58 on the raw and the checksum
+    # turn to string with base58.decode('ascii')
+    raise NotImplementedError
+
 
 class HelperTest(TestCase):
 
@@ -87,3 +94,8 @@ class HelperTest(TestCase):
         n = 10011545
         want = b'\x99\xc3\x98\x00\x00\x00\x00\x00'
         self.assertEqual(int_to_little_endian(n, 8), want)
+
+    def test_encode_base58_checksum(self):
+        raw = bytes.fromhex('005dedfbf9ea599dd4e3ca6a80b333c472fd0b3f69')
+        want = '19ZewH8Kk1PDbSNdJ97FP4EiCjTRaZMZQA'
+        self.assertEqual(encode_base58_checksum(raw), want)

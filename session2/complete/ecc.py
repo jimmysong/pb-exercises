@@ -81,6 +81,10 @@ class FieldElement:
         # use: self.__class__(num, prime)
         return self.__class__(num, prime)
 
+    def __rmul__(self, coefficient):
+        num = (self.num * coefficient) % self.prime
+        return self.__class__(num=num, prime=self.prime)
+
 
 class FieldElementTest(TestCase):
 
@@ -284,7 +288,7 @@ class ECCTest(TestCase):
             # Point(x, y, a, b)
             x = FieldElement(x_raw, prime)
             y = FieldElement(y_raw, prime)
-            # check that creating the point results in a RuntimeError
+            # check that creating the point results in a ValueError
             # with self.assertRaises(ValueError):
             #     Point(x, y, a, b)
             with self.assertRaises(ValueError):
@@ -405,7 +409,7 @@ class S256Point(Point):
         if self.x is None:
             return 'S256Point(infinity)'
         else:
-            return 'S256Point({},{})'.format(self.x, self.y)
+            return 'S256Point({},{})'.format(self.x.num, self.y.num)
 
     def __rmul__(self, coefficient):
         # we want to mod by N to make this simple
@@ -437,13 +441,8 @@ class S256Point(Point):
             prefix = b'\x6f'
         else:
             prefix = b'\x00'
-        raw = prefix + h160
-        # checksum is first 4 bytes of double_sha256 of raw
-        checksum = double_sha256(raw)[:4]
-        # encode_base58 the raw + checksum
-        address = encode_base58(raw + checksum)
-        # return as a string, you can use .decode('ascii') to do this.
-        return address.decode('ascii')
+        # return the encode_base58_checksum of the prefix and h160
+        return encode_base58_checksum(prefix + h160)
 
 
 G = S256Point(

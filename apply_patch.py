@@ -3,8 +3,8 @@ from subprocess import call
 import sys
 
 
-filename = sys.argv[1]
-parts = filename.split('/')
+patch = sys.argv[1]
+parts = patch.split('/')
 start = int(parts[0][-1])
 print(start)
 
@@ -22,5 +22,9 @@ for session in range(start, 9):
     if skip:
         skip = False
     else:
-        call('patch -p1 session{}/{} < {}'.format(session, to_patch, filename), shell=True)
-    call('patch -p1 session{}/complete/{} < {}'.format(session, to_patch, filename), shell=True)
+        filename = 'session{}/{}'.format(session, to_patch)
+        call('git checkout {}'.format(filename), shell=True)
+        call('patch -p1 {} < {}'.format(filename, patch), shell=True)
+    filename = 'session{}/complete/{}'.format(session, to_patch)
+    call('git checkout {}'.format(filename), shell=True)
+    call('patch -p1 {} < {}'.format(filename, patch), shell=True)
