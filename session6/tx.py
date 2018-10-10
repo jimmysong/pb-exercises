@@ -17,6 +17,7 @@ from helper import (
 )
 from script import Script
 
+
 class Tx:
 
     def __init__(self, version, tx_ins, tx_outs, locktime, testnet=False):
@@ -191,7 +192,7 @@ class TxIn:
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
-        self.script_sig = Script.parse(script_sig)
+        self.script_sig = script_sig
         self.sequence = sequence
 
     def __repr__(self):
@@ -211,9 +212,8 @@ class TxIn:
         # prev_index is 4 bytes, little endian, interpret as int
         prev_index = little_endian_to_int(s.read(4))
         # script_sig is a variable field (length followed by the data)
-        # get the length by using read_varint(s)
-        script_sig_length = read_varint(s)
-        script_sig = s.read(script_sig_length)
+        # you can use Script.parse to get the actual script
+        script_sig = Script.parse(s)
         # sequence is 4 bytes, little-endian, interpret as int
         sequence = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
@@ -313,7 +313,7 @@ class TxOut:
 
     def __init__(self, amount, script_pubkey):
         self.amount = amount
-        self.script_pubkey = Script.parse(script_pubkey)
+        self.script_pubkey = script_pubkey
 
     def __repr__(self):
         return '{}:{}'.format(self.amount, self.script_pubkey.address())
@@ -327,9 +327,8 @@ class TxOut:
         # amount is 8 bytes, little endian, interpret as int
         amount = little_endian_to_int(s.read(8))
         # script_pubkey is a variable field (length followed by the data)
-        # get the length by using read_varint(s)
-        script_pubkey_length = read_varint(s)
-        script_pubkey = s.read(script_pubkey_length)
+        # you can use Script.parse to get the actual script
+        script_pubkey = Script.parse(s)
         # return an instance of the class (cls(...))
         return cls(amount, script_pubkey)
 
@@ -362,7 +361,7 @@ class TxTest(TestCase):
         want = bytes.fromhex('d1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81')
         self.assertEqual(tx.tx_ins[0].prev_tx, want)
         self.assertEqual(tx.tx_ins[0].prev_index, 0)
-        want = bytes.fromhex('483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a')
+        want = bytes.fromhex('6b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a')
         self.assertEqual(tx.tx_ins[0].script_sig.serialize(), want)
         self.assertEqual(tx.tx_ins[0].sequence, 0xfffffffe)
 
@@ -373,11 +372,11 @@ class TxTest(TestCase):
         self.assertEqual(len(tx.tx_outs), 2)
         want = 32454049
         self.assertEqual(tx.tx_outs[0].amount, want)
-        want = bytes.fromhex('76a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac')
+        want = bytes.fromhex('1976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac')
         self.assertEqual(tx.tx_outs[0].script_pubkey.serialize(), want)
         want = 10011545
         self.assertEqual(tx.tx_outs[1].amount, want)
-        want = bytes.fromhex('76a9141c4bc762dd5423e332166702cb75f40df79fea1288ac')
+        want = bytes.fromhex('1976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac')
         self.assertEqual(tx.tx_outs[1].script_pubkey.serialize(), want)
 
     def test_parse_locktime(self):

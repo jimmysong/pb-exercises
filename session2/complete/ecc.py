@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from helper import double_sha256, encode_base58, hash160
+from helper import encode_base58_checksum, hash160
 
 
 class FieldElement:
