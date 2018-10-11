@@ -1,10 +1,8 @@
 from io import BytesIO
 from unittest import TestCase
 
-import random
 import requests
 
-from ecc import PrivateKey, S256Point, Signature
 from helper import (
     double_sha256,
     encode_varint,
@@ -91,7 +89,7 @@ class Tx:
         # iterate through inputs
         for tx_in in self.tx_ins:
             # for each input get the value and add to input sum
-            input_sum += tx_in.value()
+            input_sum += tx_in.value(self.testnet)
         # iterate through outputs
         for tx_out in self.tx_outs:
             # for each output get the amount and add to output sum
@@ -173,49 +171,31 @@ class TxIn:
         result = self.prev_tx[::-1]
         # serialize prev_index, 4 bytes, little endian
         result += int_to_little_endian(self.prev_index, 4)
-        # get the scriptSig ready (use self.script_sig.serialize())
-        raw_script_sig = self.script_sig.serialize()
-        # encode_varint on the length of the scriptSig
-        result += encode_varint(len(raw_script_sig))
-        # add the scriptSig
-        result += raw_script_sig
+        # serialize the script_sig
+        result += self.script_sig.serialize()
         # serialize sequence, 4 bytes, little endian
         result += int_to_little_endian(self.sequence, 4)
         return result
 
-
     @classmethod
     def get_url(cls, testnet=False):
         if testnet:
-            return 'http://client:pleasedonthackme@tbtc.programmingblockchain.com:18332'
+            return 'http://tbtc.programmingblockchain.com:18332'
         else:
-            return 'http://pbclient:ecdsaisawesome@btc.programmingblockchain.com:8332'
+            return 'http://btc.programmingblockchain.com:8332'
 
     def fetch_tx(self, testnet=False):
         if self.prev_tx not in self.cache:
-            url = self.get_url(testnet)
-            data = {
-                'jsonrpc': '2.0',
-                'method': 'getrawtransaction',
-                'params': [self.prev_tx.hex(),],
-                'id': '0',
-            }
-            headers = {
-                'content-type': 'application/json',
-            }
-            response = requests.post(url, headers=headers, json=data)
-            try:
-                payload = response.json()
-            except:
-                raise RuntimeError('Got from server: {}'.format(response))
-            raw = bytes.fromhex(payload['result'])
-            stream = BytesIO(raw)
+            url = '{}/rest/tx/{}.hex'.format(
+                self.get_url(testnet), self.prev_tx.hex())
+            response = requests.get(url)
+            stream = BytesIO(bytes.fromhex(response.text.strip()))
             tx = Tx.parse(stream)
             self.cache[self.prev_tx] = tx
         return self.cache[self.prev_tx]
 
     def value(self, testnet=False):
-        '''Get the outpoint value by looking up the tx hash on libbitcoin server
+        '''Get the outpoint value by looking up the tx hash
         Returns the amount in satoshi
         '''
         # use self.fetch_tx to get the transaction
@@ -225,32 +205,32 @@ class TxIn:
         return tx.tx_outs[self.prev_index].amount
 
     def script_pubkey(self, testnet=False):
-        '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
-        Returns the binary scriptpubkey
+        '''Get the scriptPubKey by looking up the tx hash
+        Returns a Script object
         '''
         # use self.fetch_tx to get the transaction
         tx = self.fetch_tx(testnet=testnet)
         # get the output at self.prev_index
-        # return the script_pubkey property and serialize
+        # return the script_pubkey property
         return tx.tx_outs[self.prev_index].script_pubkey
 
-    def der_signature(self, index=0):
+    def der_signature(self):
         '''returns a DER format signature and hash_type if the script_sig
         has a signature'''
-        signature = self.script_sig.signature(index=index)
+        signature = self.script_sig.signature()
         # last byte is the hash_type, rest is the signature
         return signature[:-1]
 
-    def hash_type(self, index=0):
+    def hash_type(self):
         '''returns a DER format signature and hash_type if the script_sig
         has a signature'''
-        signature = self.script_sig.signature(index=index)
+        signature = self.script_sig.signature()
         # last byte is the hash_type, rest is the signature
         return signature[-1]
 
-    def sec_pubkey(self, index=0):
+    def sec_pubkey(self):
         '''returns the SEC format public if the script_sig has one'''
-        return self.script_sig.sec_pubkey(index=index)
+        return self.script_sig.sec_pubkey()
 
 
 class TxOut:
@@ -280,12 +260,8 @@ class TxOut:
         '''Returns the byte serialization of the transaction output'''
         # serialize amount, 8 bytes, little endian
         result = int_to_little_endian(self.amount, 8)
-        # get the scriptPubkey ready (use self.script_pubkey.serialize())
-        raw_script_pubkey = self.script_pubkey.serialize()
-        # encode_varint on the length of the scriptPubkey
-        result += encode_varint(len(raw_script_pubkey))
-        # add the scriptPubKey
-        result += raw_script_pubkey
+        # serialize the script_pubkey
+        result += self.script_pubkey.serialize()
         return result
 
 
@@ -373,7 +349,7 @@ class TxTest(TestCase):
             script_sig=b'',
             sequence=0,
         )
-        want = bytes.fromhex('76a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
+        want = bytes.fromhex('1976a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
         self.assertEqual(tx_in.script_pubkey().serialize(), want)
 
     def test_fee(self):

@@ -37,33 +37,33 @@ class Script:
         '''Some standard pay-to type scripts.'''
         if len(self.elements) == 0:
             return 'blank'
-        elif self.elements[0] == 0x76 \
-           and self.elements[1] == 0xa9 \
-           and type(self.elements[2]) == bytes \
-           and len(self.elements[2]) == 0x14 \
-           and self.elements[3] == 0x88 \
-           and self.elements[4] == 0xac:
+        elif self.items[0] == 0x76 \
+           and self.items[1] == 0xa9 \
+           and type(self.items[2]) == bytes \
+           and len(self.items[2]) == 0x14 \
+           and self.items[3] == 0x88 \
+           and self.items[4] == 0xac:
             # p2pkh:
             # OP_DUP OP_HASH160 <20-byte hash> <OP_EQUALVERIFY> <OP_CHECKSIG>
             return 'p2pkh'
-        elif self.elements[0] == 0xa9 \
-             and type(self.elements[1]) == bytes \
-             and len(self.elements[1]) == 0x14 \
-           and self.elements[-1] == 0x87:
+        elif self.items[0] == 0xa9 \
+             and type(self.items[1]) == bytes \
+             and len(self.items[1]) == 0x14 \
+           and self.items[-1] == 0x87:
             # p2sh:
             # OP_HASH160 <20-byte hash> <OP_EQUAL>
             return 'p2sh'
-        elif type(self.elements[0]) == bytes \
-             and len(self.elements[0]) in (0x47, 0x48, 0x49) \
-             and type(self.elements[1]) == bytes \
-             and len(self.elements[1]) in (0x21, 0x41):
+        elif type(self.items[0]) == bytes \
+             and len(self.items[0]) in (0x47, 0x48, 0x49) \
+             and type(self.items[1]) == bytes \
+             and len(self.items[1]) in (0x21, 0x41):
             # p2pkh scriptSig:
             # <signature> <pubkey>
             return 'p2pkh sig'
         elif len(self.elements) > 1 \
-             and type(self.elements[1]) == bytes \
-             and len(self.elements[1]) in (0x47, 0x48, 0x49) \
-             and self.elements[-1][-1] == 0xae:
+             and type(self.items[1]) == bytes \
+             and len(self.items[1]) in (0x47, 0x48, 0x49) \
+             and self.items[-1][-1] == 0xae:
             # HACK: assumes p2sh is a multisig
             # p2sh multisig:
             # <x> <sig1> ... <sigm> <redeemscript ends with OP_CHECKMULTISIG>
@@ -84,9 +84,9 @@ class Script:
         '''index isn't used for p2pkh, for p2sh, means one of m sigs'''
         sig_type = self.type()
         if sig_type == 'p2pkh sig':
-            return self.elements[0]
+            return self.items[0]
         elif sig_type == 'p2sh sig':
-            return self.elements[index+1]
+            return self.items[index+1]
         else:
             raise RuntimeError('script type needs to be p2pkh sig or p2sh sig')
 
@@ -94,11 +94,11 @@ class Script:
         '''index isn't used for p2pkh, for p2sh, means one of n pubkeys'''
         sig_type = self.type()
         if sig_type == 'p2pkh sig':
-            return self.elements[1]
+            return self.items[1]
         elif sig_type == 'p2sh sig':
             # HACK: assumes p2sh is a multisig
-            redeem_script = Script.parse(self.elements[-1])
-            return redeem_script.elements[index+1]
+            redeem_script = Script.parse(self.items[-1])
+            return redeem_script.items[index+1]
 
     def address(self, testnet=False):
         '''Returns the address corresponding to the script'''
@@ -111,6 +111,14 @@ class Script:
             # hash160 is the 2nd element
             # convert to p2sh address using h160_to_p2sh_address (remember testnet)
             raise NotImplementedError
+
+    def signature(self):
+        '''return the signature element assuming p2pkh script sig'''
+        return self.items[0]
+
+    def sec_pubkey(self):
+        '''return the pubkey element assuming p2pkh script sig'''
+        return self.items[1]
 
 
 class ScriptTest(TestCase):

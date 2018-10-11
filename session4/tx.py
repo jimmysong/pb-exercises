@@ -1,10 +1,8 @@
 from io import BytesIO
 from unittest import TestCase
 
-import random
 import requests
 
-from ecc import PrivateKey, S256Point, Signature
 from helper import (
     double_sha256,
     encode_varint,
@@ -140,45 +138,29 @@ class TxIn:
         '''Returns the byte serialization of the transaction input'''
         # serialize prev_tx, little endian
         # serialize prev_index, 4 bytes, little endian
-        # get the scriptSig ready (use self.script_sig.serialize())
-        # encode_varint on the length of the scriptSig
-        # add the scriptSig
+        # serialize the script_sig
         # serialize sequence, 4 bytes, little endian
         raise NotImplementedError
-
 
     @classmethod
     def get_url(cls, testnet=False):
         if testnet:
-            return 'http://client:pleasedonthackme@tbtc.programmingblockchain.com:18332'
+            return 'http://tbtc.programmingblockchain.com:18332'
         else:
-            return 'http://pbclient:ecdsaisawesome@btc.programmingblockchain.com:8332'
+            return 'http://btc.programmingblockchain.com:8332'
 
     def fetch_tx(self, testnet=False):
         if self.prev_tx not in self.cache:
-            url = self.get_url(testnet)
-            data = {
-                'jsonrpc': '2.0',
-                'method': 'getrawtransaction',
-                'params': [self.prev_tx.hex(),],
-                'id': '0',
-            }
-            headers = {
-                'content-type': 'application/json',
-            }
-            response = requests.post(url, headers=headers, json=data)
-            try:
-                payload = response.json()
-            except:
-                raise RuntimeError('Got from server: {}'.format(response))
-            raw = bytes.fromhex(payload['result'])
-            stream = BytesIO(raw)
+            url = '{}/rest/tx/{}.hex'.format(
+                self.get_url(testnet), self.prev_tx.hex())
+            response = requests.get(url)
+            stream = BytesIO(bytes.fromhex(response.text.strip()))
             tx = Tx.parse(stream)
             self.cache[self.prev_tx] = tx
         return self.cache[self.prev_tx]
 
     def value(self, testnet=False):
-        '''Get the outpoint value by looking up the tx hash on libbitcoin server
+        '''Get the outpoint value by looking up the tx hash
         Returns the amount in satoshi
         '''
         # use self.fetch_tx to get the transaction
@@ -187,8 +169,8 @@ class TxIn:
         raise NotImplementedError
 
     def script_pubkey(self, testnet=False):
-        '''Get the scriptPubKey by looking up the tx hash on libbitcoin server
-        Returns the binary scriptpubkey
+        '''Get the scriptPubKey by looking up the tx hash
+        Returns a Script object
         '''
         # use self.fetch_tx to get the transaction
         # get the output at self.prev_index
@@ -240,9 +222,7 @@ class TxOut:
     def serialize(self):
         '''Returns the byte serialization of the transaction output'''
         # serialize amount, 8 bytes, little endian
-        # get the scriptPubkey ready (use self.script_pubkey.serialize())
-        # encode_varint on the length of the scriptPubkey
-        # add the scriptPubKey
+        # serialize the script_pubkey
         raise NotImplementedError
 
 

@@ -21,55 +21,42 @@ class Script:
     @classmethod
     def parse(cls, s):
         # get the length of the entire field
-        length = read_varint(s)
         # initialize the items array
-        items = []
         # initialize the number of bytes we've read to 0
-        count = 0
         # loop until we've read length bytes
-        while count < length:
             # get the current byte
-            current = s.read(1)
             # increment the bytes we've read
-            count += 1
             # convert the current byte to an integer
-            current_byte = current[0]
             # if the current byte is between 1 and 75 inclusive
-            if current_byte >= 1 and current_byte <= 75:
                 # we have an item set n to be the current byte
-                n = current_byte
                 # add the next n bytes as an item
-                items.append(s.read(n))
                 # increase the count by n
-                count += n
-            else:
+           # else
                 # we have an op code. set the current byte to op_code
-                op_code = current_byte
                 # add the op_code to the list of items
-                items.append(op_code)
-        return cls(items)
+        raise NotImplementedError
 
     def serialize(self):
         # initialize what we'll send back
-        result = b''
         # go through each item
-        for item in self.items:
             # if the item is an integer, it's an op code
-            if type(item) == int:
                 # turn the item into a single byte integer using int_to_little_endian
-                result += int_to_little_endian(item, 1)
-            else:
+            # else
                 # otherwise, this is an element
                 # get the length in bytes
-                length = len(item)
                 # turn the length into a single byte integer using int_to_little_endian
-                prefix = int_to_little_endian(length, 1)
                 # append to the result both the length and the item
-                result += prefix + item
         # get the length of the whole thing
-        total = len(result)
         # encode_varint the total length of the result and prepend
-        return encode_varint(total) + result
+        raise NotImplementedError
+
+    def signature(self):
+        '''return the signature element assuming p2pkh script sig'''
+        return self.items[0]
+
+    def sec_pubkey(self):
+        '''return the pubkey element assuming p2pkh script sig'''
+        return self.items[1]
 
 
 class ScriptTest(TestCase):

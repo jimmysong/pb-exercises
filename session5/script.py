@@ -71,6 +71,14 @@ class Script:
         # encode_varint the total length of the result and prepend
         return encode_varint(total) + result
 
+    def signature(self):
+        '''return the signature element assuming p2pkh script sig'''
+        return self.items[0]
+
+    def sec_pubkey(self):
+        '''return the pubkey element assuming p2pkh script sig'''
+        return self.items[1]
+
 
 class ScriptTest(TestCase):
 

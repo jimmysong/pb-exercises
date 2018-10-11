@@ -1,4 +1,3 @@
-from subprocess import check_output
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
@@ -65,6 +64,7 @@ def encode_base58(s):
         result.insert(0, BASE58_ALPHABET[mod])
 
     return prefix + bytes(result)
+
 
 def encode_base58_checksum(raw):
     '''Takes bytes and turns it into base58 encoding with checksum'''
