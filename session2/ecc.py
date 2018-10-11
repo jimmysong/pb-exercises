@@ -281,7 +281,7 @@ class ECCTest(TestCase):
             # x = FieldElement(x_raw, prime)
             # y = FieldElement(y_raw, prime)
             # Point(x, y, a, b)
-            # check that creating the point results in a RuntimeError
+            # check that creating the point results in a ValueError
             # with self.assertRaises(ValueError):
             #     Point(x, y, a, b)
         raise NotImplementedError

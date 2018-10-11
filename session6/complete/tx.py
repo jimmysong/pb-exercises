@@ -32,15 +32,19 @@ class Tx:
         tx_outs = ''
         for tx_out in self.tx_outs:
             tx_outs += tx_out.__repr__() + '\n'
-        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+        return 'tx: {}\nversion: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+            self.hash().hex(),
             self.version,
             tx_ins,
             tx_outs,
             self.locktime,
         )
 
+    def hash(self):
+        return double_sha256(self.serialize())[::-1]
+
     @classmethod
-    def parse(cls, s):
+    def parse(cls, s, testnet=False):
         '''Takes a byte stream and parses the transaction at the start
         return a Tx object
         '''
@@ -62,7 +66,7 @@ class Tx:
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
-        return cls(version, inputs, outputs, locktime)
+        return cls(version, inputs, outputs, locktime, testnet=testnet)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction'''
@@ -252,7 +256,11 @@ class TxIn:
             url = '{}/rest/tx/{}.hex'.format(
                 self.get_url(testnet), self.prev_tx.hex())
             response = requests.get(url)
-            stream = BytesIO(bytes.fromhex(response.text.strip()))
+            raw = bytes.fromhex(response.text.strip())
+            if raw[4] == 0:
+                 # this is segwit, so convert to non-segwit
+                raw = raw[:4] + raw[6:]
+            stream = BytesIO(raw)
             tx = Tx.parse(stream)
             self.cache[self.prev_tx] = tx
         return self.cache[self.prev_tx]

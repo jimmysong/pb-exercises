@@ -18,7 +18,7 @@ class BloomFilter:
         '''Add an item to the filter'''
         # iterate self.function_count number of times
         for i in range(self.function_count):
-            # BIP0037 spec seed is i*BIP37_CONSTANT + tweak
+            # BIP0037 spec seed is i*BIP37_CONSTANT + self.tweak
             seed = i * BIP37_CONSTANT + self.tweak
             # get the murmur3 hash given that seed
             h = murmur3(item, seed=seed)
@@ -26,7 +26,7 @@ class BloomFilter:
             bit = h % (self.size * 8)
             # set the bit field at bit to be 1
             self.bit_field[bit] = 1
-            
+
     def filter_bytes(self):
         return bit_field_to_bytes(self.bit_field)
 
@@ -44,9 +44,9 @@ class BloomFilter:
         payload += int_to_little_endian(flag, 1)
         return payload
 
-    
+
 class BloomFilterTest(TestCase):
-    
+
     def test_add(self):
         bf = BloomFilter(10, 5, 99)
         item = b'Hello World'
@@ -57,7 +57,7 @@ class BloomFilterTest(TestCase):
         bf.add(item)
         expected = '4000600a080000010940'
         self.assertEqual(bf.filter_bytes().hex(), expected)
-        
+
     def test_filterload(self):
         bf = BloomFilter(10, 5, 99)
         item = b'Hello World'
@@ -66,4 +66,3 @@ class BloomFilterTest(TestCase):
         bf.add(item)
         expected = '0a4000600a080000010940050000006300000001'
         self.assertEqual(bf.filterload().hex(), expected)
-

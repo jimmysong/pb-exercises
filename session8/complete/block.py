@@ -5,10 +5,12 @@ from helper import (
     double_sha256,
     int_to_little_endian,
     little_endian_to_int,
-    merkle_parent,
-    merkle_parent_level,
     merkle_root,
 )
+
+
+GENESIS_BLOCK_HASH = bytes.fromhex('000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f')
+TESTNET_GENESIS_BLOCK_HASH = bytes.fromhex('000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943')
 
 
 class Block:
@@ -93,14 +95,14 @@ class Block:
         # the first three bytes are the coefficient in little endian
         coefficient = little_endian_to_int(self.bits[:-1])
         # the formula is:
-        # coefficient * 2**(8*(exponent-3))
-        return coefficient * 2**(8*(exponent-3))
+        # coefficient * 256**(exponent-3)
+        return coefficient * 256**(exponent - 3)
 
     def difficulty(self):
         '''Returns the block difficulty based on the bits'''
         # note difficulty is (target of lowest difficulty) / (self's target)
         # lowest difficulty has bits that equal 0xffff001d
-        lowest = 0xffff * 2**(8*(0x1d-3))
+        lowest = 0xffff * 256**(0x1d - 3)
         return lowest / self.target()
 
     def check_pow(self):
@@ -121,7 +123,7 @@ class Block:
         # get the Merkle Root
         root = merkle_root(hashes)
         # reverse the Merkle Root
-        # return whether self.merkle root is the same as 
+        # return whether self.merkle root is the same as
         # the reverse of the calculated merkle root
         return root[::-1] == self.merkle_root
 

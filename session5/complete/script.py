@@ -1,12 +1,16 @@
 from io import BytesIO
 from unittest import TestCase
 
-from helper import encode_varint, int_to_little_endian, read_varint
+from helper import (
+    encode_varint,
+    int_to_little_endian,
+    read_varint,
+)
 
 
 def p2pkh_script(h160):
     '''Takes a hash160 and returns the scriptPubKey'''
-    return Script([b'\x76', b'\xa9', h160, b'\x88', b'\xac'])
+    return Script([0x76, 0xa9, h160, 0x88, 0xac])
 
 
 class Script:

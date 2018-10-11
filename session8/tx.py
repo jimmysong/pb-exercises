@@ -32,14 +32,14 @@ class Tx:
         tx_outs = ''
         for tx_out in self.tx_outs:
             tx_outs += tx_out.__repr__() + '\n'
-        return 'tx:{}\nversion: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
+        return 'tx: {}\nversion: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
             self.hash().hex(),
             self.version,
             tx_ins,
             tx_outs,
             self.locktime,
         )
-    
+
     def hash(self):
         return double_sha256(self.serialize())[::-1]
 
@@ -245,6 +245,12 @@ class TxIn:
         return result
 
     @classmethod
+    def set_cache(cls, tx_id, raw):
+        stream = BytesIO(raw)
+        tx = Tx.parse(stream)
+        cls.cache[tx_id] = tx
+
+    @classmethod
     def get_url(cls, testnet=False):
         if testnet:
             return 'http://tbtc.programmingblockchain.com:18332'
@@ -256,7 +262,11 @@ class TxIn:
             url = '{}/rest/tx/{}.hex'.format(
                 self.get_url(testnet), self.prev_tx.hex())
             response = requests.get(url)
-            stream = BytesIO(bytes.fromhex(response.text.strip()))
+            raw = bytes.fromhex(response.text.strip())
+            if raw[4] == 0:
+                 # this is segwit, so convert to non-segwit
+                raw = raw[:4] + raw[6:]
+            stream = BytesIO(raw)
             tx = Tx.parse(stream)
             self.cache[self.prev_tx] = tx
         return self.cache[self.prev_tx]

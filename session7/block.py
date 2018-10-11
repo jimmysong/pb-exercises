@@ -5,8 +5,6 @@ from helper import (
     double_sha256,
     int_to_little_endian,
     little_endian_to_int,
-    merkle_parent,
-    merkle_parent_level,
     merkle_root,
 )
 
@@ -97,14 +95,14 @@ class Block:
         # the first three bytes are the coefficient in little endian
         coefficient = little_endian_to_int(self.bits[:-1])
         # the formula is:
-        # coefficient * 2**(8*(exponent-3))
-        return coefficient * 2**(8*(exponent-3))
+        # coefficient * 256**(exponent-3)
+        return coefficient * 256**(exponent - 3)
 
     def difficulty(self):
         '''Returns the block difficulty based on the bits'''
         # note difficulty is (target of lowest difficulty) / (self's target)
         # lowest difficulty has bits that equal 0xffff001d
-        lowest = 0xffff * 2**(8*(0x1d-3))
+        lowest = 0xffff * 256**(0x1d - 3)
         return lowest / self.target()
 
     def check_pow(self):
@@ -123,7 +121,7 @@ class Block:
         # reverse all the transaction hashes (self.tx_hashes)
         # get the Merkle Root
         # reverse the Merkle Root
-        # return whether self.merkle root is the same as 
+        # return whether self.merkle root is the same as
         # the reverse of the calculated merkle root
         raise NotImplementedError
 

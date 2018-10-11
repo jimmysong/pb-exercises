@@ -15,6 +15,11 @@ from helper import (
 )
 
 
+TX_DATA_TYPE = 1
+BLOCK_DATA_TYPE = 2
+FILTERED_BLOCK_DATA_TYPE = 3
+COMPACT_BLOCK_DATA_TYPE = 4
+
 NETWORK_MAGIC = b'\xf9\xbe\xb4\xd9'
 TESTNET_NETWORK_MAGIC = b'\x0b\x11\x09\x07'
 
@@ -177,7 +182,7 @@ class VersionMessage:
 class VersionMessageTest(TestCase):
 
     def test_serialize(self):
-        v = VersionMessage(timestamp=0, nonce=b'\x00'*8)
+        v = VersionMessage(timestamp=0, nonce=b'\x00' * 8)
         self.assertEqual(v.serialize().hex(), '7f11010000000000000000000000000000000000000000000000000000000000000000000000ffff000000008d20000000000000000000000000000000000000ffff000000008d2000000000000000001b2f70726f6772616d6d696e67626c6f636b636861696e3a302e312f0000000001')
 
 
@@ -215,6 +220,7 @@ class GetHeadersMessageTest(TestCase):
         gh = GetHeadersMessage(start_block=bytes.fromhex(block_hex))
         self.assertEqual(gh.serialize().hex(), '7f11010001a35bd0ca2f4a88c4eda6d213e2378a5758dfcd6af437120000000000000000000000000000000000000000000000000000000000000000000000000000000000')
 
+
 class HeadersMessage:
     command = b'headers'
 
@@ -251,6 +257,38 @@ class HeadersMessageTest(TestCase):
             self.assertEqual(b.__class__, Block)
 
 
+class GetDataMessage:
+    command = b'getdata'
+
+    def __init__(self):
+        self.data = []
+
+    def add_data(self, data_type, identifier):
+        self.data.append((data_type, identifier))
+
+    def serialize(self):
+        # start with the number of items as a varint
+        result = encode_varint(len(self.data))
+        for data_type, identifier in self.data:
+            # data type is 4 bytes little endian
+            result += int_to_little_endian(data_type, 4)
+            # identifier needs to be in little endian
+            result += identifier[::-1]
+        return result
+
+
+class GetDataMessageTest(TestCase):
+
+    def test_serialize(self):
+        hex_msg = '020300000030eb2540c41025690160a1014c577061596e32e426b712c7ca00000000000000030000001049847939585b0652fba793661c361223446b6fc41089b8be00000000000000'
+        get_data = GetDataMessage()
+        block1 = bytes.fromhex('00000000000000cac712b726e4326e596170574c01a16001692510c44025eb30')
+        get_data.add_data(FILTERED_BLOCK_DATA_TYPE, block1)
+        block2 = bytes.fromhex('00000000000000beb88910c46f6b442312361c6693a7fb52065b583979844910')
+        get_data.add_data(FILTERED_BLOCK_DATA_TYPE, block2)
+        self.assertEqual(get_data.serialize().hex(), hex_msg)
+
+
 class SimpleNode:
 
     def __init__(self, host, port=None, testnet=False, logging=False):
@@ -259,7 +297,7 @@ class SimpleNode:
                 port = 18333
             else:
                 port = 8333
-        self.testnet= testnet
+        self.testnet = testnet
         self.logging = logging
         # connect to socket
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

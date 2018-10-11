@@ -1,7 +1,6 @@
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
-import math
 
 
 SIGHASH_ALL = 1
@@ -144,6 +143,7 @@ def merkle_parent(hash1, hash2):
     '''Takes the binary hashes and calculates the double-sha256'''
     # return the double-sha256 of hash1 + hash2
     raise NotImplementedError
+
 
 def merkle_parent_level(hashes):
     '''Takes a list of binary hashes and returns a list that's half

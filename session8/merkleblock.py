@@ -5,14 +5,9 @@ from unittest import TestCase
 
 from helper import (
     bytes_to_bit_field,
-    double_sha256,
-    int_to_little_endian,
     little_endian_to_int,
     merkle_parent,
-    merkle_parent_level,
-    merkle_root,
     read_varint,
-    encode_varint,
 )
 
 
@@ -25,7 +20,7 @@ class MerkleTree:
         # initialize the nodes property to hold the actual tree
         self.nodes = []
         # loop over the number of levels (max_depth+1)
-        for depth in range(self.max_depth+1):
+        for depth in range(self.max_depth + 1):
             # the number of items at this depth is
             # math.ceil(self.total / 2**(self.max_depth - depth))
             num_items = math.ceil(self.total / 2**(self.max_depth - depth))
@@ -36,7 +31,7 @@ class MerkleTree:
         # set the pointer to the root (depth=0, index=0)
         self.current_depth = 0
         self.current_index = 0
-        
+
     def __repr__(self):
         result = ''
         for depth, level in enumerate(self.nodes):
@@ -53,12 +48,12 @@ class MerkleTree:
         # reduce depth by 1 and halve the index
         self.current_depth -= 1
         self.current_index //= 2
-        
+
     def left(self):
         # increase depth by 1 and double the index
         self.current_depth += 1
         self.current_index *= 2
-        
+
     def right(self):
         # increase depth by 1 and double the index + 1
         self.current_depth += 1
@@ -72,19 +67,19 @@ class MerkleTree:
 
     def get_current_node(self):
         return self.nodes[self.current_depth][self.current_index]
-    
+
     def get_left_node(self):
-        return self.nodes[self.current_depth+1][self.current_index*2]        
+        return self.nodes[self.current_depth + 1][self.current_index * 2]
 
     def get_right_node(self):
-        return self.nodes[self.current_depth+1][self.current_index*2+1]
-    
+        return self.nodes[self.current_depth + 1][self.current_index * 2 + 1]
+
     def is_leaf(self):
         return self.current_depth == self.max_depth
 
     def right_exists(self):
         return len(self.nodes[self.current_depth + 1]) > self.current_index * 2 + 1
-    
+
     def populate_tree(self, flag_bits, hashes):
         # populate until we have the root
         while self.root() is None:
@@ -143,10 +138,10 @@ class MerkleTree:
         for flag_bit in flag_bits:
             if flag_bit != 0:
                 raise RuntimeError('flag bits not all consumed')
-                
+
 
 class MerkleTreeTest(TestCase):
-    
+
     def test_init(self):
         tree = MerkleTree(9)
         self.assertEqual(len(tree.nodes[0]), 1)
@@ -154,7 +149,7 @@ class MerkleTreeTest(TestCase):
         self.assertEqual(len(tree.nodes[2]), 3)
         self.assertEqual(len(tree.nodes[3]), 5)
         self.assertEqual(len(tree.nodes[4]), 9)
-        
+
     def test_populate_tree_1(self):
         hex_hashes = [
             "9745f7173ef14ee4155722d1cbf13304339fd00d900b759c6f9d58579b5765fb",
@@ -213,28 +208,43 @@ class MerkleBlock:
         for h in self.hashes:
             result += '\t{}\n'.format(h.hex())
         result += '{}'.format(self.flags.hex())
-        
+
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses a merkle block. Returns a Merkle Block object'''
         # s.read(n) will read n bytes from the stream
         # version - 4 bytes, little endian, interpret as int
+        version = little_endian_to_int(s.read(4))
         # prev_block - 32 bytes, little endian (use [::-1] to reverse)
+        prev_block = s.read(32)[::-1]
         # merkle_root - 32 bytes, little endian (use [::-1] to reverse)
+        merkle_root = s.read(32)[::-1]
         # timestamp - 4 bytes, little endian, interpret as int
+        timestamp = little_endian_to_int(s.read(4))
         # bits - 4 bytes
+        bits = s.read(4)
         # nonce - 4 bytes
+        nonce = s.read(4)
         # total number of transactions (4 bytes, little endian)
+        total = little_endian_to_int(s.read(4))
         # number of hashes is a varint
+        num_txs = read_varint(s)
         # initialize the hashes array
+        hashes = []
         # loop through the number of hashes times
+        for _ in range(num_txs):
             # each hash is 32 bytes, little endian
+            hashes.append(s.read(32)[::-1])
         # get the length of the flags field as a varint
+        flags_length = read_varint(s)
         # read the flags field
+        flags = s.read(flags_length)
         # initialize class
-        raise NotImplementedError
-        
+        return cls(version, prev_block, merkle_root, timestamp, bits, nonce,
+                   total, hashes, flags)
+
     def is_valid(self):
+        '''Verifies whether the merkle tree information validates to the merkle root'''
         # convert the flags field to a bit field using bytes_to_bit_field
         # reverse the hashes to get our list of hashes for merkle root calculation
         # initialize the merkle tree
