@@ -50,7 +50,7 @@ class TxIn:
     def __init__(self, prev_tx, prev_index, script_sig, sequence):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
-        self.script_sig = Script.parse(script_sig)
+        self.script_sig = script_sig
         self.sequence = sequence
 
     def __repr__(self):
@@ -68,7 +68,7 @@ class TxIn:
         # prev_tx is 32 bytes, little endian
         # prev_index is 4 bytes, little endian, interpret as int
         # script_sig is a variable field (length followed by the data)
-        # get the length by using read_varint(s)
+        # you can use Script.parse to get the actual script
         # sequence is 4 bytes, little-endian, interpret as int
         # return an instance of the class (cls(...))
         raise NotImplementedError
@@ -78,7 +78,7 @@ class TxOut:
 
     def __init__(self, amount, script_pubkey):
         self.amount = amount
-        self.script_pubkey = Script.parse(script_pubkey)
+        self.script_pubkey = script_pubkey
 
     def __repr__(self):
         return '{}:{}'.format(self.amount, self.script_pubkey)
@@ -91,7 +91,7 @@ class TxOut:
         # s.read(n) will return n bytes
         # amount is 8 bytes, little endian, interpret as int
         # script_pubkey is a variable field (length followed by the data)
-        # get the length by using read_varint(s)
+        # you can use Script.parse to get the actual script
         # return an instance of the class (cls(...))
         raise NotImplementedError
 

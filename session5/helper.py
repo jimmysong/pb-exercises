@@ -1,4 +1,3 @@
-from subprocess import check_output
 from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
@@ -66,6 +65,7 @@ def encode_base58(s):
 
     return prefix + bytes(result)
 
+
 def encode_base58_checksum(raw):
     '''Takes bytes and turns it into base58 encoding with checksum'''
     # checksum is the first 4 bytes of the double_sha256
@@ -74,11 +74,6 @@ def encode_base58_checksum(raw):
     base58 = encode_base58(raw + checksum)
     # turn to string with base58.decode('ascii')
     return base58.decode('ascii')
-
-
-def p2pkh_script(h160):
-    '''Takes a hash160 and returns the scriptPubKey'''
-    return b'\x76\xa9\x14' + h160 + b'\x88\xac'
 
 
 def decode_base58(s):
@@ -127,14 +122,14 @@ def encode_varint(i):
 def h160_to_p2pkh_address(h160, testnet=False):
     '''Takes a byte sequence hash160 and returns a p2pkh address string'''
     # p2pkh has a prefix of b'\x00' for mainnet, b'\x6f' for testnet
-    # return the encode_base58_checksum the prefix and h160 
+    # return the encode_base58_checksum the prefix and h160
     raise NotImplementedError
 
 
 def h160_to_p2sh_address(h160, testnet=False):
     '''Takes a byte sequence hash160 and returns a p2sh address string'''
     # p2sh has a prefix of b'\x05' for mainnet, b'\xc4 for testnet
-    # return the encode_base58_checksum the prefix and h160     
+    # return the encode_base58_checksum the prefix and h160
     raise NotImplementedError
 
 

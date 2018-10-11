@@ -3,17 +3,17 @@ from unittest import TestCase
 
 import requests
 
+from ecc import PrivateKey, S256Point, Signature
 from helper import (
     decode_base58,
     double_sha256,
     encode_varint,
     int_to_little_endian,
     little_endian_to_int,
-    p2pkh_script,
     read_varint,
     SIGHASH_ALL,
 )
-from script import Script
+from script import p2pkh_script, Script
 
 
 class Tx:
@@ -110,7 +110,7 @@ class Tx:
             alt_tx_ins.append(TxIn(
                 prev_tx=tx_in.prev_tx,
                 prev_index=tx_in.prev_index,
-                script_sig=b'',
+                script_sig=Script([]),
                 sequence=tx_in.sequence,
             ))
         # grab the input at the input_index
@@ -248,23 +248,23 @@ class TxIn:
         # return the script_pubkey property
         return tx.tx_outs[self.prev_index].script_pubkey
 
-    def der_signature(self, index=0):
+    def der_signature(self):
         '''returns a DER format signature and hash_type if the script_sig
         has a signature'''
-        signature = self.script_sig.signature(index=index)
+        signature = self.script_sig.signature()
         # last byte is the hash_type, rest is the signature
         return signature[:-1]
 
-    def hash_type(self, index=0):
+    def hash_type(self):
         '''returns a DER format signature and hash_type if the script_sig
         has a signature'''
-        signature = self.script_sig.signature(index=index)
+        signature = self.script_sig.signature()
         # last byte is the hash_type, rest is the signature
         return signature[-1]
 
-    def sec_pubkey(self, index=0):
+    def sec_pubkey(self):
         '''returns the SEC format public if the script_sig has one'''
-        return self.script_sig.sec_pubkey(index=index)
+        return self.script_sig.sec_pubkey()
 
 
 class TxOut:
@@ -369,7 +369,7 @@ class TxTest(TestCase):
         tx_in = TxIn(
             prev_tx=bytes.fromhex(tx_hash),
             prev_index=index,
-            script_sig=b'',
+            script_sig=Script([]),
             sequence=0,
         )
         self.assertEqual(tx_in.value(), want)
@@ -380,10 +380,10 @@ class TxTest(TestCase):
         tx_in = TxIn(
             prev_tx=bytes.fromhex(tx_hash),
             prev_index=index,
-            script_sig=b'',
+            script_sig=Script([]),
             sequence=0,
         )
-        want = bytes.fromhex('76a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
+        want = bytes.fromhex('1976a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
         self.assertEqual(tx_in.script_pubkey().serialize(), want)
 
     def test_fee(self):
@@ -417,14 +417,14 @@ class TxTest(TestCase):
         tx_ins.append(TxIn(
             prev_tx=prev_tx,
             prev_index=0,
-            script_sig = b'',
-            sequence = 0xffffffff,
+            script_sig=Script([]),
+            sequence=0xffffffff,
         ))
         tx_outs = []
         h160 = decode_base58('mzx5YhAH9kNHtcN481u6WkjeHjYtVeKVh2')
-        tx_outs.append(TxOut(amount=int(0.99*100000000), script_pubkey=p2pkh_script(h160)))
+        tx_outs.append(TxOut(amount=int(0.99 * 100000000), script_pubkey=p2pkh_script(h160)))
         h160 = decode_base58('mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf')
-        tx_outs.append(TxOut(amount=int(0.1*100000000), script_pubkey=p2pkh_script(h160)))
+        tx_outs.append(TxOut(amount=int(0.1 * 100000000), script_pubkey=p2pkh_script(h160)))
 
         tx = Tx(
             version=1,

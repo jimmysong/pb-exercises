@@ -177,23 +177,23 @@ class TxIn:
         # return the script_pubkey property
         raise NotImplementedError
 
-    def der_signature(self, index=0):
+    def der_signature(self):
         '''returns a DER format signature and hash_type if the script_sig
         has a signature'''
-        signature = self.script_sig.signature(index=index)
+        signature = self.script_sig.signature()
         # last byte is the hash_type, rest is the signature
         return signature[:-1]
 
-    def hash_type(self, index=0):
+    def hash_type(self):
         '''returns a DER format signature and hash_type if the script_sig
         has a signature'''
-        signature = self.script_sig.signature(index=index)
+        signature = self.script_sig.signature()
         # last byte is the hash_type, rest is the signature
         return signature[-1]
 
-    def sec_pubkey(self, index=0):
+    def sec_pubkey(self):
         '''returns the SEC format public if the script_sig has one'''
-        return self.script_sig.sec_pubkey(index=index)
+        return self.script_sig.sec_pubkey()
 
 
 class TxOut:
@@ -296,7 +296,7 @@ class TxTest(TestCase):
         tx_in = TxIn(
             prev_tx=bytes.fromhex(tx_hash),
             prev_index=index,
-            script_sig=b'',
+            script_sig=Script([]),
             sequence=0,
         )
         self.assertEqual(tx_in.value(), want)
@@ -307,10 +307,10 @@ class TxTest(TestCase):
         tx_in = TxIn(
             prev_tx=bytes.fromhex(tx_hash),
             prev_index=index,
-            script_sig=b'',
+            script_sig=Script([]),
             sequence=0,
         )
-        want = bytes.fromhex('76a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
+        want = bytes.fromhex('1976a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
         self.assertEqual(tx_in.script_pubkey().serialize(), want)
 
     def test_fee(self):

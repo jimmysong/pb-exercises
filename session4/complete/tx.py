@@ -108,7 +108,7 @@ class Tx:
             alt_tx_ins.append(TxIn(
                 prev_tx=tx_in.prev_tx,
                 prev_index=tx_in.prev_index,
-                script_sig=b'',
+                script_sig=Script([]),
                 sequence=tx_in.sequence,
             ))
         # grab the input at the input_index
@@ -335,7 +335,7 @@ class TxTest(TestCase):
         tx_in = TxIn(
             prev_tx=bytes.fromhex(tx_hash),
             prev_index=index,
-            script_sig=b'',
+            script_sig=Script([]),
             sequence=0,
         )
         self.assertEqual(tx_in.value(), want)
@@ -346,7 +346,7 @@ class TxTest(TestCase):
         tx_in = TxIn(
             prev_tx=bytes.fromhex(tx_hash),
             prev_index=index,
-            script_sig=b'',
+            script_sig=Script([]),
             sequence=0,
         )
         want = bytes.fromhex('1976a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')

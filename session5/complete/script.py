@@ -4,6 +4,11 @@ from unittest import TestCase
 from helper import encode_varint, int_to_little_endian, read_varint
 
 
+def p2pkh_script(h160):
+    '''Takes a hash160 and returns the scriptPubKey'''
+    return Script([b'\x76', b'\xa9', h160, b'\x88', b'\xac'])
+
+
 class Script:
 
     def __init__(self, items):
