@@ -7,7 +7,7 @@ from unittest import TestCase
 
 from block import Block
 from helper import (
-    double_sha256,
+    hash256,
     encode_varint,
     int_to_little_endian,
     little_endian_to_int,
@@ -56,7 +56,7 @@ class NetworkEnvelope:
         # command 12 bytes
         # strip the trailing 0's
         # payload length 4 bytes, little endian
-        # checksum 4 bytes, first four of double-sha256 of payload
+        # checksum 4 bytes, first four of hash256 of payload
         # payload is of length payload_length
         # verify checksum
         raise NotImplementedError
@@ -67,7 +67,7 @@ class NetworkEnvelope:
         # command 12 bytes
         # fill with 0's
         # payload length 4 bytes, little endian
-        # checksum 4 bytes, first four of double-sha256 of payload
+        # checksum 4 bytes, first four of hash256 of payload
         # payload
         raise NotImplementedError
 
@@ -214,6 +214,7 @@ class HeadersMessageTest(TestCase):
         self.assertEqual(len(headers.blocks), 2)
         for b in headers.blocks:
             self.assertEqual(b.__class__, Block)
+
 
 class GetDataMessage:
     command = b'getdata'

@@ -409,7 +409,7 @@ class S256Point(Point):
         if self.x is None:
             return 'S256Point(infinity)'
         else:
-            return 'S256Point({},{})'.format(self.x.num, self.y.num)
+            return 'S256Point({},{})'.format(hex(self.x.num), hex(self.y.num))
 
     def __rmul__(self, coefficient):
         # we want to mod by N to make this simple

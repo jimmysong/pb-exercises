@@ -9,7 +9,7 @@ SIGHASH_SINGLE = 3
 BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
-def run_test(test):
+def run(test):
     suite = TestSuite()
     suite.addTest(test)
     TextTestRunner().run(suite)
@@ -43,7 +43,7 @@ def hash160(s):
     return hashlib.new('ripemd160', hashlib.sha256(s).digest()).digest()
 
 
-def double_sha256(s):
+def hash256(s):
     return hashlib.sha256(hashlib.sha256(s).digest()).digest()
 
 
@@ -68,8 +68,8 @@ def encode_base58(s):
 
 def encode_base58_checksum(raw):
     '''Takes bytes and turns it into base58 encoding with checksum'''
-    # checksum is the first 4 bytes of the double_sha256
-    checksum = double_sha256(raw)[:4]
+    # checksum is the first 4 bytes of the hash256
+    checksum = hash256(raw)[:4]
     # encode_base58 on the raw and the checksum
     base58 = encode_base58(raw + checksum)
     # turn to string with base58.decode('ascii')
@@ -83,8 +83,8 @@ def decode_base58(s):
         num += BASE58_ALPHABET.index(c)
     combined = num.to_bytes(25, byteorder='big')
     checksum = combined[-4:]
-    if double_sha256(combined[:-4])[:4] != checksum:
-        raise RuntimeError('bad address: {} {}'.format(checksum, double_sha256(combined)[:4]))
+    if hash256(combined[:-4])[:4] != checksum:
+        raise RuntimeError('bad address: {} {}'.format(checksum, hash256(combined)[:4]))
     return combined[1:-4]
 
 
@@ -126,6 +126,7 @@ def h160_to_p2pkh_address(h160, testnet=False):
         prefix = b'\x6f'
     else:
         prefix = b'\x00'
+    # return the encode_base58_checksum the prefix and h160
     return encode_base58_checksum(prefix + h160)
 
 
@@ -136,12 +137,13 @@ def h160_to_p2sh_address(h160, testnet=False):
         prefix = b'\xc4'
     else:
         prefix = b'\x05'
+    # return the encode_base58_checksum the prefix and h160
     return encode_base58_checksum(prefix + h160)
 
 
 def merkle_parent(hash1, hash2):
-    '''Takes the binary hashes and calculates the double-sha256'''
-    # return the double-sha256 of hash1 + hash2
+    '''Takes the binary hashes and calculates the hash256'''
+    # return the hash256 of hash1 + hash2
     raise NotImplementedError
 
 
@@ -200,6 +202,11 @@ class HelperTest(TestCase):
         self.assertEqual(h160, want)
         got = encode_base58_checksum(b'\x6f' + bytes.fromhex(h160))
         self.assertEqual(got, addr)
+
+    def test_encode_base58_checksum(self):
+        raw = bytes.fromhex('005dedfbf9ea599dd4e3ca6a80b333c472fd0b3f69')
+        want = '19ZewH8Kk1PDbSNdJ97FP4EiCjTRaZMZQA'
+        self.assertEqual(encode_base58_checksum(raw), want)
 
     def test_p2pkh_address(self):
         h160 = bytes.fromhex('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')

@@ -2,7 +2,7 @@ from io import BytesIO
 from unittest import TestCase
 
 from helper import (
-    double_sha256,
+    hash256,
     int_to_little_endian,
     little_endian_to_int,
 )
@@ -42,11 +42,15 @@ class Block:
         raise NotImplementedError
 
     def hash(self):
-        '''Returns the double-sha256 interpreted little endian of the block'''
+        '''Returns the hash256 interpreted little endian of the block'''
         # serialize
-        # double-sha256
+        # hash256
         # reverse
         raise NotImplementedError
+
+    def id(self):
+        '''Human-readable hexadecimal of the block hash'''
+        return self.hash().hex()
 
     def bip9(self):
         '''Returns whether this block is signaling readiness for BIP9'''
@@ -83,7 +87,7 @@ class Block:
 
     def check_pow(self):
         '''Returns whether this block satisfies proof of work'''
-        # get the double_sha256 of the serialization of this block
+        # get the hash256 of the serialization of this block
         # interpret this hash as a little-endian number
         # return whether this integer is less than the target
         raise NotImplementedError

@@ -9,3 +9,4 @@ pyvenv.cfg
 share/
 *.orig
 *.rej
+*.patch

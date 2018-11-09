@@ -1,17 +1,64 @@
 from io import BytesIO
 from unittest import TestCase
 
+import json
 import requests
 
 from helper import (
-    double_sha256,
     encode_varint,
+    hash256,
     int_to_little_endian,
     little_endian_to_int,
     read_varint,
     SIGHASH_ALL,
 )
 from script import Script
+
+
+class TxFetcher:
+    cache = {}
+
+    @classmethod
+    def get_url(cls, testnet=False):
+        if testnet:
+            return 'http://tbtc.programmingblockchain.com:18332'
+        else:
+            return 'http://btc.programmingblockchain.com:8332'
+
+    @classmethod
+    def fetch(cls, tx_id, testnet=False, fresh=False):
+        if fresh or (tx_id not in cls.cache):
+            url = '{}/rest/tx/{}.hex'.format(cls.get_url(testnet), tx_id)
+            response = requests.get(url)
+            try:
+                raw = bytes.fromhex(response.text.strip())
+            except ValueError:
+                raise ValueError('unexpected response: {}'.format(response.text))
+            if raw[4] == 0:
+                raw = raw[:4] + raw[6:]
+                tx = Tx.parse(BytesIO(raw), testnet=testnet)
+                tx.locktime = little_endian_to_int(raw[-4:])
+            else:
+                tx = Tx.parse(BytesIO(raw), testnet=testnet)
+            # make sure the tx we got matches to the hash we requested
+            if tx.id() != tx_id:
+                raise ValueError('not the same id: {} vs {}'.format(tx.id(), tx_id))
+            cls.cache[tx_id] = tx
+        cls.cache[tx_id].testnet = testnet
+        return cls.cache[tx_id]
+
+    @classmethod
+    def load_cache(cls, filename):
+        disk_cache = json.loads(open(filename, 'r').read())
+        for k, raw_hex in disk_cache.items():
+            cls.cache[k] = Tx.parse(BytesIO(bytes.fromhex(raw_hex)))
+
+    @classmethod
+    def dump_cache(cls, filename):
+        with open(filename, 'w') as f:
+            to_dump = {k: tx.serialize().hex() for k, tx in cls.cache.items()}
+            s = json.dumps(to_dump, sort_keys=True, indent=4)
+            f.write(s)
 
 
 class Tx:
@@ -38,8 +85,13 @@ class Tx:
             self.locktime,
         )
 
+    def id(self):
+        '''Human-readable hexadecimal of the transaction hash'''
+        return self.hash().hex()
+
     def hash(self):
-        return double_sha256(self.serialize())[::-1]
+        '''Binary hash of the legacy serialization'''
+        return hash256(self.serialize())[::-1]
 
     @classmethod
     def parse(cls, s, testnet=False):
@@ -88,30 +140,30 @@ class Tx:
         # return input sum - output sum
         raise NotImplementedError
 
-    def sig_hash(self, input_index, hash_type):
+    def sig_hash(self, input_index):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
         # create a new set of tx_ins (alt_tx_ins)
         # iterate over self.tx_ins
-            # create a new TxIn that has a blank script_sig (b'') and add to alt_tx_ins
+            # create a new TxIn that has no script_sig and add to alt_tx_ins
         # grab the input at the input_index
         # grab the script_pubkey of the input
         # the script_sig of the signing_input should be script_pubkey
         # create an alternate transaction with the modified tx_ins
-        # add the hash_type int 4 bytes, little endian
-        # get the double_sha256 of the tx serialization
+        # add the SIGHASH_ALL int 4 bytes, little endian
+        # get the hash256 of the tx serialization
         # convert this to a big-endian integer using int.from_bytes(x, 'big')
         raise NotImplementedError
 
 
 class TxIn:
-
-    cache = {}
-
-    def __init__(self, prev_tx, prev_index, script_sig, sequence):
+    def __init__(self, prev_tx, prev_index, script_sig=None, sequence=0xffffffff):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
-        self.script_sig = script_sig
+        if script_sig is None:
+            self.script_sig = Script()
+        else:
+            self.script_sig = script_sig
         self.sequence = sequence
 
     def __repr__(self):
@@ -146,26 +198,8 @@ class TxIn:
         # serialize sequence, 4 bytes, little endian
         raise NotImplementedError
 
-    @classmethod
-    def get_url(cls, testnet=False):
-        if testnet:
-            return 'http://tbtc.programmingblockchain.com:18332'
-        else:
-            return 'http://btc.programmingblockchain.com:8332'
-
     def fetch_tx(self, testnet=False):
-        if self.prev_tx not in self.cache:
-            url = '{}/rest/tx/{}.hex'.format(
-                self.get_url(testnet), self.prev_tx.hex())
-            response = requests.get(url)
-            raw = bytes.fromhex(response.text.strip())
-            if raw[4] == 0:
-                 # this is segwit, so convert to non-segwit
-                raw = raw[:4] + raw[6:]
-            stream = BytesIO(raw)
-            tx = Tx.parse(stream)
-            self.cache[self.prev_tx] = tx
-        return self.cache[self.prev_tx]
+        return TxFetcher.fetch(self.prev_tx.hex(), testnet=testnet)
 
     def value(self, testnet=False):
         '''Get the outpoint value by looking up the tx hash
@@ -184,24 +218,6 @@ class TxIn:
         # get the output at self.prev_index
         # return the script_pubkey property
         raise NotImplementedError
-
-    def der_signature(self):
-        '''returns a DER format signature and hash_type if the script_sig
-        has a signature'''
-        signature = self.script_sig.signature()
-        # last byte is the hash_type, rest is the signature
-        return signature[:-1]
-
-    def hash_type(self):
-        '''returns a DER format signature and hash_type if the script_sig
-        has a signature'''
-        signature = self.script_sig.signature()
-        # last byte is the hash_type, rest is the signature
-        return signature[-1]
-
-    def sec_pubkey(self):
-        '''returns the SEC format public if the script_sig has one'''
-        return self.script_sig.sec_pubkey()
 
 
 class TxOut:
@@ -274,23 +290,6 @@ class TxTest(TestCase):
         tx = Tx.parse(stream)
         self.assertEqual(tx.locktime, 410393)
 
-    def test_der_signature(self):
-        raw_tx = bytes.fromhex('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
-        stream = BytesIO(raw_tx)
-        tx = Tx.parse(stream)
-        want = '3045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed'
-        der = tx.tx_ins[0].der_signature()
-        hash_type = tx.tx_ins[0].hash_type()
-        self.assertEqual(der.hex(), want)
-        self.assertEqual(hash_type, SIGHASH_ALL)
-
-    def test_sec_pubkey(self):
-        raw_tx = bytes.fromhex('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
-        stream = BytesIO(raw_tx)
-        tx = Tx.parse(stream)
-        want = '0349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278a'
-        self.assertEqual(tx.tx_ins[0].sec_pubkey().hex(), want)
-
     def test_serialize(self):
         raw_tx = bytes.fromhex('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
@@ -301,23 +300,13 @@ class TxTest(TestCase):
         tx_hash = 'd1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81'
         index = 0
         want = 42505594
-        tx_in = TxIn(
-            prev_tx=bytes.fromhex(tx_hash),
-            prev_index=index,
-            script_sig=Script([]),
-            sequence=0,
-        )
+        tx_in = TxIn(bytes.fromhex(tx_hash), index)
         self.assertEqual(tx_in.value(), want)
 
     def test_input_pubkey(self):
         tx_hash = 'd1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81'
         index = 0
-        tx_in = TxIn(
-            prev_tx=bytes.fromhex(tx_hash),
-            prev_index=index,
-            script_sig=Script([]),
-            sequence=0,
-        )
+        tx_in = TxIn(bytes.fromhex(tx_hash), index)
         want = bytes.fromhex('1976a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88ac')
         self.assertEqual(tx_in.script_pubkey().serialize(), want)
 
@@ -335,6 +324,5 @@ class TxTest(TestCase):
         raw_tx = bytes.fromhex('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')
         stream = BytesIO(raw_tx)
         tx = Tx.parse(stream)
-        hash_type = SIGHASH_ALL
         want = int('27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6', 16)
-        self.assertEqual(tx.sig_hash(0, hash_type), want)
+        self.assertEqual(tx.sig_hash(0), want)

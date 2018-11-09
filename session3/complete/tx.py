@@ -10,11 +10,12 @@ from script import Script
 
 class Tx:
 
-    def __init__(self, version, tx_ins, tx_outs, locktime):
+    def __init__(self, version, tx_ins, tx_outs, locktime, testnet=False):
         self.version = version
         self.tx_ins = tx_ins
         self.tx_outs = tx_outs
         self.locktime = locktime
+        self.testnet = testnet
 
     def __repr__(self):
         tx_ins = ''
@@ -31,7 +32,7 @@ class Tx:
         )
 
     @classmethod
-    def parse(cls, s):
+    def parse(cls, s, testnet=False):
         '''Takes a byte stream and parses the transaction at the start
         return a Tx object
         '''
@@ -53,14 +54,17 @@ class Tx:
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
-        return cls(version, inputs, outputs, locktime)
+        return cls(version, inputs, outputs, locktime, testnet=testnet)
 
 
 class TxIn:
-    def __init__(self, prev_tx, prev_index, script_sig, sequence):
+    def __init__(self, prev_tx, prev_index, script_sig=None, sequence=0xffffffff):
         self.prev_tx = prev_tx
         self.prev_index = prev_index
-        self.script_sig = script_sig
+        if script_sig is None:
+            self.script_sig = Script()
+        else:
+            self.script_sig = script_sig
         self.sequence = sequence
 
     def __repr__(self):

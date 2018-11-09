@@ -9,7 +9,7 @@ SIGHASH_SINGLE = 3
 BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
-def run_test(test):
+def run(test):
     suite = TestSuite()
     suite.addTest(test)
     TextTestRunner().run(suite)
@@ -43,7 +43,7 @@ def hash160(s):
     return hashlib.new('ripemd160', hashlib.sha256(s).digest()).digest()
 
 
-def double_sha256(s):
+def hash256(s):
     return hashlib.sha256(hashlib.sha256(s).digest()).digest()
 
 
@@ -68,8 +68,8 @@ def encode_base58(s):
 
 def encode_base58_checksum(raw):
     '''Takes bytes and turns it into base58 encoding with checksum'''
-    # checksum is the first 4 bytes of the double_sha256
-    checksum = double_sha256(raw)[:4]
+    # checksum is the first 4 bytes of the hash256
+    checksum = hash256(raw)[:4]
     # encode_base58 on the raw and the checksum
     base58 = encode_base58(raw + checksum)
     # turn to string with base58.decode('ascii')
@@ -83,8 +83,8 @@ def decode_base58(s):
         num += BASE58_ALPHABET.index(c)
     combined = num.to_bytes(25, byteorder='big')
     checksum = combined[-4:]
-    if double_sha256(combined[:-4])[:4] != checksum:
-        raise RuntimeError('bad address: {} {}'.format(checksum, double_sha256(combined)[:4]))
+    if hash256(combined[:-4])[:4] != checksum:
+        raise RuntimeError('bad address: {} {}'.format(checksum, hash256(combined)[:4]))
     return combined[1:-4]
 
 
@@ -128,7 +128,7 @@ def h160_to_p2pkh_address(h160, testnet=False):
 
 def h160_to_p2sh_address(h160, testnet=False):
     '''Takes a byte sequence hash160 and returns a p2sh address string'''
-    # p2sh has a prefix of b'\x05' for mainnet, b'\xc4 for testnet
+    # p2sh has a prefix of b'\x05' for mainnet, b'\xc4' for testnet
     # return the encode_base58_checksum the prefix and h160
     raise NotImplementedError
 
@@ -164,6 +164,11 @@ class HelperTest(TestCase):
         self.assertEqual(h160, want)
         got = encode_base58_checksum(b'\x6f' + bytes.fromhex(h160))
         self.assertEqual(got, addr)
+
+    def test_encode_base58_checksum(self):
+        raw = bytes.fromhex('005dedfbf9ea599dd4e3ca6a80b333c472fd0b3f69')
+        want = '19ZewH8Kk1PDbSNdJ97FP4EiCjTRaZMZQA'
+        self.assertEqual(encode_base58_checksum(raw), want)
 
     def test_p2pkh_address(self):
         h160 = bytes.fromhex('74d691da1574e6b3c192ecfb52cc8984ee7b6c56')
