@@ -123,8 +123,8 @@ class Session8Test(TestCase):
         self.assertEqual(bit_field_to_bytes(bit_field).hex(), '4000600a080000010940')
 
     def test_exercise_2(self):
-        block_hash = bytes.fromhex('00000000000001fd16e986436252c023b2f9ba729319309189af9ab5be9d4ff9')
-        passphrase = b'jimmy@programmingblockchain.com secret passphrase'  # FILL THIS IN
+        block_hash = bytes.fromhex('0000000053787814ed9dd8c029d0a0a9af4ab8ec0591dc31bdc4ab31fae88ce9')
+        passphrase = b'Jimmy Song Programming Blockchain'  # FILL THIS IN
         secret = little_endian_to_int(hash256(passphrase))
         private_key = PrivateKey(secret=secret)
         addr = private_key.point.address(testnet=True)
@@ -142,10 +142,10 @@ class Session8Test(TestCase):
         node.send(getdata.command, getdata.serialize())
         envelope = node.wait_for_commands([b'merkleblock'])
         envelope = node.wait_for_commands([b'tx'])
-        self.assertEqual(envelope.payload.hex(), '02000000017556362f68c62760de4bb3d89cecfd1a8dcd0cf84d5eb12716120f6eb91b87c001000000171600140b93f828f96efe70b85006b51a6874c562d0cd73feffffff023b8d23e10300000017a91461cd953151a023c0746a57dacef36a35b06dc5ae87207e7500000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac6fe91500')
+        self.assertEqual(envelope.payload.hex(), '0100000002a663815ab2b2ba5f53e442f9a2ea6cc11bbcd98fb1585e48a134bd870dbfbd6a000000006a47304402202151107dc2367cf5a9e2429cde0641c252374501214ce52069fbca1320180aa602201a43b5d4f91e48514c00c01521dc04f02c57f15305adc4eaad01c418f6e7a1180121031dbe3aff7b9ad64e2612b8b15e9f5e4a3130663a526df91abfb7b1bd16de5d6effffffff618b00a343488bd62751cf21f368ce3be76e3a0323fdc594a0d24f27a1155cd2000000006a473044022024c4dd043ab8637c019528b549e0b10333b2dfa83e7ca66776e401ad3fc31b6702207d4d1d73ac8940c59c57c0b7daf084953324154811c10d06d0563947a88f99b20121031dbe3aff7b9ad64e2612b8b15e9f5e4a3130663a526df91abfb7b1bd16de5d6effffffff0280969800000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788aca0ce6594000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000')
 
     def test_exercise_4(self):
-        last_block_hex = '00000000000538d5c2246336644f9a4956551afb44ba47278759ec55ea912e19'
+        last_block_hex = '000000000d65610b5af03d73ed67704713c9b734d87cf4b970d39a0416dd80f9'
         secret = little_endian_to_int(hash256(b'Jimmy Song Programming Blockchain'))
         private_key = PrivateKey(secret=secret)
         addr = private_key.point.address(testnet=True)
@@ -191,14 +191,11 @@ class Session8Test(TestCase):
                     if tx_out.script_pubkey.address(testnet=True) == addr:
                         prev_tx = prev_tx_obj.hash()
                         prev_index = i
-                        self.assertEqual(
-                            prev_tx_obj.id(),
-                            'e3930e1e566ca9b75d53b0eb9acb7607f547e1182d1d22bd4b661cfe18dcddf1')
-                        self.assertEqual(i, 0)
+                        break
         tx_in = TxIn(prev_tx, prev_index)
         prev_amount = prev_tx_obj.tx_outs[prev_index].amount
         output_amount = prev_amount - fee
         tx_out = TxOut(output_amount, target_script)
         tx_obj = Tx(1, [tx_in], [tx_out], 0, testnet=True)
         tx_obj.sign_input(0, private_key)
-        self.assertEqual(tx_obj.serialize().hex(), '0100000001f1dddc18fe1c664bbd221d2d18e147f50776cb9aebb0535db7a96c561e0e93e3000000006a473044022003829abee4bff4df3d3ddf0be6f77e311a09b8e945ec33cdf103305914e84f46022043745996a4dcfd6d320378786337c320c936281218803573be66a12881c2ad350121021cdd761c7eb1c90c0af0a5963e94bf0203176b4662778d32bd6d7ab5d8628b32ffffffff01a1629ef5000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac00000000')
+        self.assertEqual(tx_obj.serialize().hex(), '010000000194e631abb9e1079ec72a1616a3aa0111c614e65b96a6a4420e2cc6af9e6cc96e000000006a47304402203cc8c56abe1c0dd043afa9eb125dafbebdde2dd4cd7abf0fb1aae0667a22006e02203c95b74d0f0735bbf1b261d36e077515b6939fc088b9d7c1b7030a5e494596330121021cdd761c7eb1c90c0af0a5963e94bf0203176b4662778d32bd6d7ab5d8628b32ffffffff01f8829800000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac00000000')
