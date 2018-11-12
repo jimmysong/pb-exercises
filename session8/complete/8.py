@@ -1,6 +1,9 @@
 from unittest import TestCase
 
-from bloomfilter import BloomFilter, BIP37_CONSTANT
+from bloomfilter import (
+    BloomFilter,
+    BIP37_CONSTANT,
+)
 from ecc import PrivateKey
 from helper import (
     bit_field_to_bytes,
@@ -19,7 +22,11 @@ from network import (
     FILTERED_BLOCK_DATA_TYPE,
 )
 from script import p2pkh_script
-from tx import Tx, TxIn, TxOut
+from tx import (
+    Tx,
+    TxIn,
+    TxOut,
+)
 
 
 class Session8Test(TestCase):

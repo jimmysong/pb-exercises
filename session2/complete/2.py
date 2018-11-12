@@ -10,6 +10,7 @@ from helper import (
     encode_base58,
     hash160,
     hash256,
+    little_endian_to_int,
 )
 
 
@@ -95,11 +96,11 @@ class Sessios2Test(TestCase):
         b = FieldElement(7, prime)
         G = Point(FieldElement(47, prime), FieldElement(71, prime), a, b)
         inf = Point(None, None, a, b)
-        total = G
+        total = g
         count = 1
         while total != inf:
             self.assertEqual((total.x.num, total.y.num), expected.pop(0))
-            total += G
+            total += g
             count += 1
         self.assertEqual(total, inf)
 
@@ -200,3 +201,9 @@ class Sessios2Test(TestCase):
                 checksum = hash256(raw)[:4]
                 total = raw + checksum
                 self.assertEqual(encode_base58(total).decode('ascii'), expected.pop(0))
+
+    def test_exercise_8(self):
+        passphrase = b'Jimmy Song Programming Blockchain'
+        secret = little_endian_to_int(hash256(passphrase))
+        point = secret*G
+        self.assertEqual(point.address(testnet=True), 'mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv')

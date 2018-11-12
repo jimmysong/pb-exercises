@@ -1,8 +1,11 @@
 from io import BytesIO
 from unittest import TestCase
 
-from ecc import PrivateKey, S256Point, Signature
-
+from ecc import (
+    PrivateKey,
+    S256Point,
+    Signature,
+)
 from helper import (
     decode_base58,
     encode_base58_checksum,
@@ -11,9 +14,15 @@ from helper import (
     int_to_little_endian,
     SIGHASH_ALL,
 )
-from script import p2pkh_script, Script
-from tx import TxIn, TxOut, Tx
-
+from script import (
+    p2pkh_script,
+    Script,
+)
+from tx import (
+    Tx,
+    TxIn,
+    TxOut,
+)
 
 class Session5Test(TestCase):
 

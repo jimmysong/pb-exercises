@@ -4,7 +4,12 @@ from unittest import TestCase
 import helper
 import op
 
-from ecc import PrivateKey, S256Point, Signature
+
+from ecc import (
+    PrivateKey,
+    S256Point,
+    Signature,
+)
 from helper import (
     decode_base58,
     encode_base58_checksum,
@@ -13,9 +18,15 @@ from helper import (
     int_to_little_endian,
     SIGHASH_ALL,
 )
-from op import decode_num, encode_num
-from script import p2pkh_script, Script
-from tx import TxIn, TxOut, Tx
+from script import (
+    p2pkh_script,
+    Script,
+)
+from tx import (
+    Tx,
+    TxIn,
+    TxOut,
+)
 
 
 def verify_input(self, input_index):

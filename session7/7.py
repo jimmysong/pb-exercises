@@ -1,6 +1,5 @@
-import math
-
 from io import BytesIO
+from math import ceil, log
 from unittest import TestCase
 
 import helper
@@ -404,10 +403,10 @@ class Session7Test(TestCase):
 
     def test_example_10(self):
         total = 16
-        max_depth = math.ceil(math.log(total, 2))
+        max_depth = ceil(log(total, 2))
         merkle_tree = []
         for depth in range(max_depth + 1):
-            num_items = math.ceil(total / 2**(max_depth - depth))
+            num_items = ceil(total / 2**(max_depth - depth))
             level_hashes = [None] * num_items
             merkle_tree.append(level_hashes)
         expected = [1, 2, 4, 8, 16]
