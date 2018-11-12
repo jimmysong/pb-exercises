@@ -208,7 +208,7 @@ class Tx:
         '''Signs the input using the private key'''
         # get the sig_hash (z)
         # get der signature of z from private key
-        # append the hash_type to der (use hash_type.to_bytes(1, 'big'))
+        # append the SIGHASH_ALL to der (use SIGHASH_ALL.to_bytes(1, 'big'))
         # calculate the sec
         # initialize a new script with [sig, sec] as the elements
         # change input's script_sig to new script

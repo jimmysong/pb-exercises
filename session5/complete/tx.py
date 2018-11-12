@@ -213,7 +213,7 @@ class Tx:
         z = self.sig_hash(input_index)
         # get der signature of z from private key
         der = private_key.sign(z).der()
-        # append the hash_type to der (use hash_type.to_bytes(1, 'big'))
+        # append the SIGHASH_ALL to der (use SIGHASH_ALL.to_bytes(1, 'big'))
         sig = der + SIGHASH_ALL.to_bytes(1, 'big')
         # calculate the sec
         sec = private_key.point.sec()

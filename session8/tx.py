@@ -227,7 +227,7 @@ class Tx:
         z = self.sig_hash(input_index)
         # get der signature of z from private key
         der = private_key.sign(z).der()
-        # append the hash_type to der (use hash_type.to_bytes(1, 'big'))
+        # append the SIGHASH_ALL to der (use SIGHASH_ALL.to_bytes(1, 'big'))
         sig = der + SIGHASH_ALL.to_bytes(1, 'big')
         # calculate the sec
         sec = private_key.point.sec()
@@ -262,10 +262,10 @@ class Tx:
             return None
         # grab the first input
         first_input = self.tx_ins[0]
-        # grab the first element of the script_sig (.script_sig.instructions[0])
-        first_element = first_input.script_sig.instructions[0]
-        # convert the first element from little endian to int
-        return little_endian_to_int(first_element)
+        # grab the first instruction of the script_sig (.script_sig.instructions[0])
+        first_instruction = first_input.script_sig.instructions[0]
+        # convert the first instruction from little endian to int
+        return little_endian_to_int(first_instruction)
 
 
 class TxIn:

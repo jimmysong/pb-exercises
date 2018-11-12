@@ -18,6 +18,10 @@ from helper import (
     int_to_little_endian,
     SIGHASH_ALL,
 )
+from op import (
+    decode_num,
+    encode_num,
+)
 from script import (
     p2pkh_script,
     Script,
@@ -163,9 +167,9 @@ class Session5Test(TestCase):
         target_address = 'mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv'
         target_amount = 0.04
         change_address = 'mzx5YhAH9kNHtcN481u6WkjeHjYtVeKVh2'
-        change_amount = 0.317
+        fee = 50000
         secret = 8675309
-        priv = PrivateKey(secret=secret)
+        private_key = PrivateKey(secret=secret)
         tx_ins = []
         tx_ins.append(TxIn(prev_tx, prev_index))
         tx_outs = []
@@ -175,17 +179,18 @@ class Session5Test(TestCase):
         tx_outs.append(TxOut(target_satoshis, script_pubkey))
         h160 = decode_base58(change_address)
         script_pubkey = p2pkh_script(h160)
-        change_satoshis = int(change_amount*100000000)
+        prev_amount = tx_ins[0].value(testnet=True)
+        change_satoshis = prev_amount - target_satoshis - fee
         tx_outs.append(TxOut(change_satoshis, script_pubkey))
         tx_obj = Tx(1, tx_ins, tx_outs, 0, testnet=True)
-        tx_obj.sign_input(0, priv)
-        if priv.point.address(testnet=True) != change_address:
+        tx_obj.sign_input(0, private_key)
+        if private_key.point.address(testnet=True) != change_address:
             raise RuntimeError('Private Key does not correspond to Change Address, check priv_key and change_address')
         if tx_ins[0].script_pubkey(testnet=True).instructions[2] != decode_base58(change_address):
             raise RuntimeError('Output is not something you can spend with this private key. Check that the prev_tx and prev_index are correct')
         if tx_obj.fee() > 0.05*100000000 or tx_obj.fee() <= 0:
             raise RuntimeError('Check that the change amount is reasonable. Fee is {}'.format(tx_obj.fee()))
-        self.assertEqual(tx_obj.serialize().hex(), '01000000017a88f91ce1bc653a69da037ca013ba986657f4a628aaaafebed6dba4531758eb010000006b483045022100af1f20dc307f7a6bbafcba616c03af6c4eb7cffc2856171c1762f9669bc081dc02201a2e409196e660d5548e770b2135dcdcb37b93093e4d9a0e848b14bb0354cb4f012103935581e52c354cd2f484fe8ed83af7a3097005b2f9c60bff71d35bd795f54b67ffffffff0200093d00000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac20b4e301000000001976a914d52ad7ca9b3d096a38e752c2018e6fbc40cdf26f88ac00000000')
+        self.assertEqual(tx_obj.serialize().hex(), '01000000017a88f91ce1bc653a69da037ca013ba986657f4a628aaaafebed6dba4531758eb010000006a47304402204ce6e3877ed2e18d2165276cbdba241507ce72b44d8df640eb6cb4d415eaaea002207dffd162da35593d86188ce87a1cbc9d3a5b26391870f19bf1764ca05b315ad9012103935581e52c354cd2f484fe8ed83af7a3097005b2f9c60bff71d35bd795f54b67ffffffff0200093d00000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac7077e401000000001976a914d52ad7ca9b3d096a38e752c2018e6fbc40cdf26f88ac00000000')
 
     def test_exercise_3_2(self):
         prev_tx_1 = bytes.fromhex('89cbfe2eddaddf1eb11f5c4adf6adaa9bca4adc01b2a3d03f8dd36125c068af4')
@@ -193,25 +198,25 @@ class Session5Test(TestCase):
         prev_tx_2 = bytes.fromhex('19069e1304d95f70e03311d9d58ee821e0978e83ecfc47a30af7cd10fca55cf4')
         prev_index_2 = 0
         target_address = 'mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv'
-        target_amount = 1.71
+        fee = 50000
         secret = 61740721216174072121
-        priv = PrivateKey(secret=secret)
+        private_key = PrivateKey(secret=secret)
         tx_ins = []
         tx_ins.append(TxIn(prev_tx_1, prev_index_1))
         tx_ins.append(TxIn(prev_tx_2, prev_index_2))
         tx_outs = []
         h160 = decode_base58(target_address)
         script_pubkey = p2pkh_script(h160)
-        target_satoshis = int(target_amount*100000000)
+        target_satoshis = tx_ins[0].value(True) + tx_ins[1].value(True) - fee
         tx_outs.append(TxOut(target_satoshis, script_pubkey))
         tx_obj = Tx(1, tx_ins, tx_outs, 0, testnet=True)
-        tx_obj.sign_input(0, priv)
-        tx_obj.sign_input(1, priv)
-        if tx_ins[0].script_pubkey(testnet=True).instructions[2] != decode_base58(priv.point.address(testnet=True)):
+        tx_obj.sign_input(0, private_key)
+        tx_obj.sign_input(1, private_key)
+        if tx_ins[0].script_pubkey(testnet=True).instructions[2] != decode_base58(private_key.point.address(testnet=True)):
             raise RuntimeError('Output is not something you can spend with this private key. Check that the prev_tx and prev_index are correct')
         if tx_obj.fee() > 0.05*100000000 or tx_obj.fee() <= 0:
             raise RuntimeError('Check that the change amount is reasonable. Fee is {}'.format(tx_obj.fee()))
-        self.assertEqual(tx_obj.serialize().hex(), '0100000002f48a065c1236ddf8033d2a1bc0ada4bca9da6adf4a5c1fb11edfaddd2efecb89000000006b483045022100eb05169d19887ea6fffa5e1c68699064bfafaf00410334eb0c5079340ac023a5022022b83031bab14c7689eac98aa93a46593078d3a281fe4f7043ca0dd198fc1d05012103f96f3a1efd31e1a8d7078118ee56bff7355d58907ce0f865f5f0b3dbe34e55befffffffff45ca5fc10cdf70aa347fcec838e97e021e88ed5d91133e0705fd904139e0619000000006b483045022100a1659242f3e8ccad6427c4b2893f912f9294f4f6a9f28a91b5a0682dce2c9bca022045b738733da3f94c2934efc949cbfe9a7bbeb2eda9070b22c079e79d68419092012103f96f3a1efd31e1a8d7078118ee56bff7355d58907ce0f865f5f0b3dbe34e55beffffffff01c040310a000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac00000000')
+        self.assertEqual(tx_obj.serialize().hex(), '0100000002f48a065c1236ddf8033d2a1bc0ada4bca9da6adf4a5c1fb11edfaddd2efecb89000000006a47304402204b9ee431a2f5deaefb5282a34d7dcfdb47d55b1e3ce00cac4c6b6e6f0f0e8d58022062710e84786d2c6c89ddda5a149b45088b15230c6b825f0f21490f99bd74c81d012103f96f3a1efd31e1a8d7078118ee56bff7355d58907ce0f865f5f0b3dbe34e55befffffffff45ca5fc10cdf70aa347fcec838e97e021e88ed5d91133e0705fd904139e0619000000006a473044022073d7217b2d582e55978284c2628015a14e3490e835c76488eb29b63de15d17920220384e4b5282c911273efd4d98170e7092e10a729d142db17f4725c15364fa4ecc012103f96f3a1efd31e1a8d7078118ee56bff7355d58907ce0f865f5f0b3dbe34e55beffffffff01021f320a000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac00000000')
 
     def test_exercise_5(self):
         hex_redeem_script = '5221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152ae'

@@ -111,6 +111,7 @@ class Session8Test(TestCase):
 
     def test_exercise_4(self):
         last_block_hex = '000000000d65610b5af03d73ed67704713c9b734d87cf4b970d39a0416dd80f9'
+        last_block = bytes.fromhex(last_block_hex)
         secret = little_endian_to_int(hash256(b'Jimmy Song Programming Blockchain'))
         private_key = PrivateKey(secret=secret)
         addr = private_key.point.address(testnet=True)
@@ -128,13 +129,11 @@ class Session8Test(TestCase):
         bf.add(h160)
         node.handshake()
         node.send(b'filterload', bf.filterload())
-        start_block = bytes.fromhex(last_block_hex)
-        getheaders_message = GetHeadersMessage(start_block=start_block)
+        getheaders_message = GetHeadersMessage(start_block=last_block)
         node.send(getheaders_message.command, getheaders_message.serialize())
-        headers_envelope = node.wait_for_commands({HeadersMessage.command})
+        headers_envelope = node.wait_for_commands([HeadersMessage.command])
         stream = headers_envelope.stream()
         headers = HeadersMessage.parse(stream)
-        last_block = None
         get_data_message = GetDataMessage()
         for block in headers.blocks:
             self.assertTrue(block.check_pow())
@@ -143,7 +142,7 @@ class Session8Test(TestCase):
             last_block = block.hash()
             get_data_message.add_data(FILTERED_BLOCK_DATA_TYPE, last_block)
         node.send(get_data_message.command, get_data_message.serialize())
-        prev_tx, prev_index, prev_tx_obj = None, None, None
+        prev_tx = None
         while prev_tx is None:
             envelope = node.wait_for_commands([b'merkleblock', b'tx'])
             stream = envelope.stream()
@@ -151,14 +150,14 @@ class Session8Test(TestCase):
                 mb = MerkleBlock.parse(stream)
                 self.assertTrue(mb.is_valid())
             else:
-                prev_tx_obj = Tx.parse(stream, testnet=True)
-                for i, tx_out in enumerate(prev_tx_obj.tx_outs):
+                prev = Tx.parse(stream, testnet=True)
+                for i, tx_out in enumerate(prev.tx_outs):
                     if tx_out.script_pubkey.address(testnet=True) == addr:
-                        prev_tx = prev_tx_obj.hash()
+                        prev_tx = prev.hash()
                         prev_index = i
+                        prev_amount = tx_out.amount
                         break
         tx_in = TxIn(prev_tx, prev_index)
-        prev_amount = prev_tx_obj.tx_outs[prev_index].amount
         output_amount = prev_amount - fee
         tx_out = TxOut(output_amount, target_script)
         tx_obj = Tx(1, [tx_in], [tx_out], 0, testnet=True)

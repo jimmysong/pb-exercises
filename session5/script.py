@@ -175,7 +175,7 @@ class Script:
         '''Returns whether this follows the
         OP_DUP OP_HASH160 <20 byte hash> OP_EQUALVERIFY OP_CHECKSIG pattern.'''
         # there should be exactly 5 instructions
-        # OP_DUP (0x76), OP_HASH160 (0xa9), 20-byte hash, OP_EQUALVERIFY (0x87),
+        # OP_DUP (0x76), OP_HASH160 (0xa9), 20-byte hash, OP_EQUALVERIFY (0x88),
         # OP_CHECKSIG (0xac)
         raise NotImplementedError
 
@@ -189,10 +189,10 @@ class Script:
     def address(self, testnet=False):
         '''Returns the address corresponding to the script'''
         # if p2pkh
-            # hash160 is the 3rd element
+            # hash160 is the 3rd instruction
             # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
         # if p2sh
-            # hash160 is the 2nd element
+            # hash160 is the 2nd instruction
             # convert to p2sh address using h160_to_p2sh_address (remember testnet)
         # raise a ValueError
         raise NotImplementedError

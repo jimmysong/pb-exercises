@@ -233,7 +233,7 @@ class Script:
         '''Returns whether this follows the
         OP_DUP OP_HASH160 <20 byte hash> OP_EQUALVERIFY OP_CHECKSIG pattern.'''
         # there should be exactly 5 instructions
-        # OP_DUP (0x76), OP_HASH160 (0xa9), 20-byte hash, OP_EQUALVERIFY (0x87),
+        # OP_DUP (0x76), OP_HASH160 (0xa9), 20-byte hash, OP_EQUALVERIFY (0x88),
         # OP_CHECKSIG (0xac)
         return len(self.instructions) == 5 and self.instructions[0] == 0x76 \
             and self.instructions[1] == 0xa9 \
@@ -265,13 +265,13 @@ class Script:
         '''Returns the address corresponding to the script'''
         # if p2pkh
         if self.is_p2pkh_script_pubkey():  # p2pkh
-            # hash160 is the 3rd element
+            # hash160 is the 3rd instruction
             h160 = self.instructions[2]
             # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
             return h160_to_p2pkh_address(h160, testnet)
         # if p2sh
         elif self.is_p2sh_script_pubkey():  # p2sh
-            # hash160 is the 2nd element
+            # hash160 is the 2nd instruction
             h160 = self.instructions[1]
             # convert to p2sh address using h160_to_p2sh_address (remember testnet)
             return h160_to_p2sh_address(h160, testnet)
