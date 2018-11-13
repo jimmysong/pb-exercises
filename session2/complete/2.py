@@ -94,7 +94,7 @@ class Sessios2Test(TestCase):
         prime = 223
         a = FieldElement(0, prime)
         b = FieldElement(7, prime)
-        G = Point(FieldElement(47, prime), FieldElement(71, prime), a, b)
+        g = Point(FieldElement(47, prime), FieldElement(71, prime), a, b)
         inf = Point(None, None, a, b)
         total = g
         count = 1

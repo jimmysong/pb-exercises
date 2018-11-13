@@ -53,8 +53,7 @@ class NetworkEnvelope:
             expected_magic = NETWORK_MAGIC
         if magic != expected_magic:
             raise RuntimeError('magic is not right {} vs {}'.format(magic.hex(), expected_magic.hex()))
-        # command 12 bytes
-        # strip the trailing 0's
+        # command 12 bytes, strip the trailing 0's using .strip(b'\x00')
         # payload length 4 bytes, little endian
         # checksum 4 bytes, first four of hash256 of payload
         # payload is of length payload_length
@@ -64,8 +63,7 @@ class NetworkEnvelope:
     def serialize(self):
         '''Returns the byte serialization of the entire network message'''
         # add the network magic
-        # command 12 bytes
-        # fill with 0's
+        # command 12 bytes, fill leftover with b'\x00' * (12 - len(self.command))
         # payload length 4 bytes, little endian
         # checksum 4 bytes, first four of hash256 of payload
         # payload
@@ -138,12 +136,12 @@ class VersionMessage:
         # timestamp is 8 bytes little endian
         # receiver services is 8 bytes little endian
         # IPV4 is 10 00 bytes and 2 ff bytes then receiver ip
-        # receiver port is 2 bytes
+        # receiver port is 2 bytes, little endian
         # sender services is 8 bytes little endian
         # IPV4 is 10 00 bytes and 2 ff bytes then sender ip
-        # sender port is 2 bytes
-        # nonce should be 8 bytes
-        # user agent is a variable string, so varint first
+        # sender port is 2 bytes, little endian
+        # nonce
+        # useragent is a variable string, so varint first
         # latest block is 4 bytes little endian
         # relay is 00 if false, 01 if true
         raise NotImplementedError

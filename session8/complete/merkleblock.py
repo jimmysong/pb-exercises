@@ -245,13 +245,13 @@ class MerkleBlock:
 
     def is_valid(self):
         '''Verifies whether the merkle tree information validates to the merkle root'''
-        # convert the flags field to a bit field using bytes_to_bit_field
+        # use bytes_to_bit_field on self.flags to get the flag_bits
         flag_bits = bytes_to_bit_field(self.flags)
-        # reverse the hashes to get our list of hashes for merkle root calculation
+        # set hashes to be the reversed hashes of everything in self.hashes
         hashes = [h[::-1] for h in self.hashes]
-        # initialize the merkle tree
+        # initialize the merkle tree with self.total
         merkle_tree = MerkleTree(self.total)
-        # populate the tree with flag bits and hashes
+        # populate_tree with flag_bits and hashes
         merkle_tree.populate_tree(flag_bits, hashes)
         # check if the computed root [::-1] is the same as the merkle root
         return merkle_tree.root()[::-1] == self.merkle_root

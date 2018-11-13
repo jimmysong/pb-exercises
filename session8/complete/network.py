@@ -52,10 +52,8 @@ class NetworkEnvelope:
             expected_magic = NETWORK_MAGIC
         if magic != expected_magic:
             raise RuntimeError('magic is not right {} vs {}'.format(magic.hex(), expected_magic.hex()))
-        # command 12 bytes
-        command = s.read(12)
-        # strip the trailing 0's
-        command = command.strip(b'\x00')
+        # command 12 bytes, strip the trailing 0's using .strip(b'\x00')
+        command = s.read(12).strip(b'\x00')
         # payload length 4 bytes, little endian
         payload_length = little_endian_to_int(s.read(4))
         # checksum 4 bytes, first four of hash256 of payload
@@ -72,8 +70,7 @@ class NetworkEnvelope:
         '''Returns the byte serialization of the entire network message'''
         # add the network magic
         result = self.magic
-        # command 12 bytes
-        # fill with 0's
+        # command 12 bytes, fill leftover with b'\x00' * (12 - len(self.command))
         result += self.command + b'\x00' * (12 - len(self.command))
         # payload length 4 bytes, little endian
         result += int_to_little_endian(len(self.payload), 4)
@@ -155,15 +152,15 @@ class VersionMessage:
         result += int_to_little_endian(self.receiver_services, 8)
         # IPV4 is 10 00 bytes and 2 ff bytes then receiver ip
         result += b'\x00' * 10 + b'\xff\xff' + self.receiver_ip
-        # receiver port is 2 bytes, little endian should be 0
+        # receiver port is 2 bytes, little endian
         result += int_to_little_endian(self.receiver_port, 2)
         # sender services is 8 bytes little endian
         result += int_to_little_endian(self.sender_services, 8)
         # IPV4 is 10 00 bytes and 2 ff bytes then sender ip
         result += b'\x00' * 10 + b'\xff\xff' + self.sender_ip
-        # sender port is 2 bytes, little endian should be 0
+        # sender port is 2 bytes, little endian
         result += int_to_little_endian(self.sender_port, 2)
-        # nonce should be 8 bytes
+        # nonce
         result += self.nonce
         # useragent is a variable string, so varint first
         result += encode_varint(len(self.user_agent))

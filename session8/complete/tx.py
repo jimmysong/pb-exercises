@@ -157,7 +157,7 @@ class Tx:
         outputs = []
         for _ in range(num_outputs):
             outputs.append(TxOut.parse(s))
-        # now parse the witness program
+        # now parse the witness
         for tx_in in inputs:
             num_items = read_varint(s)
             items = []
@@ -167,7 +167,7 @@ class Tx:
                     items.append(0)
                 else:
                     items.append(s.read(item_len))
-            tx_in.witness_program = items
+            tx_in.witness = items
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
@@ -219,8 +219,8 @@ class Tx:
             result += tx_out.serialize()
         # add the witness data
         for tx_in in self.tx_ins:
-            result += int_to_little_endian(len(tx_in.witness_program), 1)
-            for item in tx_in.witness_program:
+            result += int_to_little_endian(len(tx_in.witness), 1)
+            for item in tx_in.witness:
                 if type(item) == int:
                     result += int_to_little_endian(item, 1)
                 else:
@@ -341,26 +341,26 @@ class Tx:
             # the redeem script might be a segwit pubkey
             if redeem_script.is_p2wpkh_script_pubkey():
                 z = self.sig_hash_bip143(input_index, redeem_script)
-                witness = tx_in.witness_program
+                witness = tx_in.witness
             elif redeem_script.is_p2wsh_script_pubkey():
-                instruction = tx_in.witness_program[-1]
+                instruction = tx_in.witness[-1]
                 raw_witness = encode_varint(len(instruction)) + instruction
                 witness_script = Script.parse(BytesIO(raw_witness))
                 z = self.sig_hash_bip143(input_index, witness_script=witness_script)
-                witness = tx_in.witness_program
+                witness = tx_in.witness
             else:
                 z = self.sig_hash(input_index, redeem_script)
                 witness = None
         else:
             if script_pubkey.is_p2wpkh_script_pubkey():
                 z = self.sig_hash_bip143(input_index)
-                witness = tx_in.witness_program
+                witness = tx_in.witness
             elif script_pubkey.is_p2wsh_script_pubkey():
-                instruction = tx_in.witness_program[-1]
+                instruction = tx_in.witness[-1]
                 raw_witness = encode_varint(len(instruction)) + instruction
                 witness_script = Script.parse(BytesIO(raw_witness))
                 z = self.sig_hash_bip143(input_index, witness_script=witness_script)
-                witness = tx_in.witness_program
+                witness = tx_in.witness
             else:
                 z = self.sig_hash(input_index)
                 witness = None
@@ -471,12 +471,6 @@ class TxIn:
         result += int_to_little_endian(self.sequence, 4)
         return result
 
-    @classmethod
-    def set_cache(cls, tx_id, raw):
-        stream = BytesIO(raw)
-        tx = Tx.parse(stream)
-        cls.cache[tx_id] = tx
-
     def fetch_tx(self, testnet=False):
         return TxFetcher.fetch(self.prev_tx.hex(), testnet=testnet)
 
@@ -534,6 +528,17 @@ class TxOut:
 
 
 class TxTest(TestCase):
+    cache_file = 'tx.cache'
+
+    @classmethod
+    def setUpClass(cls):
+        # fill with cache so we don't have to be online to run these tests
+        TxFetcher.load_cache(cls.cache_file)
+
+    @classmethod
+    def tearDownClass(cls):
+        # write the cache to disk
+        TxFetcher.dump_cache(cls.cache_file)
 
     def test_parse_version(self):
         raw_tx = bytes.fromhex('0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600')

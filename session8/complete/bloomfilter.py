@@ -32,9 +32,9 @@ class BloomFilter:
 
     def filterload(self, flag=1):
         '''Return the payload that goes in a filterload message'''
-        # start with the size of the filter in bytes
+        # encode_varint self.size
         payload = encode_varint(self.size)
-        # next cast the filter to bytes
+        # next is the self.filter_bytes()
         payload += self.filter_bytes()
         # function count is 4 bytes little endian
         payload += int_to_little_endian(self.function_count, 4)
