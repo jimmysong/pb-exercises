@@ -182,6 +182,49 @@ class VersionMessageTest(TestCase):
         self.assertEqual(v.serialize().hex(), '7f11010000000000000000000000000000000000000000000000000000000000000000000000ffff000000008d20000000000000000000000000000000000000ffff000000008d2000000000000000001b2f70726f6772616d6d696e67626c6f636b636861696e3a302e312f0000000001')
 
 
+class VerAckMessage:
+    command = b'verack'
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def parse(cls, s):
+        return cls()
+
+    def serialize(self):
+        return b''
+
+
+class PingMessage:
+    command = b'ping'
+
+    def __init__(self, nonce):
+        self.nonce = nonce
+
+    @classmethod
+    def parse(cls, s):
+        nonce = s.read(8)
+        return cls(nonce)
+
+    def serialize(self):
+        return self.nonce
+
+
+class PongMessage:
+    command = b'pong'
+
+    def __init__(self, nonce):
+        self.nonce = nonce
+
+    def parse(cls, s):
+        nonce = s.read(8)
+        return cls(nonce)
+
+    def serialize(self):
+        return self.nonce
+
+
 class GetHeadersMessage:
     command = b'getheaders'
 
@@ -220,26 +263,26 @@ class GetHeadersMessageTest(TestCase):
 class HeadersMessage:
     command = b'headers'
 
-    def __init__(self, blocks):
-        self.blocks = blocks
+    def __init__(self, headers):
+        self.headers = headers
 
     @classmethod
-    def parse(cls, stream):
+    def parse(cls, s):
         # number of headers is in a varint
-        num_headers = read_varint(stream)
-        # initialize the blocks array
-        blocks = []
+        num_headers = read_varint(s)
+        # initialize the headers array
+        headers = []
         # loop through number of headers times
         for _ in range(num_headers):
-            # add a block to the blocks array by parsing the stream
-            blocks.append(Block.parse(stream))
+            # add a header to the headers array by parsing the stream
+            headers.append(Block.parse_header(s))
             # read the next varint (num_txs)
-            num_txs = read_varint(stream)
+            num_txs = read_varint(s)
             # num_txs should be 0 or raise a RuntimeError
             if num_txs != 0:
                 raise RuntimeError('number of txs not 0')
         # return a class instance
-        return cls(blocks)
+        return cls(headers)
 
 
 class HeadersMessageTest(TestCase):
@@ -248,8 +291,8 @@ class HeadersMessageTest(TestCase):
         hex_msg = '0200000020df3b053dc46f162a9b00c7f0d5124e2676d47bbe7c5d0793a500000000000000ef445fef2ed495c275892206ca533e7411907971013ab83e3b47bd0d692d14d4dc7c835b67d8001ac157e670000000002030eb2540c41025690160a1014c577061596e32e426b712c7ca00000000000000768b89f07044e6130ead292a3f51951adbd2202df447d98789339937fd006bd44880835b67d8001ade09204600'
         stream = BytesIO(bytes.fromhex(hex_msg))
         headers = HeadersMessage.parse(stream)
-        self.assertEqual(len(headers.blocks), 2)
-        for b in headers.blocks:
+        self.assertEqual(len(headers.headers), 2)
+        for b in headers.headers:
             self.assertEqual(b.__class__, Block)
 
 
@@ -285,6 +328,15 @@ class GetDataMessageTest(TestCase):
         self.assertEqual(get_data.serialize().hex(), hex_msg)
 
 
+class GenericMessage:
+    def __init__(self, command, payload):
+        self.command = command
+        self.payload = payload
+
+    def serialize(self):
+        return self.payload
+
+
 class SimpleNode:
 
     def __init__(self, host, port=None, testnet=False, logging=False):
@@ -306,14 +358,15 @@ class SimpleNode:
         # create a version message
         version = VersionMessage()
         # send the command
-        self.send(version.command, version.serialize())
+        self.send(version)
         # wait for a verack message
-        self.wait_for_commands({b'verack'})
+        self.wait_for(VerAckMessage)
 
-    def send(self, command, payload):
+    def send(self, message):
         '''Send a message to the connected node'''
         # create a network envelope
-        envelope = NetworkEnvelope(command, payload, testnet=self.testnet)
+        envelope = NetworkEnvelope(
+            message.command, message.serialize(), testnet=self.testnet)
         if self.logging:
             print('sending: {}'.format(envelope))
         # send the serialized envelope over the socket using sendall
@@ -326,25 +379,26 @@ class SimpleNode:
             print('receiving: {}'.format(envelope))
         return envelope
 
-    def wait_for_commands(self, commands):
-        '''Wait for one of the commands in the list'''
+    def wait_for(self, *message_classes):
+        '''Wait for one of the messages in the list'''
         # initialize the command we have, which should be None
         command = None
+        command_to_class = {m.command: m for m in message_classes}
         # loop until the command is in the commands we want
-        while command not in commands:
+        while command not in command_to_class.keys():
             # get the next network message
             envelope = self.read()
             # set the command to be evaluated
             command = envelope.command
             # we know how to respond to version and ping, handle that here
-            if command == b'version':
+            if command == VersionMessage.command:
                 # send verack
-                self.send(b'verack', b'')
-            elif command == b'ping':
+                self.send(VerAckMessage())
+            elif command == PingMessage.command:
                 # send pong
-                self.send(b'pong', envelope.payload)
-        # return the last envelope we got
-        return envelope
+                self.send(PongMessage(envelope.payload))
+        # return the envelope parsed as a member of the right message class
+        return command_to_class[command].parse(envelope.stream())
 
 
 class SimpleNodeTest(TestCase):

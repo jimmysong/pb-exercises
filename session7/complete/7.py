@@ -19,6 +19,7 @@ from network import (
     GetHeadersMessage,
     HeadersMessage,
     SimpleNode,
+    VerAckMessage,
     VersionMessage,
     BLOCK_DATA_TYPE,
 )
@@ -35,8 +36,8 @@ class Session7Test(TestCase):
     def test_example_1(self):
         node = SimpleNode('tbtc.programmingblockchain.com', testnet=True, logging=False)
         version = VersionMessage()
-        node.send(version.command, version.serialize())
-        verack = node.wait_for_commands([b'verack'])
+        node.send(version)
+        verack = node.wait_for(VerAckMessage)
         self.assertEqual(verack.command, b'verack')
 
     def test_example_2(self):
@@ -67,10 +68,9 @@ class Session7Test(TestCase):
         count = 1
         for _ in range(20):
             getheaders = GetHeadersMessage(start_block=last_block_hash)
-            node.send(getheaders.command, getheaders.serialize())
-            headers_envelope = node.wait_for_commands([b'headers'])
-            headers_message = HeadersMessage.parse(headers_envelope.stream())
-            for b in headers_message.blocks:
+            node.send(getheaders)
+            headers_message = node.wait_for(HeadersMessage)
+            for b in headers_message.headers:
                 self.assertTrue(b.check_pow())
                 if last_block_hash != GENESIS_BLOCK_HASH:
                     self.assertEqual(b.prev_block, last_block_hash)
@@ -107,10 +107,9 @@ class Session7Test(TestCase):
         count = 1
         while count <= 40000:
             getheaders = GetHeadersMessage(start_block=last_block_hash)
-            node.send(getheaders.command, getheaders.serialize())
-            headers_envelope = node.wait_for_commands([b'headers'])
-            headers_message = HeadersMessage.parse(headers_envelope.stream())
-            for b in headers_message.blocks:
+            node.send(getheaders)
+            headers_message = node.wait_for(HeadersMessage)
+            for b in headers_message.headers:
                 self.assertTrue(b.check_pow())
                 if last_block_hash != TESTNET_GENESIS_BLOCK_HASH:
                     print(count)
@@ -261,17 +260,9 @@ class Session7Test(TestCase):
         node.handshake()
         getdata = GetDataMessage()
         getdata.add_data(BLOCK_DATA_TYPE, block_hash)
-        node.send(getdata.command, getdata.serialize())
-        block_envelope = node.wait_for_commands([b'block'])
-        stream = block_envelope.stream()
-        b = Block.parse(stream)
+        node.send(getdata)
+        b = node.wait_for(Block)
         self.assertTrue(b.check_pow())
-        num_txs = read_varint(stream)
-        tx_hashes = []
-        for _ in range(num_txs):
-            t = Tx.parse(stream)
-            tx_hashes.append(t.hash())
-        b.tx_hashes = tx_hashes
         self.assertTrue(b.validate_merkle_root())
 
     def test_example_10(self):

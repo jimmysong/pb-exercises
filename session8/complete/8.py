@@ -101,13 +101,13 @@ class Session8Test(TestCase):
         bf.add(h160)
         node = SimpleNode('tbtc.programmingblockchain.com', testnet=True, logging=False)
         node.handshake()
-        node.send(b'filterload', bf.filterload())
+        node.send(bf.filterload())
         getdata = GetDataMessage()
         getdata.add_data(FILTERED_BLOCK_DATA_TYPE, block_hash)
-        node.send(getdata.command, getdata.serialize())
-        envelope = node.wait_for_commands([b'merkleblock'])
-        envelope = node.wait_for_commands([b'tx'])
-        self.assertEqual(envelope.payload.hex(), '0100000002a663815ab2b2ba5f53e442f9a2ea6cc11bbcd98fb1585e48a134bd870dbfbd6a000000006a47304402202151107dc2367cf5a9e2429cde0641c252374501214ce52069fbca1320180aa602201a43b5d4f91e48514c00c01521dc04f02c57f15305adc4eaad01c418f6e7a1180121031dbe3aff7b9ad64e2612b8b15e9f5e4a3130663a526df91abfb7b1bd16de5d6effffffff618b00a343488bd62751cf21f368ce3be76e3a0323fdc594a0d24f27a1155cd2000000006a473044022024c4dd043ab8637c019528b549e0b10333b2dfa83e7ca66776e401ad3fc31b6702207d4d1d73ac8940c59c57c0b7daf084953324154811c10d06d0563947a88f99b20121031dbe3aff7b9ad64e2612b8b15e9f5e4a3130663a526df91abfb7b1bd16de5d6effffffff0280969800000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788aca0ce6594000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000')
+        node.send(getdata)
+        mb = node.wait_for(MerkleBlock)
+        tx = node.wait_for(Tx)
+        self.assertEqual(tx.serialize().hex(), '0100000002a663815ab2b2ba5f53e442f9a2ea6cc11bbcd98fb1585e48a134bd870dbfbd6a000000006a47304402202151107dc2367cf5a9e2429cde0641c252374501214ce52069fbca1320180aa602201a43b5d4f91e48514c00c01521dc04f02c57f15305adc4eaad01c418f6e7a1180121031dbe3aff7b9ad64e2612b8b15e9f5e4a3130663a526df91abfb7b1bd16de5d6effffffff618b00a343488bd62751cf21f368ce3be76e3a0323fdc594a0d24f27a1155cd2000000006a473044022024c4dd043ab8637c019528b549e0b10333b2dfa83e7ca66776e401ad3fc31b6702207d4d1d73ac8940c59c57c0b7daf084953324154811c10d06d0563947a88f99b20121031dbe3aff7b9ad64e2612b8b15e9f5e4a3130663a526df91abfb7b1bd16de5d6effffffff0280969800000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788aca0ce6594000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000')
 
     def test_exercise_4(self):
         last_block_hex = '000000000d65610b5af03d73ed67704713c9b734d87cf4b970d39a0416dd80f9'
@@ -128,32 +128,28 @@ class Session8Test(TestCase):
         bf = BloomFilter(filter_size, filter_num_functions, filter_tweak)
         bf.add(h160)
         node.handshake()
-        node.send(b'filterload', bf.filterload())
+        node.send(bf.filterload())
         getheaders_message = GetHeadersMessage(start_block=last_block)
-        node.send(getheaders_message.command, getheaders_message.serialize())
-        headers_envelope = node.wait_for_commands([HeadersMessage.command])
-        stream = headers_envelope.stream()
-        headers = HeadersMessage.parse(stream)
+        node.send(getheaders_message)
+        headers = node.wait_for(HeadersMessage)
         get_data_message = GetDataMessage()
-        for block in headers.blocks:
-            self.assertTrue(block.check_pow())
+        for header in headers.headers:
+            self.assertTrue(header.check_pow())
             if last_block is not None:
-                self.assertEqual(block.prev_block, last_block)
-            last_block = block.hash()
+                self.assertEqual(header.prev_block, last_block)
+            last_block = header.hash()
             get_data_message.add_data(FILTERED_BLOCK_DATA_TYPE, last_block)
-        node.send(get_data_message.command, get_data_message.serialize())
+        node.send(get_data_message)
         prev_tx = None
         while prev_tx is None:
-            envelope = node.wait_for_commands([b'merkleblock', b'tx'])
-            stream = envelope.stream()
-            if envelope.command == b'merkleblock':
-                mb = MerkleBlock.parse(stream)
-                self.assertTrue(mb.is_valid())
+            message = node.wait_for(MerkleBlock, Tx)
+            if message.command == b'merkleblock':
+                self.assertTrue(message.is_valid())
             else:
-                prev = Tx.parse(stream, testnet=True)
-                for i, tx_out in enumerate(prev.tx_outs):
+                message.testnet = True
+                for i, tx_out in enumerate(message.tx_outs):
                     if tx_out.script_pubkey.address(testnet=True) == addr:
-                        prev_tx = prev.hash()
+                        prev_tx = message.hash()
                         prev_index = i
                         prev_amount = tx_out.amount
                         break
