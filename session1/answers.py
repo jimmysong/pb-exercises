@@ -231,6 +231,9 @@ For the curve \\(y^2 = x^3 + 5x + 7\\), what is \\((-1,1) + (-1,1)\\)?
 18.0 77.0
 
 #endexercise
+#unittest
+ecc:PointTest:test_add2:
+#endunittest
 '''
 
 
