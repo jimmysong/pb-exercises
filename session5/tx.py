@@ -158,33 +158,39 @@ class Tx:
     def sig_hash(self, input_index):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
-        # create a new set of tx_ins (alt_tx_ins)
-        alt_tx_ins = []
-        # iterate over self.tx_ins
-        for tx_in in self.tx_ins:
-            # create a new TxIn that has no script_sig and add to alt_tx_ins
-            alt_tx_ins.append(TxIn(
+        # start the serialization with version
+        # use int_to_little_endian in 4 bytes
+        s = int_to_little_endian(self.version, 4)
+        # add how many inputs there are using encode_varint
+        s += encode_varint(len(self.tx_ins))
+        # loop through each input using enumerate, so we have the input index
+        for i, tx_in in enumerate(self.tx_ins):
+            # if the input index is the one we're signing
+            if i == input_index:
+                # the previous tx's ScriptPubkey is the ScriptSig
+                script_sig = tx_in.script_pubkey(self.testnet)
+            # Otherwise, the ScriptSig is empty
+            else:
+                script_sig = None
+            # add the serialization of the input with the ScriptSig we want
+            s += TxIn(
                 prev_tx=tx_in.prev_tx,
                 prev_index=tx_in.prev_index,
+                script_sig=script_sig,
                 sequence=tx_in.sequence,
-            ))
-        # grab the input at the input_index
-        signing_input = alt_tx_ins[input_index]
-        # grab the script_pubkey of the input
-        script_pubkey = signing_input.script_pubkey(self.testnet)
-        # the script_sig of the signing_input should be script_pubkey
-        signing_input.script_sig = script_pubkey
-        # create an alternate transaction with the modified tx_ins
-        alt_tx = self.__class__(
-            version=self.version,
-            tx_ins=alt_tx_ins,
-            tx_outs=self.tx_outs,
-            locktime=self.locktime)
-        # add the SIGHASH_ALL int 4 bytes, little endian
-        result = alt_tx.serialize() + int_to_little_endian(SIGHASH_ALL, 4)
-        # get the hash256 of the tx serialization
-        h256 = hash256(result)
-        # convert this to a big-endian integer using int.from_bytes(x, 'big')
+            ).serialize()
+        # add how many outputs there are using encode_varint
+        s += encode_varint(len(self.tx_outs))
+        # add the serialization of each output
+        for tx_out in self.tx_outs:
+            s += tx_out.serialize()
+        # add the locktime using int_to_little_endian in 4 bytes
+        s += int_to_little_endian(self.locktime, 4)
+        # add SIGHASH_ALL using int_to_little_endian in 4 bytes
+        s += int_to_little_endian(SIGHASH_ALL, 4)
+        # hash256 the serialization
+        h256 = hash256(s)
+        # convert the result to an integer using int.from_bytes(x, 'big')
         return int.from_bytes(h256, 'big')
 
     def verify_input(self, input_index):

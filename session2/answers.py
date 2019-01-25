@@ -1,8 +1,6 @@
 '''
 #code
 >>> import ecc, helper
->>> from ecc import FieldElement, G, Point, S256Point
->>> from helper import encode_base58, hash160, hash256, little_endian_to_int
 
 #endcode
 #code
@@ -19,6 +17,7 @@ Find out which points are valid on the curve \\( y^2 = x^3 + 7: F_{223} \\)
 (192,105), (17,56), (200,119), (1,193), (42,99)
 ```
 ---
+>>> from ecc import FieldElement, Point
 >>> prime = 223
 >>> a = FieldElement(0, prime)
 >>> b = FieldElement(7, prime)
@@ -72,21 +71,21 @@ Find the following point additions on the curve  \\( y^2 = x^3 + 7: F_{223} \\)
 >>> additions = ((192, 105, 17, 56), (47, 71, 117, 141), (143, 98, 76, 66))
 >>> # iterate over the additions to be done
 >>> for x1_raw, y1_raw, x2_raw, y2_raw in additions:  #/
-...    # Initialize points this way:
-...    # x1 = FieldElement(x1_raw, prime)
-...    # y1 = FieldElement(y1_raw, prime)
-...    # p1 = Point(x1, y1, a, b)
-...    # x2 = FieldElement(x2_raw, prime)
-...    # y2 = FieldElement(y2_raw, prime)
-...    # p2 = Point(x2, y2, a, b)
-...    x1 = FieldElement(x1_raw, prime)  #/
-...    y1 = FieldElement(y1_raw, prime)  #/
-...    p1 = Point(x1, y1, a, b)  #/
-...    x2 = FieldElement(x2_raw, prime)  #/
-...    y2 = FieldElement(y2_raw, prime)  #/
-...    p2 = Point(x2, y2, a, b)  #/
-...    # print p1+p2
-...    print('{} + {} = {}'.format(p1, p2, p1+p2))  #/
+...     # Initialize points this way:
+...     # x1 = FieldElement(x1_raw, prime)
+...     # y1 = FieldElement(y1_raw, prime)
+...     # p1 = Point(x1, y1, a, b)
+...     # x2 = FieldElement(x2_raw, prime)
+...     # y2 = FieldElement(y2_raw, prime)
+...     # p2 = Point(x2, y2, a, b)
+...     x1 = FieldElement(x1_raw, prime)  #/
+...     y1 = FieldElement(y1_raw, prime)  #/
+...     p1 = Point(x1, y1, a, b)  #/
+...     x2 = FieldElement(x2_raw, prime)  #/
+...     y2 = FieldElement(y2_raw, prime)  #/
+...     p2 = Point(x2, y2, a, b)  #/
+...     # print p1+p2
+...     print('{} + {} = {}'.format(p1, p2, p1+p2))  #/
 Point(192,105)_223 + Point(17,56)_223 = Point(170,142)_223
 Point(47,71)_223 + Point(117,141)_223 = Point(60,139)_223
 Point(143,98)_223 + Point(76,66)_223 = Point(47,71)_223
@@ -124,21 +123,21 @@ Find the following scalar multiplications on the curve  \\( y^2 = x^3 + 7: F_{22
 >>> multiplications = ((2, 192, 105), (2, 143, 98), (2, 47, 71), (4, 47, 71), (8, 47, 71), (21, 47, 71))
 >>> # iterate over the multiplications
 >>> for n, x_raw, y_raw in multiplications:  #/
-...    # Initialize points this way:
-...    # x = FieldElement(x_raw, prime)
-...    # y = FieldElement(y_raw, prime)
-...    # p = Point(x, y, a, b)
-...    x = FieldElement(x_raw, prime)  #/
-...    y = FieldElement(y_raw, prime)  #/
-...    p = Point(x, y, a, b)  #/
-...    # start product at 0 (point at infinity)
-...    product = Point(None, None, a, b)  #/
-...    # loop over n times (n is 2, 4, 8 or 21 in the above examples)
-...    for _ in range(n):  #/
-...        # add the point to the product
-...        product = product + p  #/
-...    # print product    
-...    print(product)  #/
+...     # Initialize points this way:
+...     # x = FieldElement(x_raw, prime)
+...     # y = FieldElement(y_raw, prime)
+...     # p = Point(x, y, a, b)
+...     x = FieldElement(x_raw, prime)  #/
+...     y = FieldElement(y_raw, prime)  #/
+...     p = Point(x, y, a, b)  #/
+...     # start product at 0 (point at infinity)
+...     product = Point(None, None, a, b)  #/
+...     # loop over n times (n is 2, 4, 8 or 21 in the above examples)
+...     for _ in range(n):  #/
+...         # add the point to the product
+...         product = product + p  #/
+...     # print product    
+...     print(product)  #/
 Point(49,71)_223
 Point(64,168)_223
 Point(36,111)_223
@@ -225,16 +224,16 @@ True
 
 #endcode
 #code
->>> from ecc import G
 >>> # Confirming order of G is n
+>>> from ecc import G
 >>> n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 >>> print(n*G)
 S256Point(infinity)
 
 #endcode
 #code
->>> from ecc import G
 >>> # Getting the public point from a secret
+>>> from ecc import G
 >>> secret = 999
 >>> point = secret*G
 >>> print(point)
@@ -251,9 +250,9 @@ Get the public point where the scalar is the following:
 ---
 >>> secrets = (7, 1485, 2**128, 2**240+2**31)
 >>> # iterate over secrets
->>> for secret in secrets:
+>>> for secret in secrets:  #/
 ...     # get the public point
-...     print(secret*G)
+...     print(secret*G)  #/
 S256Point(0x5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc,0x6aebca40ba255960a3178d6d861a54dba813d0b813fde7b5a5082628087264da)
 S256Point(0xc982196a7466fbbbb0e27a940b6af926c1a74d5ad07128c82824a11b5398afda,0x7a91f9eae64438afb9ce6448a1c133db2d8fb9254e4546b6f001637d50901f55)
 S256Point(0x8f68b9d2f63b5f339239c1ad981f162ee88c5678723ea3351b7b444c9ec4c0da,0x662a9f2dba063986de1d90c2b6be215dbbea2cfe95510bfdf23cbf79501fff82)
@@ -264,8 +263,8 @@ S256Point(0x9577ff57c8234558f293df502ca4f09cbc65a6572c842b39b366f21717945116,0x1
 ecc:S256Test:test_pubpoint:
 #endunittest
 #code
->>> from ecc import S256Point
 >>> # SEC Example
+>>> from ecc import S256Point
 >>> point = S256Point(0x5CBDF0646E5DB4EAA398F365F2EA7A0E3D419B7E0330E39CE92BDDEDCAC4F9BC, 0x6AEBCA40BA255960A3178D6D861A54DBA813D0B813FDE7B5A5082628087264DA)
 >>> uncompressed = b'\\x04' + point.x.num.to_bytes(32, 'big') + point.y.num.to_bytes(32, 'big')
 >>> print(uncompressed.hex())
@@ -287,19 +286,19 @@ Find the compressed and uncompressed SEC format for pub keys where the private k
 >>> secrets = (999**3, 123, 42424242)
 >>> # iterate through secrets
 >>> for secret in secrets:  #/
-...    # get public point
-...    point = secret * G  #/
-...    # uncompressed - b'\\x04' followed by x coord, then y coord
-...    # here's how you express a coordinate in bytes: some_integer.to_bytes(32, 'big')
-...    uncompressed = b'\\x04' + point.x.num.to_bytes(32, 'big') + point.y.num.to_bytes(32, 'big')  #/
-...    # compressed - b'\\x02'/b'\\x03' follewed by x coord. 02 if y is even, 03 otherwise
-...    if point.y.num % 2 == 1:  #/
-...        compressed = b'\\x03' + point.x.num.to_bytes(32, 'big')  #/
-...    else:  #/
-...        compressed = b'\\x02' + point.x.num.to_bytes(32, 'big')  #/
-...    # print the .hex() of both
-...    print(uncompressed.hex())  #/
-...    print(compressed.hex())  #/
+...     # get public point
+...     point = secret * G  #/
+...     # uncompressed - b'\\x04' followed by x coord, then y coord
+...     # here's how you express a coordinate in bytes: some_integer.to_bytes(32, 'big')
+...     uncompressed = b'\\x04' + point.x.num.to_bytes(32, 'big') + point.y.num.to_bytes(32, 'big')  #/
+...     # compressed - b'\\x02'/b'\\x03' follewed by x coord. 02 if y is even, 03 otherwise
+...     if point.y.num % 2 == 1:  #/
+...         compressed = b'\\x03' + point.x.num.to_bytes(32, 'big')  #/
+...     else:  #/
+...         compressed = b'\\x02' + point.x.num.to_bytes(32, 'big')  #/
+...     # print the .hex() of both
+...     print(uncompressed.hex())  #/
+...     print(compressed.hex())  #/
 049d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d56fa15cc7f3d38cda98dee2419f415b7513dde1301f8643cd9245aea7f3f911f9
 039d5ca49670cbe4c3bfa84c96a8c87df086c6ea6a24ba6b809c9de234496808d5
 04a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5204b5d6f84822c307e4b4a7140737aec23fc63b65b35f86a10026dbd2d864e6b
@@ -312,15 +311,15 @@ Find the compressed and uncompressed SEC format for pub keys where the private k
 ecc:S256Test:test_sec:
 #endunittest
 #code
->>> from helper import encode_base58, hash160, hash256
 >>> # Address Example
+>>> from helper import encode_base58, hash160, hash256
 >>> sec = bytes.fromhex('025CBDF0646E5DB4EAA398F365F2EA7A0E3D419B7E0330E39CE92BDDEDCAC4F9BC')
 >>> h160 = hash160(sec)
 >>> raw = b'\\x00' + h160
 >>> raw = raw + hash256(raw)[:4]
 >>> addr = encode_base58(raw)
 >>> print(addr)
-b'19ZewH8Kk1PDbSNdJ97FP4EiCjTRaZMZQA'
+19ZewH8Kk1PDbSNdJ97FP4EiCjTRaZMZQA
 
 #endcode
 #exercise
@@ -339,22 +338,22 @@ Find the mainnet and testnet addresses corresponding to the private keys:
 ... )
 >>> # iterate through components
 >>> for secret, compressed in components:  #/
-...    # get the public point
-...    point = secret * G  #/
-...    # get the sec format
-...    sec = point.sec(compressed)  #/
-...    # hash160 the result
-...    h160 = hash160(sec)  #/
-...    # prepend b'\\x00' for mainnet b'\\x6f' for testnet
-...    for prefix in (b'\\x00', b'\\x6f'):  #/
-...        # raw is the prefix + h160
-...        raw = prefix + h160  #/
-...        # get the hash256 of the raw, first 4 bytes are the checksum
-...        checksum = hash256(raw)[:4]  #/
-...        # append checksum
-...        total = raw + checksum  #/
-...        # encode_base58 the whole thing
-...        print(encode_base58(total).decode('ascii'))  #/
+...     # get the public point
+...     point = secret * G  #/
+...     # get the sec format
+...     sec = point.sec(compressed)  #/
+...     # hash160 the result
+...     h160 = hash160(sec)  #/
+...     # prepend b'\\x00' for mainnet b'\\x6f' for testnet
+...     for prefix in (b'\\x00', b'\\x6f'):  #/
+...         # raw is the prefix + h160
+...         raw = prefix + h160  #/
+...         # get the hash256 of the raw, first 4 bytes are the checksum
+...         checksum = hash256(raw)[:4]  #/
+...         # append checksum
+...         total = raw + checksum  #/
+...         # encode_base58 the whole thing
+...         print(encode_base58(total))  #/
 148dY81A9BmdpMhvYEVznrM45kWN32vSCN
 mieaqB68xDCtbUBYFoUNcmZNwk74xcBfTP
 1S6g2xBJSED7Qr9CYZib5f4PYVhHZiVfj
@@ -373,6 +372,7 @@ ecc:S256Test:test_address:
 Create a testnet address using your own secret key (use your name and email as the password if you can't think of anything). Record this secret key for tomorrow!
 ---
 >>> from ecc import G
+>>> from helper import little_endian_to_int, hash256
 >>> # use a passphrase
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<fill this in with your name and email>'
 >>> secret = little_endian_to_int(hash256(passphrase))
@@ -385,7 +385,6 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 #endexercise
 '''
 
-from random import randint
 from unittest import TestCase
 
 import helper
@@ -492,8 +491,7 @@ def sec(self, compressed=True):
 
 def encode_base58_checksum(raw):
     checksum = hash256(raw)[:4]
-    base58 = encode_base58(raw + checksum)
-    return base58.decode('ascii')
+    return encode_base58(raw + checksum)
 
 
 def address(self, compressed=True, testnet=False):

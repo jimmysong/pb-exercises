@@ -1,7 +1,6 @@
 '''
 #code
 >>> import ecc, helper
->>> from random import randint
 
 #endcode
 #code

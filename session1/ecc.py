@@ -51,9 +51,9 @@ class FieldElement:
         raise NotImplementedError
 
     def __pow__(self, n):
-        # Exercise 3.2: remember Fermat's Little Theorem:
-        # Exercise 3.2: self.num**(p-1) % p == 1
-        # Exercise 3.2: you might want to use % operator on n
+        # Exercise 10: remember Fermat's Little Theorem:
+        # Exercise 10: self.num**(p-1) % p == 1
+        # Exercise 10: you might want to use % operator on n
         raise NotImplementedError
 
     def __truediv__(self, other):
@@ -126,10 +126,10 @@ class Point:
         self.b = b
         self.x = x
         self.y = y
-        # Exercise 5.1: x being None and y being None represents the point at infinity
-        # Exercise 5.1: Check for that here since the equation below won't make sense
-        # Exercise 5.1: with None values for both.
-        # Exercise 4.2: make sure that the elliptic curve equation is satisfied
+        # Exercise 13: x being None and y being None represents the point at infinity
+        # Exercise 13: Check for that here since the equation below won't make sense
+        # Exercise 13: with None values for both.
+        # Exercise 12: make sure that the elliptic curve equation is satisfied
         # y**2 == x**3 + a*x + b
             # if not, raise a ValueError
 

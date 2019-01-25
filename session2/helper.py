@@ -3,7 +3,7 @@ from unittest import TestCase, TestSuite, TextTestRunner
 import hashlib
 
 
-BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def run(test):
@@ -52,22 +52,20 @@ def encode_base58(s):
             count += 1
         else:
             break
-    prefix = b'1' * count
     # convert from binary to hex, then hex to integer
     num = int(s.hex(), 16)
-    result = bytearray()
+    result = ''
+    prefix = '1' * count
     while num > 0:
         num, mod = divmod(num, 58)
-        result.insert(0, BASE58_ALPHABET[mod])
-
-    return prefix + bytes(result)
+        result = BASE58_ALPHABET[mod] + result
+    return prefix + result
 
 
 def encode_base58_checksum(raw):
     '''Takes bytes and turns it into base58 encoding with checksum'''
     # checksum is the first 4 bytes of the hash256
     # encode_base58 on the raw and the checksum
-    # turn to string with base58.decode('ascii')
     raise NotImplementedError
 
 

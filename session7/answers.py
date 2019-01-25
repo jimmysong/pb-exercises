@@ -1,12 +1,6 @@
 '''
 #code
->>> from math import ceil, log
 >>> import block, helper, network
->>> from block import Block, GENESIS_BLOCK_HASH, TESTNET_GENESIS_BLOCK_HASH
->>> from helper import hash256, merkle_parent, merkle_parent_level, merkle_root, read_varint
->>> from merkleblock import MerkleTree
->>> from network import GetDataMessage, GetHeadersMessage, HeadersMessage, SimpleNode, VerAckMessage, VersionMessage, BLOCK_DATA_TYPE
->>> from tx import Tx
 
 #endcode
 #exercise
@@ -48,7 +42,7 @@ network:HeadersMessageTest:test_parse:
 #endunittest
 #code
 >>> # Handshake Example
->>> from network import SimpleNode, VersionMessage
+>>> from network import SimpleNode, VersionMessage, VerAckMessage
 >>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)
 >>> version = VersionMessage()
 >>> node.send(version)
@@ -62,6 +56,7 @@ network:SimpleNodeTest:test_handshake:
 #code
 >>> # Block Header Download Example
 >>> from network import GetHeadersMessage, HeadersMessage, SimpleNode
+>>> from block import GENESIS_BLOCK_HASH
 >>> node = SimpleNode('btc.programmingblockchain.com', testnet=False)
 >>> node.handshake()
 >>> last_block_hash = GENESIS_BLOCK_HASH
@@ -103,7 +98,8 @@ network:SimpleNodeTest:test_handshake:
 #exercise
 Download the first 40,000 blocks for testnet and validate them.
 ---
-
+>>> from network import SimpleNode, GetHeadersMessage, HeadersMessage
+>>> from block import TESTNET_GENESIS_BLOCK_HASH
 >>> # connect to tbtc.programmingblockchain.com
 >>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)  #/
 >>> # handshake
@@ -158,6 +154,7 @@ Download the first 40,000 blocks for testnet and validate them.
 #endexercise
 #code
 >>> # Merkle Parent Example
+>>> from helper import hash256
 >>> tx_hash0 = bytes.fromhex('c117ea8ec828342f4dfb0ad6bd140e03a50720ece40169ee38bdc15d9eb64cf5')
 >>> tx_hash1 = bytes.fromhex('c131474164b412e3406696da1ee20ab0fc9bf41c8f05fa8ceea7a08d672d7cc5')
 >>> parent = hash256(tx_hash0+tx_hash1)
@@ -172,6 +169,7 @@ f391da6ecfeed1814efae39e7fcb3838ae0b02c02ae7d0a5848a66947c0727b0
 3d238a92a94532b946c90e19c49351c763696cff3db400485b813aecb8a13181
 ```
 ---
+>>> from helper import hash256
 >>> hex_hash1 = 'f391da6ecfeed1814efae39e7fcb3838ae0b02c02ae7d0a5848a66947c0727b0'
 >>> hex_hash2 = '3d238a92a94532b946c90e19c49351c763696cff3db400485b813aecb8a13181'
 >>> # bytes.fromhex to get the bin hashes
@@ -220,6 +218,7 @@ ade48f2bbb57318cc79f3a8678febaa827599c509dce5940602e54c7733332e7
 43e7274e77fbe8e5a42a8fb58f7decdb04d521f319f332d88e6b06f8e6c09e27
 ```
 ---
+>>> from helper import merkle_parent
 >>> hex_hashes = [
 ...     '8b30c5ba100f6f2e5ad1e2a742e5020491240f8eb514fe97c713c31718ad7ecd',
 ...     '7f4e6f9e224e20fda0ae4c44114237f97cd35aca38d83081c9bfd41feb907800',
@@ -290,6 +289,7 @@ e8270fb475763bc8d855cfe45ed98060988c1bdcad2ffc8364f783c98999a208
 3311f8acc57e8a3e9b68e2945fb4f53c07b0fa4668a7e5cda6255c21558c774d
 ```
 ---
+>>> from helper import merkle_parent_level
 >>> hex_hashes = [
 ...     '42f6f52f17620653dcc909e58bb352e0bd4bd1381e2955d19c00959a22122b2e',
 ...     '94c3af34b9667bf787e1c6a0a009201589755d01d02fe2877cc69b929d2418d4',
@@ -358,6 +358,7 @@ e8270fb475763bc8d855cfe45ed98060988c1bdcad2ffc8364f783c98999a208
 3311f8acc57e8a3e9b68e2945fb4f53c07b0fa4668a7e5cda6255c21558c774d
 ```
 ---
+>>> from helper import merkle_root
 >>> want = '4297fb95a0168b959d1469410c7527da5d6243d99699e7d041b7f3916ba93301'
 >>> tx_hex_hashes = [
 ...     '42f6f52f17620653dcc909e58bb352e0bd4bd1381e2955d19c00959a22122b2e',
@@ -391,6 +392,8 @@ Block Hash:
 0000000000044b01a9440b34f582fe171c7b8642fedd0ebfccf8fdf6a1810900
 ```
 ---
+>>> from network import SimpleNode, GetDataMessage, BLOCK_DATA_TYPE
+>>> from block import Block
 >>> block_hex = '0000000000044b01a9440b34f582fe171c7b8642fedd0ebfccf8fdf6a1810900'
 >>> block_hash = bytes.fromhex(block_hex)
 >>> # connect to tbtc.programmingblockchain.com on testnet
@@ -418,6 +421,7 @@ Block Hash:
 #endexercise
 #code
 >>> # Merkle Tree Example
+>>> from math import ceil, log
 >>> total = 16
 >>> max_depth = ceil(log(total, 2))
 >>> merkle_tree = []
@@ -436,6 +440,7 @@ Block Hash:
 #endcode
 #code
 >>> # Merkle Tree Populating and Navigating Example
+>>> from merkleblock import MerkleTree
 >>> hex_hashes = [
 ...     "9745f7173ef14ee4155722d1cbf13304339fd00d900b759c6f9d58579b5765fb",
 ...     "5573c8ede34936c29cdfdfe743f7f5fdfbd4f54ba0705259e62f39917065cb9b",
@@ -470,6 +475,7 @@ Block Hash:
 #endcode
 #code
 >>> # Merkle Tree Populating Example #2
+>>> from merkleblock import MerkleTree
 >>> hex_hashes = [
 ...     "9745f7173ef14ee4155722d1cbf13304339fd00d900b759c6f9d58579b5765fb",
 ...     "5573c8ede34936c29cdfdfe743f7f5fdfbd4f54ba0705259e62f39917065cb9b",
@@ -513,6 +519,7 @@ Block Hash:
 #endcode
 #code
 >>> # Merkle Tree Populating Example #3
+>>> from merkleblock import MerkleTree
 >>> hex_hashes = [
 ...     "9745f7173ef14ee4155722d1cbf13304339fd00d900b759c6f9d58579b5765fb",
 ...     "5573c8ede34936c29cdfdfe743f7f5fdfbd4f54ba0705259e62f39917065cb9b",
@@ -560,18 +567,12 @@ dc87b7e3...
 '''
 
 
-from io import BytesIO
-from math import ceil, log
 from unittest import TestCase
 
 import helper
 import merkleblock
 
-from block import (
-    Block,
-    GENESIS_BLOCK_HASH,
-    TESTNET_GENESIS_BLOCK_HASH,
-)
+from block import Block
 from helper import (
     encode_varint,
     hash256,

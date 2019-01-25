@@ -99,7 +99,6 @@ class MerkleTree:
             else:
                 # get the left hash
                 left_hash = self.get_left_node()
-                # Exercise 6.2: get the right hash
                 # if we don't have the left hash
                 if left_hash is None:
                     # if the next flag bit is 0, the next hash is our current node
@@ -112,12 +111,6 @@ class MerkleTree:
                     else:
                         # go to the left node
                         self.left()
-                # Exercise 6.2: if we don't have the right hash
-                    # go to the right node
-                # Exercise 6.2: else
-                    # combine the left and right hashes
-                    # we've completed this subtree, go up
-                # Exercise 7.2: if the right hash exists
                 elif self.right_exists():
                     # get the right hash
                     right_hash = self.get_right_node()

@@ -6,7 +6,7 @@ import hashlib
 SIGHASH_ALL = 1
 SIGHASH_NONE = 2
 SIGHASH_SINGLE = 3
-BASE58_ALPHABET = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
 def run(test):
@@ -59,15 +59,14 @@ def encode_base58(s):
             count += 1
         else:
             break
-    prefix = b'1' * count
     # convert from binary to hex, then hex to integer
     num = int(s.hex(), 16)
-    result = bytearray()
+    result = ''
+    prefix = '1' * count
     while num > 0:
         num, mod = divmod(num, 58)
-        result.insert(0, BASE58_ALPHABET[mod])
-
-    return prefix + bytes(result)
+        result = BASE58_ALPHABET[mod] + result
+    return prefix + result
 
 
 def encode_base58_checksum(raw):
@@ -75,14 +74,12 @@ def encode_base58_checksum(raw):
     # checksum is the first 4 bytes of the hash256
     checksum = hash256(raw)[:4]
     # encode_base58 on the raw and the checksum
-    base58 = encode_base58(raw + checksum)
-    # turn to string with base58.decode('ascii')
-    return base58.decode('ascii')
+    return encode_base58(raw + checksum)
 
 
 def decode_base58(s):
     num = 0
-    for c in s.encode('ascii'):
+    for c in s:
         num *= 58
         num += BASE58_ALPHABET.index(c)
     combined = num.to_bytes(25, byteorder='big')

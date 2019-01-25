@@ -1,11 +1,6 @@
 '''
 #code
->>> from io import BytesIO
 >>> import helper, op, script, tx
->>> from ecc import PrivateKey, S256Point, Signature
->>> from helper import decode_base58, encode_base58_checksum, hash160, hash256, int_to_little_endian, SIGHASH_ALL
->>> from script import p2pkh_script, Script
->>> from tx import Tx, TxIn, TxOut
 
 #endcode
 #unittest
@@ -57,7 +52,8 @@ Send 0.04 TBTC to this address
 #### Go here to send your transaction: https://live.blockcypher.com/btc-testnet/pushtx/
 ---
 >>> from tx import Tx, TxIn, TxOut
->>> from helper import hash256, little_endian_to_int
+>>> from helper import decode_base58, hash256, little_endian_to_int
+>>> from script import p2pkh_script
 >>> prev_tx = bytes.fromhex('0c024b9d3aa2ae8faae96603b8d40c88df2fc6bf50b3f446295206f70f3cf6ad')  #/prev_tx = bytes.fromhex('<transaction id here>')  # CHANGE
 >>> prev_index = 0  #/prev_index = -1  # CHANGE
 >>> target_address = 'mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv'
@@ -100,7 +96,7 @@ True
 >>> if private_key.point.address(testnet=True) != change_address:
 ...     raise RuntimeError('Private Key does not correspond to Change Address, check priv_key and change_address')
 >>> # SANITY CHECK: output's script_pubkey is the same one as your address
->>> if tx_ins[0].script_pubkey(testnet=True).instructions[2] != decode_base58(change_address):
+>>> if tx_ins[0].script_pubkey(testnet=True).commands[2] != decode_base58(change_address):
 ...     raise RuntimeError('Output is not something you can spend with this private key. Check that the prev_tx and prev_index are correct')
 >>> # SANITY CHECK: fee is reasonable
 >>> if tx_obj.fee() > 0.05*100000000 or tx_obj.fee() <= 0:
@@ -120,6 +116,9 @@ Get some testnet coins and spend both outputs (one from your change address and 
 #### You can get some free testnet coins at: https://testnet.coinfaucet.eu/en/
 ---
 >>> # Bonus
+>>> from tx import Tx, TxIn, TxOut
+>>> from helper import decode_base58, hash256, little_endian_to_int
+>>> from script import p2pkh_script
 >>> prev_tx_1 = bytes.fromhex('0886537e27969a12478e0d33707bf6b9fe4fdaec8d5d471b5304453b04135e7e')  #/prev_tx_1 = bytes.fromhex('<tx id from last exercise>')  # CHANGE
 >>> prev_index_1 = 1  #/prev_index_1 = -1  # CHANGE
 >>> prev_tx_2 = bytes.fromhex('da9d75c119dfccac71c9eb8ebf3724f6066d4a84cfce4eaa1bcebd32276886c5')  #/prev_tx_2 = bytes.fromhex('<tx id from faucet>')  # CHANGE
@@ -153,7 +152,7 @@ True
 >>> tx_obj.sign_input(1, private_key)  #/
 True
 >>> # SANITY CHECK: output's script_pubkey is the same one as your address
->>> if tx_ins[0].script_pubkey(testnet=True).instructions[2] != decode_base58(private_key.point.address(testnet=True)):
+>>> if tx_ins[0].script_pubkey(testnet=True).commands[2] != decode_base58(private_key.point.address(testnet=True)):
 ...     raise RuntimeError('Output is not something you can spend with this private key. Check that the prev_tx and prev_index are correct')
 >>> # SANITY CHECK: fee is reasonable
 >>> if tx_obj.fee() > 0.05*100000000 or tx_obj.fee() <= 0:
@@ -199,6 +198,7 @@ Find the hash160 of the RedeemScript
 5221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152ae
 ```
 ---
+>>> from helper import hash160
 >>> hex_redeem_script = '5221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152ae'
 >>> # bytes.fromhex script
 >>> redeem_script = bytes.fromhex(hex_redeem_script)  #/
@@ -268,6 +268,11 @@ The redeemScript is:
 475221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152ae
 ```
 ---
+>>> from io import BytesIO
+>>> from ecc import S256Point, Signature
+>>> from helper import int_to_little_endian, SIGHASH_ALL
+>>> from script import Script
+>>> from tx import Tx
 >>> hex_sec = '03b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb71'
 >>> hex_der = '3045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e754022'
 >>> hex_redeem_script = '475221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152ae'
@@ -300,7 +305,6 @@ True
 '''
 
 
-from io import BytesIO
 from unittest import TestCase
 
 import helper
@@ -402,24 +406,24 @@ def h160_to_p2sh_address(h160, testnet=False):
 
 
 def is_p2pkh_script_pubkey(self):
-    return len(self.instructions) == 5 and self.instructions[0] == 0x76 \
-        and self.instructions[1] == 0xa9 \
-        and type(self.instructions[2]) == bytes and len(self.instructions[2]) == 20 \
-        and self.instructions[3] == 0x88 and self.instructions[4] == 0xac
+    return len(self.commands) == 5 and self.commands[0] == 0x76 \
+        and self.commands[1] == 0xa9 \
+        and type(self.commands[2]) == bytes and len(self.commands[2]) == 20 \
+        and self.commands[3] == 0x88 and self.commands[4] == 0xac
 
 
 def is_p2sh_script_pubkey(self):
-    return len(self.instructions) == 3 and self.instructions[0] == 0xa9 \
-        and type(self.instructions[1]) == bytes and len(self.instructions[1]) == 20 \
-        and self.instructions[2] == 0x87
+    return len(self.commands) == 3 and self.commands[0] == 0xa9 \
+        and type(self.commands[1]) == bytes and len(self.commands[1]) == 20 \
+        and self.commands[2] == 0x87
 
 
 def address(self, testnet=False):
     if self.is_p2pkh_script_pubkey():
-        h160 = self.instructions[2]
+        h160 = self.commands[2]
         return h160_to_p2pkh_address(h160, testnet)
     elif self.is_p2sh_script_pubkey():
-        h160 = self.instructions[1]
+        h160 = self.commands[1]
         return h160_to_p2sh_address(h160, testnet)
     raise ValueError('Unknown ScriptPubKey')
 

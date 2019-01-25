@@ -1,11 +1,6 @@
 '''
 #code
->>> from io import BytesIO
 >>> import block, tx
->>> from block import Block
->>> from helper import hash256, little_endian_to_int
->>> from script import Script
->>> from tx import Tx
 
 #endcode
 #unittest
@@ -18,13 +13,15 @@ Parse the Genesis Block Coinbase Transaction and print out the scriptSig's third
 01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000
 ```
 ---
+>>> from io import BytesIO
+>>> from tx import Tx
 >>> hex_tx = '01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000'
 >>> # create stream with BytesIO and bytes.fromhex
 >>> stream = BytesIO(bytes.fromhex(hex_tx))  #/
 >>> # parse the coinbase transaction
 >>> coinbase = Tx.parse(stream)  #/
->>> # print the first input's script_sig's third instruction
->>> print(coinbase.tx_ins[0].script_sig.instructions[2])  #/
+>>> # print the first input's script_sig's third command
+>>> print(coinbase.tx_ins[0].script_sig.commands[2])  #/
 b'The Times 03/Jan/2009 Chancellor on brink of second bailout for banks'
 
 #endexercise
@@ -41,6 +38,8 @@ Remember the structure of pay-to-pubkey-hash (p2pkh) which has `OP_DUP OP_HASH16
 
 You need to grab the hash160 and turn that into an address.
 ---
+>>> from io import BytesIO
+>>> from script import Script
 >>> hex_script_pubkey = '1976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac'
 >>> # BytesIO(bytes.fromhex) to get the stream
 >>> stream = BytesIO(bytes.fromhex(hex_script_pubkey))  #/
@@ -57,6 +56,7 @@ What is the hash256 of this block? Notice anything?
 020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d
 ```
 ---
+>>> from helper import hash256
 >>> hex_block = '020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d'
 >>> # bytes.fromhex to get the binary
 >>> bin_block = bytes.fromhex(hex_block)  #/
@@ -199,7 +199,6 @@ block:BlockTest:test_check_pow:
 '''
 
 
-from io import BytesIO
 from unittest import TestCase
 
 from block import Block
@@ -208,7 +207,6 @@ from helper import (
     int_to_little_endian,
     little_endian_to_int,
 )
-from script import Script
 from tx import Tx
 
 
@@ -227,7 +225,7 @@ def coinbase_height(self):
     if not self.is_coinbase():
         return None
     first_input = self.tx_ins[0]
-    first_element = first_input.script_sig.instructions[0]
+    first_element = first_input.script_sig.commands[0]
     return little_endian_to_int(first_element)
 
 

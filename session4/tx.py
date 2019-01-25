@@ -143,16 +143,20 @@ class Tx:
     def sig_hash(self, input_index):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
-        # create a new set of tx_ins (alt_tx_ins)
-        # iterate over self.tx_ins
-            # create a new TxIn that has no script_sig and add to alt_tx_ins
-        # grab the input at the input_index
-        # grab the script_pubkey of the input
-        # the script_sig of the signing_input should be script_pubkey
-        # create an alternate transaction with the modified tx_ins
-        # add the SIGHASH_ALL int 4 bytes, little endian
-        # get the hash256 of the tx serialization
-        # convert this to a big-endian integer using int.from_bytes(x, 'big')
+        # start the serialization with version
+        # use int_to_little_endian in 4 bytes
+        # add how many inputs there are using encode_varint
+        # loop through each input using enumerate, so we have the input index
+            # if the input index is the one we're signing
+                # the previous tx's ScriptPubkey is the ScriptSig
+            # Otherwise, the ScriptSig is empty
+            # add the serialization of the input with the ScriptSig we want
+        # add how many outputs there are using encode_varint
+        # add the serialization of each output
+        # add the locktime using int_to_little_endian in 4 bytes
+        # add SIGHASH_ALL using int_to_little_endian in 4 bytes
+        # hash256 the serialization
+        # convert the result to an integer using int.from_bytes(x, 'big')
         raise NotImplementedError
 
 

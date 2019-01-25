@@ -1,19 +1,11 @@
 '''
 #code
->>> from time import sleep
 >>> import bloomfilter, merkleblock
->>> from block import Block
->>> from bloomfilter import BloomFilter, BIP37_CONSTANT
->>> from ecc import PrivateKey
->>> from helper import bit_field_to_bytes, decode_base58, hash160, hash256, little_endian_to_int, murmur3, SIGHASH_ALL
->>> from merkleblock import MerkleBlock
->>> from network import GetDataMessage, GetHeadersMessage, HeadersMessage, SimpleNode, FILTERED_BLOCK_DATA_TYPE, TX_DATA_TYPE
->>> from script import p2pkh_script
->>> from tx import Tx, TxIn, TxOut
 
 #endcode
 #code
 >>> # Example Bloom Filter
+>>> from helper import hash256
 >>> bit_field_size = 10
 >>> bit_field = [0] * bit_field_size
 >>> h256 = hash256(b'hello world')
@@ -25,6 +17,7 @@
 #endcode
 #code
 >>> # Example Bloom Filter 2
+>>> from helper import hash256
 >>> bit_field_size = 10
 >>> bit_field = [0] * bit_field_size
 >>> h = hash256(b'hello world')
@@ -39,6 +32,7 @@
 #endcode
 #code
 >>> # Example Bloom Filter 3
+>>> from helper import hash160, hash256
 >>> bit_field_size = 10
 >>> bit_field = [0] * bit_field_size
 >>> phrase1 = b'hello world'
@@ -61,6 +55,8 @@
 #endcode
 #code
 >>> # Example BIP0037 Bloom Filter
+>>> from helper import murmur3
+>>> from bloomfilter import BIP37_CONSTANT
 >>> field_size = 2
 >>> num_functions = 2
 >>> tweak = 42
@@ -82,6 +78,8 @@ Given a Bloom Filter with these parameters: size=10, function count=5, tweak=99,
  * `b'Hello World'`
  * `b'Goodbye!'`
 ---
+>>> from bloomfilter import BIP37_CONSTANT
+>>> from helper import murmur3, bit_field_to_bytes
 >>> field_size = 10
 >>> function_count = 5
 >>> tweak = 99
@@ -122,6 +120,11 @@ Do the following:
 * Receive the merkleblock and tx messages.
 ---
 >>> from bloomfilter import BloomFilter
+>>> from ecc import PrivateKey
+>>> from helper import decode_base58, hash256, little_endian_to_int
+>>> from merkleblock import MerkleBlock
+>>> from network import SimpleNode, GetDataMessage, FILTERED_BLOCK_DATA_TYPE
+>>> from tx import Tx
 >>> block_hash = bytes.fromhex('00000000000377db7fde98411876c53e318a395af7304de298fd47b7c549d125')  #/block_hash = bytes.fromhex('<block hash from class>')  # CHANGE
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
@@ -171,7 +174,15 @@ This should be a 1 input, 1 output transaction.
 
 Remember turn on logging in `SimpleNode` if you need to debug
 ---
->>> from merkleblock import MerkleBlock, MerkleTree
+>>> from time import sleep
+>>> from block import Block
+>>> from bloomfilter import BloomFilter, BIP37_CONSTANT
+>>> from ecc import PrivateKey
+>>> from helper import bit_field_to_bytes, decode_base58, hash160, hash256, little_endian_to_int, murmur3, SIGHASH_ALL
+>>> from merkleblock import MerkleBlock
+>>> from network import GetDataMessage, GetHeadersMessage, HeadersMessage, SimpleNode, FILTERED_BLOCK_DATA_TYPE, TX_DATA_TYPE
+>>> from script import p2pkh_script
+>>> from tx import Tx, TxIn, TxOut
 >>> last_block_hex = '00000000000377db7fde98411876c53e318a395af7304de298fd47b7c549d125'  #/last_block_hex = '<block hash from class>'  # CHANGE
 >>> last_block = bytes.fromhex(last_block_hex)
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
