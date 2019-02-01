@@ -191,48 +191,31 @@ Remember turn on logging in `SimpleNode` if you need to debug
 >>> addr = private_key.point.address(testnet=True)
 >>> h160 = decode_base58(addr)
 >>> target_address = 'mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv'
->>> filter_size = 30
->>> filter_num_functions = 5
->>> filter_tweak = 90210  #/filter_tweak = -1  # CHANGE
 >>> target_h160 = decode_base58(target_address)
 >>> target_script = p2pkh_script(target_h160)
+>>> bloom_filter = BloomFilter(30, 5, 90210)
 >>> fee = 5000  # fee in satoshis
 >>> # connect to tbtc.programmingblockchain.com in testnet mode, logging True
 >>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)  #/
->>> # create a bloom filter using variables above
->>> bf = BloomFilter(filter_size, filter_num_functions, filter_tweak)  #/
 >>> # add the h160 to the bloom filter
->>> bf.add(h160)  #/
+>>> bloom_filter.add(h160)  #/
 >>> # complete the handshake
 >>> node.handshake()  #/
->>> # send the 'filterload' message
->>> node.send(bf.filterload())  #/
+>>> # send the 'filterload' message from the bloom filter
+>>> node.send(bloom_filter.filterload())  #/
 >>> # create GetHeadersMessage with the last_block as the start_block
 >>> getheaders = GetHeadersMessage(start_block=last_block)  #/
 >>> # send a getheaders message
 >>> node.send(getheaders)  #/
 >>> # wait for the headers message
 >>> headers = node.wait_for(HeadersMessage)  #/
->>> # initialize the GetDataMessage
->>> getdata = GetDataMessage()  #/
->>> # loop through the headers in the headers message
->>> for header in headers.headers:  #/
-...     # check that the proof of work on the block is valid
-...     if not header.check_pow():  #/
-...         raise RuntimeError  #/
-...     # check that this block's prev_block is the last block
-...     if last_block is not None and header.prev_block != last_block:  #/
-...         raise RuntimeError  #/
-...     # set the last block to the current hash
-...     last_block = header.hash()  #/
-...     # add_data(FILTERED_BLOCK_DATA_TYPE, last_block) to get_data_message
-...     getdata.add_data(FILTERED_BLOCK_DATA_TYPE, last_block)  #/
->>> # send the getdata message
->>> node.send(getdata)  #/
->>> # initialize prev_tx to None
->>> prev_tx = None  #/
->>> # while prev_tx is None 
->>> while prev_tx is None:  #/
+>>> # check that the headers are valid
+>>> if not headers.is_valid():  #/
+...     raise RuntimeError  #/
+>>> # get merkle block request from the headers message and send it
+>>> node.send(headers.merkle_block_request())  #/
+>>> # while True
+>>> while True:  #/
 ...     # wait for the merkleblock or tx commands
 ...     message = node.wait_for(MerkleBlock, Tx)  #/
 ...     # if we have the merkleblock command
@@ -242,18 +225,13 @@ Remember turn on logging in `SimpleNode` if you need to debug
 ...             raise RuntimeError  #/
 ...     # else we have the tx command
 ...     else:  #/
-...         # set message.testnet=True
-...         message.testnet = True  #/
-...         # loop through the enumerated tx outs (enumerate(message.tx_outs))
-...         for i, tx_out in enumerate(message.tx_outs):  #/
-...             # if our output has the same address as our address (addr) we found it
-...             if tx_out.script_pubkey.address(testnet=True) == addr:  #/
-...                 # we found our utxo. set prev_tx, prev_index, prev_amount
-...                 prev_tx = message.hash()  #/
-...                 prev_index = i  #/
-...                 prev_amount = tx_out.amount  #/
-...                 # break
-...                 break  #/
+...         # use find_utxos to get utxos that belong to our address
+...         utxos = message.find_utxos(addr)  #/
+...         # if we have any utxos, break
+...         if len(utxos) > 0:  #/
+...             break  #/
+>>> # prev_tx, prev_index, prev_amount are what we get in each utxo
+>>> prev_tx, prev_index, prev_amount = utxos[0]  #/
 >>> # create tx_in
 >>> tx_in = TxIn(prev_tx, prev_index)  #/
 >>> # calculate the output amount (prev_amount - fee)
@@ -270,19 +248,10 @@ True
 0100000001c2d4d9c372e8e24adb77236d33de2126b2cf80c3b1199e4706a652d5814c392c000000006a47304402205b90755998b0a16b51c0168c471eb126381a28bf51eccc661918e7cffdb8110202206a1887fb3c197f003eb1ce1fbf203c80820050b73cebc02f60fb08d82b1fb66d012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff01cc80a100000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac00000000
 >>> # send this signed transaction on the network
 >>> node.send(tx_obj)  #/
->>> # wait a sec so this message goes through to the other node sleep(1) 
+>>> # wait a sec so this message goes through to the other node sleep(1)
 >>> sleep(1)  #/
->>> # now ask for this transaction from the other node
->>> # create a GetDataMessage
->>> getdata = GetDataMessage()  #/
->>> # add_data (TX_DATA_TYPE, tx_obj.hash()) to get data message
->>> getdata.add_data(TX_DATA_TYPE, tx_obj.hash())  #/
->>> # send the GetDataMessage
->>> node.send(getdata)  #/
->>> # now wait for a response
->>> got = node.wait_for(Tx)  #/
->>> if got.id() == tx_obj.id():  #/
-...     # yes! we got to what we wanted
+>>> # now check to see if the tx has been accepted using is_tx_accepted()
+>>> if node.is_tx_accepted(tx_obj):  #/
 ...     print('success!')  #/
 ...     print(tx_obj.id())  #/
 success!

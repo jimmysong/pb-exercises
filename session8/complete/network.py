@@ -13,6 +13,7 @@ from helper import (
     little_endian_to_int,
     read_varint,
 )
+from tx import Tx
 
 TX_DATA_TYPE = 1
 BLOCK_DATA_TYPE = 2
@@ -284,6 +285,24 @@ class HeadersMessage:
         # return a class instance
         return cls(headers)
 
+    def is_valid(self):
+        '''Return whether the headers satisfy proof-of-work and are sequential'''
+        last_block = None
+        for h in self.headers:
+            if not h.check_pow():
+                return False
+            if last_block and h.prev_block != last_block:
+                return False
+            last_block = h.hash()
+        return True
+
+    def merkle_block_request(self):
+        '''Request Merkle Blocks for each header'''
+        get_data = GetDataMessage()
+        for h in self.headers:
+            get_data.add_data(FILTERED_BLOCK_DATA_TYPE, h.hash())
+        return get_data
+
 
 class HeadersMessageTest(TestCase):
 
@@ -399,6 +418,19 @@ class SimpleNode:
                 self.send(PongMessage(envelope.payload))
         # return the envelope parsed as a member of the right message class
         return command_to_class[command].parse(envelope.stream())
+
+    def is_tx_accepted(self, tx_obj):
+        '''Returns whether a transaction has been accepted on the network'''
+        # create a GetDataMessage
+        get_data = GetDataMessage()
+        # ask for the tx
+        get_data.add_data(TX_DATA_TYPE, tx_obj.hash())
+        # send the GetDataMessage
+        self.send(get_data)
+        # now wait for a response
+        got_tx = self.wait_for(Tx)
+        if got_tx.id() == tx_obj.id():
+            return True
 
 
 class SimpleNodeTest(TestCase):
