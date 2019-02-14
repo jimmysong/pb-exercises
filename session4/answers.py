@@ -221,7 +221,7 @@ Validate the signature for the first input in this transaction.
 >>> t = Tx.parse(stream)  #/
 >>> # grab the input at index
 >>> tx_in = t.tx_ins[index]  #/
->>> # use the sig_hash method on index and hash_type to get z
+>>> # use the sig_hash method on index to get z
 >>> z = t.sig_hash(index)  #/
 >>> # combine the script_sig and script_pubkey
 >>> combined_script = tx_in.script_sig + tx_in.script_pubkey()  #/

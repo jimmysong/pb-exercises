@@ -32,9 +32,6 @@ network:NetworkEnvelopeTest:test_parse:
 network:NetworkEnvelopeTest:test_serialize:
 #endunittest
 #unittest
-network:VersionMessageTest:test_serialize:
-#endunittest
-#unittest
 network:GetHeadersMessageTest:test_serialize:
 #endunittest
 #unittest

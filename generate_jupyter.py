@@ -1,6 +1,10 @@
 import nbformat
 import re
+import sys
 
+sessions = [int(a) for a in sys.argv[1:]]
+if len(sessions) == 0:
+    sessions = range(9)
 
 FIRST_CELL = '''############## PLEASE RUN THIS CELL FIRST! ###################
 
@@ -31,7 +35,7 @@ EXERCISE_TEMPLATE_2 = '''# Exercise {exercise_number}
 {code}'''
 
 
-for session in range(9):
+for session in sessions:
     notebook = nbformat.v4.new_notebook()
     notebook_complete = nbformat.v4.new_notebook()
     cells = notebook['cells']

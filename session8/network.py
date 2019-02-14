@@ -8,6 +8,7 @@ from unittest import TestCase
 from block import Block
 from helper import (
     hash256,
+    decode_base58,
     encode_varint,
     int_to_little_endian,
     little_endian_to_int,
@@ -418,7 +419,7 @@ class SimpleNode:
                 self.send(PongMessage(envelope.payload))
         # return the envelope parsed as a member of the right message class
         return command_to_class[command].parse(envelope.stream())
-
+    
     def is_tx_accepted(self, tx_obj):
         '''Returns whether a transaction has been accepted on the network'''
         # create a GetDataMessage
@@ -432,9 +433,41 @@ class SimpleNode:
         if got_tx.id() == tx_obj.id():
             return True
 
+    def get_filtered_txs(self, block_hashes):
+        '''Returns transactions that match the bloom filter'''
+        # create a getdata message
+        # for each block request the filtered block
+            # add_data (FILTERED_BLOCK_DATA_TYPE, block_hash) to request the block
+        # send the getdata message
+        # initialize the results array we'll send back
+        # for each block hash
+            # wait for the merkleblock command
+            # check that the merkle block's hash is the same as the block hash
+            # check that the merkle block is valid
+            # loop through the proved transactions from the Merkle block
+                # wait for the tx command
+                # check that the hash matches
+                # add to the results
+        # return the results
+        raise NotImplementedError
+
 
 class SimpleNodeTest(TestCase):
 
     def test_handshake(self):
         node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)
         node.handshake()
+
+    def test_get_filtered_txs(self):
+        from bloomfilter import BloomFilter
+        bf = BloomFilter(30, 5, 90210)
+        h160 = decode_base58('mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5')
+        bf.add(h160)
+        node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)
+        node.handshake()
+        node.send(bf.filterload())
+        block_hash = bytes.fromhex('00000000000377db7fde98411876c53e318a395af7304de298fd47b7c549d125')
+        txs = node.get_filtered_txs([block_hash])
+        self.assertEqual(txs[0].id(), '0c024b9d3aa2ae8faae96603b8d40c88df2fc6bf50b3f446295206f70f3cf6ad')
+        self.assertEqual(txs[1].id(), '0886537e27969a12478e0d33707bf6b9fe4fdaec8d5d471b5304453b04135e7e')
+        self.assertEqual(txs[2].id(), '23d4effc88b80fb7dbcc2e6a0b0af9821c6fe3bb4c8dc3b61bcab7c45f0f6888')

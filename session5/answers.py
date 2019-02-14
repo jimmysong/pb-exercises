@@ -47,7 +47,7 @@ tx:TxTest:test_sign_input:
 #exercise
 Send 0.04 TBTC to this address 
 
-`mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv`
+`mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv`
 
 #### Go here to send your transaction: https://live.blockcypher.com/btc-testnet/pushtx/
 ---
@@ -56,7 +56,7 @@ Send 0.04 TBTC to this address
 >>> from script import p2pkh_script
 >>> prev_tx = bytes.fromhex('0c024b9d3aa2ae8faae96603b8d40c88df2fc6bf50b3f446295206f70f3cf6ad')  #/prev_tx = bytes.fromhex('<transaction id here>')  # CHANGE
 >>> prev_index = 0  #/prev_index = -1  # CHANGE
->>> target_address = 'mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv'
+>>> target_address = 'mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv'
 >>> target_amount = 0.04
 >>> fee = 50000
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
@@ -103,7 +103,7 @@ True
 ...     raise RuntimeError('Check that the change amount is reasonable. Fee is {}'.format(tx_obj.fee()))
 >>> # serialize and hex()
 >>> print(tx_obj.serialize().hex())  #/
-0100000001adf63c0ff706522946f4b350bfc62fdf880cd4b80366e9aa8faea23a9d4b020c000000006a47304402201967ab281d8d2b47cd36ae62022cb360d973fa97832edb97888d6b136196f23d022008dd3d8231e28429b61c92866a3e4394b067854b5d5fbc7fe3fc9b978522a298012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff0200093d00000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac30ca5a00000000001976a914850af0029eb376691c3eef244c25eceb4e50c50388ac00000000
+0100000001adf63c0ff706522946f4b350bfc62fdf880cd4b80366e9aa8faea23a9d4b020c000000006b48304502210082b7c32b331cdb56d959d37158dd2f6c31e8098d0daa25b3fecc5a5c0b253ff5022047b7e50d72524da02daa0f512436e0daea779e907924c22672c4abd16560d093012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff0200093d00000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac30ca5a00000000001976a914850af0029eb376691c3eef244c25eceb4e50c50388ac00000000
 
 #endexercise
 #exercise
@@ -111,7 +111,7 @@ True
 
 Get some testnet coins and spend both outputs (one from your change address and one from the testnet faucet) to 
 
-`mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv`
+`mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv`
 
 #### You can get some free testnet coins at: https://testnet.coinfaucet.eu/en/
 ---
@@ -123,7 +123,7 @@ Get some testnet coins and spend both outputs (one from your change address and 
 >>> prev_index_1 = 1  #/prev_index_1 = -1  # CHANGE
 >>> prev_tx_2 = bytes.fromhex('da9d75c119dfccac71c9eb8ebf3724f6066d4a84cfce4eaa1bcebd32276886c5')  #/prev_tx_2 = bytes.fromhex('<tx id from faucet>')  # CHANGE
 >>> prev_index_2 = 1  #/prev_index_2 = -1  # CHANGE
->>> target_address = 'mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv'
+>>> target_address = 'mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv'
 >>> fee = 50000
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
@@ -159,7 +159,7 @@ True
 ...     raise RuntimeError('Check that the change amount is reasonable. Fee is {}'.format(tx_obj.fee()))
 >>> # serialize and hex()
 >>> print(tx_obj.serialize().hex())  #/
-01000000027e5e13043b4504531b475d8decda4ffeb9f67b70330d8e47129a96277e538608010000006a473044022071ccd9179773e113f6d1d4c2ad5042c8a49fc47ee98ba4a9dae5e61db67cce7502206fd1043be9c9c97904663f4b1a51e3f9d256f1df5de990507dc78369c1b4030b012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffffc586682732bdce1baa4ececf844a6d06f62437bf8eebc971acccdf19c1759dda010000006b483045022100970e49e00a15245c51db09303ef4769d1cfbd1b947c8d0340ea4176aa8cc9870022040f809aeaf40196afba1910e31926ed6f88e3dd73be04a1873191c202fbef8f6012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff0110d1b400000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac00000000
+01000000027e5e13043b4504531b475d8decda4ffeb9f67b70330d8e47129a96277e538608010000006a47304402202d964dc5cb71aac6f6a22f1841d901da52930290d813b2ef534541d424556e3b02203906bb187f88f6f2c3eacf411fc097e70dab461d00c4c06e641ee747c3a9b22a012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffffc586682732bdce1baa4ececf844a6d06f62437bf8eebc971acccdf19c1759dda010000006a4730440220211aad339dd9623dcaf36fc35bce892ee102a9bbc124e975782eebde9c06c51b022006ecb13fefd1382e36b5afc0e21fb19aa945ea97b60111bff355cbe037dd5b4d012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff0110d1b400000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000
 
 #endexercise
 #code

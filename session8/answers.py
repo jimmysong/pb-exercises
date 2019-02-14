@@ -1,6 +1,6 @@
 '''
 #code
->>> import bloomfilter, merkleblock
+>>> import bloomfilter, network
 
 #endcode
 #code
@@ -125,7 +125,7 @@ Do the following:
 >>> from merkleblock import MerkleBlock
 >>> from network import SimpleNode, GetDataMessage, FILTERED_BLOCK_DATA_TYPE
 >>> from tx import Tx
->>> block_hash = bytes.fromhex('00000000000377db7fde98411876c53e318a395af7304de298fd47b7c549d125')  #/block_hash = bytes.fromhex('<block hash from class>')  # CHANGE
+>>> block_hash = bytes.fromhex('00000000000129fc37fde810db09f033014e501595f8560dcdb2e86756986ee3')  #/block_hash = bytes.fromhex('<block hash from class>')  # CHANGE
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
 >>> private_key = PrivateKey(secret=secret)
@@ -155,20 +155,31 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> node.send(getdata)  #/
 >>> # wait for the merkleblock command
 >>> mb = node.wait_for(MerkleBlock)  #/
->>> # wait for the tx command
->>> tx_obj = node.wait_for(Tx)  #/
->>> # print the envelope payload in hex
->>> print(tx_obj.serialize().hex())  #/
-01000000013fdfef60ecd21c5e667cfe30fcb890a116688ca51ac3880f91008dd141ddcdb2080000006b483045022100b0453c379054fe909ce09d6a37eba3b8fc1fc4b7dcbe34e6a21125a513189ab402200ccefbb93951f881c93b195ae5f0d93c14aa1eda9680274bc0169f2089f778c20121031dbe3aff7b9ad64e2612b8b15e9f5e4a3130663a526df91abfb7b1bd16de5d6effffffff0280969800000000001976a914850af0029eb376691c3eef244c25eceb4e50c50388ace19c5a81000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000
+>>> # check that the merkle block's hash is the same as the block hash
+>>> if mb.hash() != block_hash:  #/
+...     raise RuntimeError('Wrong Merkle Block')  #/
+>>> # check that the merkle block is valid
+>>> if not mb.is_valid():  #/
+...     raise RuntimeError('Invalid Merkle Block')  #/
+>>> # loop through the tx hashes we are expecting using proved_txs
+>>> for tx_hash in mb.proved_txs():  #/
+...     # wait for the tx command
+...     tx_obj = node.wait_for(Tx)  #/
+...     # check that the tx hash is the same
+...     if tx_obj.hash() != tx_hash:  #/
+...         raise RuntimeError('Wrong transaction')  #/
+...     # print the transaction serialization in hex
+...     print(tx_obj.serialize().hex())  #/
+0100000001ca4683960a9c21c0fb6b1d284fc5fe86509c773adf912eee4692859304ce0fb0000000006a47304402200d4c054deca1e76347bd336fbc6bc0132aa2e4a2aafc0792c8a1aa23ec6ed1af0220720444626b807f7c77a89aad4bb0a78ae9c5d9adea296e8e22e66a1681393b480121031dbe3aff7b9ad64e2612b8b15e9f5e4a3130663a526df91abfb7b1bd16de5d6effffffff0280969800000000001976a914850af0029eb376691c3eef244c25eceb4e50c50388acefece184000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000
 
 #endexercise
 #unittest
-merkleblock:MerkleBlockTest:test_is_valid:
+network:SimpleNodeTest:test_get_filtered_txs:
 #endunittest
 #exercise
 You have been sent some unknown amount of testnet bitcoins to your address. 
 
-Send all of it back (minus fees) to `mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv` using only the networking protocol.
+Send all of it back (minus fees) to `mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv` using only the networking protocol.
 
 This should be a 1 input, 1 output transaction.
 
@@ -176,26 +187,28 @@ Remember turn on logging in `SimpleNode` if you need to debug
 ---
 >>> from time import sleep
 >>> from block import Block
->>> from bloomfilter import BloomFilter, BIP37_CONSTANT
+>>> from bloomfilter import BloomFilter
 >>> from ecc import PrivateKey
->>> from helper import bit_field_to_bytes, decode_base58, hash160, hash256, little_endian_to_int, murmur3, SIGHASH_ALL
+>>> from helper import decode_base58, hash160, hash256, little_endian_to_int
 >>> from merkleblock import MerkleBlock
->>> from network import GetDataMessage, GetHeadersMessage, HeadersMessage, SimpleNode, FILTERED_BLOCK_DATA_TYPE, TX_DATA_TYPE
+>>> from network import GetHeadersMessage, HeadersMessage, SimpleNode
 >>> from script import p2pkh_script
 >>> from tx import Tx, TxIn, TxOut
->>> last_block_hex = '00000000000377db7fde98411876c53e318a395af7304de298fd47b7c549d125'  #/last_block_hex = '<block hash from class>'  # CHANGE
->>> last_block = bytes.fromhex(last_block_hex)
+>>> start_block_hex = '000000000000011f34db8b77b66d78abcf2e242299c8aed30dd915911c4fa97f'  #/start_block_hex = '<block hash from class>'  # CHANGE
+>>> start_block = bytes.fromhex(start_block_hex)
+>>> end_block_hex = '000000000000000bf70f0f61df923b0ac97cc578240490dea5e9c35382f9eef0'  #/end_block_hex = '<block hash from class>'  # CHANGE
+>>> end_block = bytes.fromhex(end_block_hex)
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
 >>> private_key = PrivateKey(secret=secret)
 >>> addr = private_key.point.address(testnet=True)
 >>> h160 = decode_base58(addr)
->>> target_address = 'mwJn1YPMq7y5F8J3LkC5Hxg9PHyZ5K4cFv'
+>>> target_address = 'mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv'
 >>> target_h160 = decode_base58(target_address)
 >>> target_script = p2pkh_script(target_h160)
 >>> bloom_filter = BloomFilter(30, 5, 90210)
 >>> fee = 5000  # fee in satoshis
->>> # connect to tbtc.programmingblockchain.com in testnet mode, logging True
+>>> # connect to tbtc.programmingblockchain.com in testnet mode
 >>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)  #/
 >>> # add the h160 to the bloom filter
 >>> bloom_filter.add(h160)  #/
@@ -203,8 +216,8 @@ Remember turn on logging in `SimpleNode` if you need to debug
 >>> node.handshake()  #/
 >>> # send the 'filterload' message from the bloom filter
 >>> node.send(bloom_filter.filterload())  #/
->>> # create GetHeadersMessage with the last_block as the start_block
->>> getheaders = GetHeadersMessage(start_block=last_block)  #/
+>>> # create GetHeadersMessage with the start_block as the start_block and end_block as the end block
+>>> getheaders = GetHeadersMessage(start_block=start_block, end_block=end_block)  #/
 >>> # send a getheaders message
 >>> node.send(getheaders)  #/
 >>> # wait for the headers message
@@ -212,24 +225,17 @@ Remember turn on logging in `SimpleNode` if you need to debug
 >>> # check that the headers are valid
 >>> if not headers.is_valid():  #/
 ...     raise RuntimeError  #/
->>> # get merkle block request from the headers message and send it
->>> node.send(headers.merkle_block_request())  #/
->>> # while True
->>> while True:  #/
-...     # wait for the merkleblock or tx commands
-...     message = node.wait_for(MerkleBlock, Tx)  #/
-...     # if we have the merkleblock command
-...     if message.command == b'merkleblock':  #/
-...         # check that the MerkleBlock is valid
-...         if not message.is_valid():  #/
-...             raise RuntimeError  #/
-...     # else we have the tx command
-...     else:  #/
-...         # use find_utxos to get utxos that belong to our address
-...         utxos = message.find_utxos(addr)  #/
-...         # if we have any utxos, break
-...         if len(utxos) > 0:  #/
-...             break  #/
+>>> # get all the block hashes from the headers.headers array
+>>> block_hashes = [h.hash() for h in headers.headers]  #/
+>>> # get the filtered transactions from these blocks
+>>> filtered_txs = node.get_filtered_txs(block_hashes)  #/
+>>> # loop through each filtered transaction
+>>> for tx_obj in filtered_txs:  #/
+...     # use find_utxos to get utxos that belong to our address
+...     utxos = tx_obj.find_utxos(addr)  #/
+...     # if we have any utxos, break
+...     if len(utxos) > 0:  #/
+...         break  #/
 >>> # prev_tx, prev_index, prev_amount are what we get in each utxo
 >>> prev_tx, prev_index, prev_amount = utxos[0]  #/
 >>> # create tx_in
@@ -245,7 +251,7 @@ Remember turn on logging in `SimpleNode` if you need to debug
 True
 >>> # serialize and hex to see what it looks like
 >>> print(tx_obj.serialize().hex())  #/
-0100000001c2d4d9c372e8e24adb77236d33de2126b2cf80c3b1199e4706a652d5814c392c000000006a47304402205b90755998b0a16b51c0168c471eb126381a28bf51eccc661918e7cffdb8110202206a1887fb3c197f003eb1ce1fbf203c80820050b73cebc02f60fb08d82b1fb66d012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff01cc80a100000000001976a914ad346f8eb57dee9a37981716e498120ae80e44f788ac00000000
+01000000011b661c09f0e619cf1f634e8d60945fd862d1ff93937a5e9eed0b34d3beb1ae33000000006a473044022011332474853cc2bb59f563de81b61ab25a1d0d835896d4ff7fc8bb487cf4998202206f2e6120b3945f4502d8bbc24f9ed7ef6ff488ba714cb5eb73983c085466fa9e012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff01f8829800000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000
 >>> # send this signed transaction on the network
 >>> node.send(tx_obj)  #/
 >>> # wait a sec so this message goes through to the other node sleep(1)
@@ -255,7 +261,7 @@ True
 ...     print('success!')  #/
 ...     print(tx_obj.id())  #/
 success!
-d3c1913e778a451759db4df9c8c55b2575c855608271c5044b26ebcd02791564
+fbf44eeb4b48e6266fb87000e64f5e49bbbbe8e998542f0721714f223a826116
 
 #endexercise
 '''
@@ -324,12 +330,24 @@ def serialize(self):
     return result
 
 
-def is_valid(self):
-    flag_bits = bytes_to_bit_field(self.flags)
-    hashes = [h[::-1] for h in self.hashes]
-    merkle_tree = MerkleTree(self.total)
-    merkle_tree.populate_tree(flag_bits, hashes)
-    return merkle_tree.root()[::-1] == self.merkle_root
+def get_filtered_txs(self, block_hashes):
+    getdata = GetDataMessage()
+    for block_hash in block_hashes:
+        getdata.add_data(FILTERED_BLOCK_DATA_TYPE, block_hash)
+    self.send(getdata)
+    results = []
+    for block_hash in block_hashes:
+        mb = self.wait_for(MerkleBlock)
+        if mb.hash() != block_hash:
+            raise RuntimeError('Wrong block sent')
+        if not mb.is_valid():
+            raise RuntimeError('Merkle Proof is invalid')
+        for tx_hash in mb.proved_txs():
+            tx_obj = self.wait_for(Tx)
+            if tx_obj.hash() != tx_hash:
+                raise RuntimeError('Wrong tx sent {} vs {}'.format(tx_hash.hex(), tx_obj.id()))
+            results.append(tx_obj)
+    return results
 
 
 class Session8Test(TestCase):
@@ -338,7 +356,7 @@ class Session8Test(TestCase):
         BloomFilter.add = add
         BloomFilter.filterload = filterload
         GetDataMessage.serialize = serialize
-        MerkleBlock.is_valid = is_valid
+        SimpleNode.get_filtered_txs = get_filtered_txs
 
 
 if __name__ == "__main__":

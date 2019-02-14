@@ -703,6 +703,8 @@ def op_checkmultisig(stack, z):
         # parse the der_signatures into an array of signatures
         # loop through the signatures
             # bail early if we don't have any points left
+                # add a 0 to the stack using encode_num(0)
+                # return True
             # while we have points
                 # get the point at the front (points.pop(0))
                 # see if this point can verify this sig with this z

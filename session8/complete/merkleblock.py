@@ -3,6 +3,8 @@ import math
 from io import BytesIO
 from unittest import TestCase
 
+from block import Block
+
 from helper import (
     bytes_to_bit_field,
     little_endian_to_int,
@@ -31,6 +33,7 @@ class MerkleTree:
         # set the pointer to the root (depth=0, index=0)
         self.current_depth = 0
         self.current_index = 0
+        self.proved_txs = []
 
     def __repr__(self):
         result = []
@@ -90,9 +93,14 @@ class MerkleTree:
             # if we are a leaf, we know this position's hash
             if self.is_leaf():
                 # get the next bit from flag_bits: flag_bits.pop(0)
-                flag_bits.pop(0)
-                # set the current node in the merkle tree to the next hash: hashes.pop(0)
-                self.set_current_node(hashes.pop(0))
+                flag_bit = flag_bits.pop(0)
+                # get the current hash from hashes: hashes.pop(0)
+                current_hash = hashes.pop(0)
+                # set the current node in the merkle tree to the current hash
+                self.set_current_node(current_hash)
+                # if our flag bit is 1, add to the self.proved_txs array
+                if flag_bit == 1:
+                    self.proved_txs.append(current_hash[::-1])
                 # go up a level
                 self.up()
             # else
@@ -190,16 +198,12 @@ class MerkleTreeTest(TestCase):
 class MerkleBlock:
     command = b'merkleblock'
 
-    def __init__(self, version, prev_block, merkle_root, timestamp, bits, nonce, total, hashes, flags):
-        self.version = version
-        self.prev_block = prev_block
-        self.merkle_root = merkle_root
-        self.timestamp = timestamp
-        self.bits = bits
-        self.nonce = nonce
+    def __init__(self, header, total, hashes, flags):
+        self.header = header
         self.total = total
         self.hashes = hashes
         self.flags = flags
+        self.merkle_tree = None
 
     def __repr__(self):
         result = '{}\n'.format(self.total)
@@ -207,22 +211,18 @@ class MerkleBlock:
             result += '\t{}\n'.format(h.hex())
         result += '{}'.format(self.flags.hex())
 
+    def hash(self):
+        return self.header.hash()
+
+    def id(self):
+        return self.header.id()
+        
     @classmethod
     def parse(cls, s):
         '''Takes a byte stream and parses a merkle block. Returns a Merkle Block object'''
         # s.read(n) will read n bytes from the stream
-        # version - 4 bytes, little endian, interpret as int
-        version = little_endian_to_int(s.read(4))
-        # prev_block - 32 bytes, little endian (use [::-1] to reverse)
-        prev_block = s.read(32)[::-1]
-        # merkle_root - 32 bytes, little endian (use [::-1] to reverse)
-        merkle_root = s.read(32)[::-1]
-        # timestamp - 4 bytes, little endian, interpret as int
-        timestamp = little_endian_to_int(s.read(4))
-        # bits - 4 bytes
-        bits = s.read(4)
-        # nonce - 4 bytes
-        nonce = s.read(4)
+        # header - use Block.parse_header with the stream
+        header = Block.parse_header(s)
         # total number of transactions (4 bytes, little endian)
         total = little_endian_to_int(s.read(4))
         # number of hashes is a varint
@@ -238,8 +238,7 @@ class MerkleBlock:
         # read the flags field
         flags = s.read(flags_length)
         # initialize class
-        return cls(version, prev_block, merkle_root, timestamp, bits, nonce,
-                   total, hashes, flags)
+        return cls(header, total, hashes, flags)
 
     def is_valid(self):
         '''Verifies whether the merkle tree information validates to the merkle root'''
@@ -248,11 +247,18 @@ class MerkleBlock:
         # set hashes to be the reversed hashes of everything in self.hashes
         hashes = [h[::-1] for h in self.hashes]
         # initialize the merkle tree with self.total
-        merkle_tree = MerkleTree(self.total)
+        self.merkle_tree = MerkleTree(self.total)
         # populate_tree with flag_bits and hashes
-        merkle_tree.populate_tree(flag_bits, hashes)
+        self.merkle_tree.populate_tree(flag_bits, hashes)
         # check if the computed root [::-1] is the same as the merkle root
-        return merkle_tree.root()[::-1] == self.merkle_root
+        return self.merkle_tree.root()[::-1] == self.header.merkle_root
+
+    def proved_txs(self):
+        '''Returns the list of proven transactions from the Merkle block'''
+        if self.merkle_tree is None:
+            return []
+        else:
+            return self.merkle_tree.proved_txs
 
 
 class MerkleBlockTest(TestCase):
@@ -261,19 +267,19 @@ class MerkleBlockTest(TestCase):
         hex_merkle_block = '00000020df3b053dc46f162a9b00c7f0d5124e2676d47bbe7c5d0793a500000000000000ef445fef2ed495c275892206ca533e7411907971013ab83e3b47bd0d692d14d4dc7c835b67d8001ac157e670bf0d00000aba412a0d1480e370173072c9562becffe87aa661c1e4a6dbc305d38ec5dc088a7cf92e6458aca7b32edae818f9c2c98c37e06bf72ae0ce80649a38655ee1e27d34d9421d940b16732f24b94023e9d572a7f9ab8023434a4feb532d2adfc8c2c2158785d1bd04eb99df2e86c54bc13e139862897217400def5d72c280222c4cbaee7261831e1550dbb8fa82853e9fe506fc5fda3f7b919d8fe74b6282f92763cef8e625f977af7c8619c32a369b832bc2d051ecd9c73c51e76370ceabd4f25097c256597fa898d404ed53425de608ac6bfe426f6e2bb457f1c554866eb69dcb8d6bf6f880e9a59b3cd053e6c7060eeacaacf4dac6697dac20e4bd3f38a2ea2543d1ab7953e3430790a9f81e1c67f5b58c825acf46bd02848384eebe9af917274cdfbb1a28a5d58a23a17977def0de10d644258d9c54f886d47d293a411cb6226103b55635'
         mb = MerkleBlock.parse(BytesIO(bytes.fromhex(hex_merkle_block)))
         version = 0x20000000
-        self.assertEqual(mb.version, version)
+        self.assertEqual(mb.header.version, version)
         merkle_root_hex = 'ef445fef2ed495c275892206ca533e7411907971013ab83e3b47bd0d692d14d4'
         merkle_root = bytes.fromhex(merkle_root_hex)[::-1]
-        self.assertEqual(mb.merkle_root, merkle_root)
+        self.assertEqual(mb.header.merkle_root, merkle_root)
         prev_block_hex = 'df3b053dc46f162a9b00c7f0d5124e2676d47bbe7c5d0793a500000000000000'
         prev_block = bytes.fromhex(prev_block_hex)[::-1]
-        self.assertEqual(mb.prev_block, prev_block)
+        self.assertEqual(mb.header.prev_block, prev_block)
         timestamp = little_endian_to_int(bytes.fromhex('dc7c835b'))
-        self.assertEqual(mb.timestamp, timestamp)
+        self.assertEqual(mb.header.timestamp, timestamp)
         bits = bytes.fromhex('67d8001a')
-        self.assertEqual(mb.bits, bits)
+        self.assertEqual(mb.header.bits, bits)
         nonce = bytes.fromhex('c157e670')
-        self.assertEqual(mb.nonce, nonce)
+        self.assertEqual(mb.header.nonce, nonce)
         total = little_endian_to_int(bytes.fromhex('bf0d0000'))
         self.assertEqual(mb.total, total)
         hex_hashes = [
@@ -297,3 +303,5 @@ class MerkleBlockTest(TestCase):
         hex_merkle_block = '00000020df3b053dc46f162a9b00c7f0d5124e2676d47bbe7c5d0793a500000000000000ef445fef2ed495c275892206ca533e7411907971013ab83e3b47bd0d692d14d4dc7c835b67d8001ac157e670bf0d00000aba412a0d1480e370173072c9562becffe87aa661c1e4a6dbc305d38ec5dc088a7cf92e6458aca7b32edae818f9c2c98c37e06bf72ae0ce80649a38655ee1e27d34d9421d940b16732f24b94023e9d572a7f9ab8023434a4feb532d2adfc8c2c2158785d1bd04eb99df2e86c54bc13e139862897217400def5d72c280222c4cbaee7261831e1550dbb8fa82853e9fe506fc5fda3f7b919d8fe74b6282f92763cef8e625f977af7c8619c32a369b832bc2d051ecd9c73c51e76370ceabd4f25097c256597fa898d404ed53425de608ac6bfe426f6e2bb457f1c554866eb69dcb8d6bf6f880e9a59b3cd053e6c7060eeacaacf4dac6697dac20e4bd3f38a2ea2543d1ab7953e3430790a9f81e1c67f5b58c825acf46bd02848384eebe9af917274cdfbb1a28a5d58a23a17977def0de10d644258d9c54f886d47d293a411cb6226103b55635'
         mb = MerkleBlock.parse(BytesIO(bytes.fromhex(hex_merkle_block)))
         self.assertTrue(mb.is_valid())
+        want = '6122b61c413a297dd486f8549c8d2544d610def0de7779a1238ad5a5281abbdf'
+        self.assertEqual(mb.proved_txs()[0].hex(), want)

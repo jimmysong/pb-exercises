@@ -707,8 +707,10 @@ def op_checkmultisig(stack, z):
         for sig in sigs:
             # bail early if we don't have any points left
             if len(points) == 0:
-                print("signatures no good or not in right order")
-                return False
+                # add a 0 to the stack using encode_num(0)
+                stack.append(encode_num(0))
+                # return True
+                return True
             # while we have points
             while points:
                 # get the point at the front (points.pop(0))

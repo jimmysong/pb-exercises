@@ -66,12 +66,13 @@ class TxFetcher:
 class Tx:
     command = b'tx'
 
-    def __init__(self, version, tx_ins, tx_outs, locktime, testnet=False):
+    def __init__(self, version, tx_ins, tx_outs, locktime, testnet=False, segwit=False):
         self.version = version
         self.tx_ins = tx_ins
         self.tx_outs = tx_outs
         self.locktime = locktime
         self.testnet = testnet
+        self.segwit = segwit
 
     def __repr__(self):
         tx_ins = ''
@@ -98,9 +99,21 @@ class Tx:
 
     @classmethod
     def parse(cls, s, testnet=False):
-        '''Takes a byte stream and parses the transaction at the start
-        return a Tx object
-        '''
+        '''Parses a transaction from stream'''
+        # we can determine whether something is segwit or legacy by looking
+        # at byte 5
+        s.read(4)
+        if s.read(1) == b'\x00':
+            parse_method = cls.parse_segwit
+        else:
+            parse_method = cls.parse_legacy
+        # reset the seek to the beginning so everything can go through
+        s.seek(-5, 1)
+        return parse_method(s, testnet=testnet)
+
+    @classmethod
+    def parse_legacy(cls, s, testnet=False):
+        '''Takes a byte stream and parses a legacy transaction'''
         # s.read(n) will return n bytes
         # version has 4 bytes, little-endian, interpret as int
         version = little_endian_to_int(s.read(4))
@@ -119,7 +132,45 @@ class Tx:
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
-        return cls(version, inputs, outputs, locktime, testnet=testnet)
+        return cls(version, inputs, outputs, locktime, testnet=testnet, segwit=False)
+
+    @classmethod
+    def parse_segwit(cls, s, testnet=False):
+        '''Takes a byte stream and parses a segwit transaction'''
+        # s.read(n) will return n bytes
+        # version has 4 bytes, little-endian, interpret as int
+        version = little_endian_to_int(s.read(4))
+        # next two bytes need to be 0x00 and 0x01
+        marker = s.read(2)
+        if marker != b'\x00\x01':
+            raise RuntimeError('Not a segwit transaction {}'.format(marker))
+        # num_inputs is a varint, use read_varint(s)
+        num_inputs = read_varint(s)
+        # each input needs parsing
+        inputs = []
+        for _ in range(num_inputs):
+            inputs.append(TxIn.parse(s))
+        # num_outputs is a varint, use read_varint(s)
+        num_outputs = read_varint(s)
+        # each output needs parsing
+        outputs = []
+        for _ in range(num_outputs):
+            outputs.append(TxOut.parse(s))
+        # now parse the witness
+        for tx_in in inputs:
+            num_items = read_varint(s)
+            items = []
+            for _ in range(num_items):
+                item_len = read_varint(s)
+                if item_len == 0:
+                    items.append(0)
+                else:
+                    items.append(s.read(item_len))
+            tx_in.witness = items
+        # locktime is 4 bytes, little-endian
+        locktime = little_endian_to_int(s.read(4))
+        # return an instance of the class (cls(...))
+        return cls(version, inputs, outputs, locktime, testnet=testnet, segwit=True)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction'''
@@ -159,12 +210,12 @@ class Tx:
     def sig_hash(self, input_index, redeem_script=None):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
-        # start the serialization with version
-        # use int_to_little_endian in 4 bytes
+        # create the serialization per spec
+        # start with version: int_to_little_endian in 4 bytes
         s = int_to_little_endian(self.version, 4)
-        # add how many inputs there are using encode_varint
+        # next, how many inputs there are: encode_varint
         s += encode_varint(len(self.tx_ins))
-        # loop through each input using enumerate, so we have the input index
+        # loop through each input: for i, tx_in in enumerate(self.tx_ins)
         for i, tx_in in enumerate(self.tx_ins):
             # if the input index is the one we're signing
             if i == input_index:
@@ -177,13 +228,16 @@ class Tx:
             # Otherwise, the ScriptSig is empty
             else:
                 script_sig = None
-            # add the serialization of the input with the ScriptSig we want
-            s += TxIn(
+            # create a TxIn object with the prev_tx, prev_index and sequence
+            # the same as the current tx_in and the script_sig from above
+            new_tx_in = TxIn(
                 prev_tx=tx_in.prev_tx,
                 prev_index=tx_in.prev_index,
                 script_sig=script_sig,
                 sequence=tx_in.sequence,
-            ).serialize()
+            )
+            # add the serialization of the TxIn object
+            s += new_tx_in.serialize()
         # add how many outputs there are using encode_varint
         s += encode_varint(len(self.tx_outs))
         # add the serialization of each output

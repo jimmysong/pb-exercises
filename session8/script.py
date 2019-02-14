@@ -93,7 +93,7 @@ class Script:
                 # add the op_code to the list of commands
                 commands.append(op_code)
         if count != length:
-            raise SyntaxError('parsing script failed')
+            raise SyntaxError('parsing script failed {} vs {}'.format(count,length))
         return cls(commands)
 
     def raw_serialize(self):

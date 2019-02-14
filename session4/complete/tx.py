@@ -156,12 +156,12 @@ class Tx:
     def sig_hash(self, input_index):
         '''Returns the integer representation of the hash that needs to get
         signed for index input_index'''
-        # start the serialization with version
-        # use int_to_little_endian in 4 bytes
+        # create the serialization per spec
+        # start with version: int_to_little_endian in 4 bytes
         s = int_to_little_endian(self.version, 4)
-        # add how many inputs there are using encode_varint
+        # next, how many inputs there are: encode_varint
         s += encode_varint(len(self.tx_ins))
-        # loop through each input using enumerate, so we have the input index
+        # loop through each input: for i, tx_in in enumerate(self.tx_ins)
         for i, tx_in in enumerate(self.tx_ins):
             # if the input index is the one we're signing
             if i == input_index:
@@ -170,13 +170,16 @@ class Tx:
             # Otherwise, the ScriptSig is empty
             else:
                 script_sig = None
-            # add the serialization of the input with the ScriptSig we want
-            s += TxIn(
+            # create a TxIn object with the prev_tx, prev_index and sequence
+            # the same as the current tx_in and the script_sig from above
+            new_tx_in = TxIn(
                 prev_tx=tx_in.prev_tx,
                 prev_index=tx_in.prev_index,
                 script_sig=script_sig,
                 sequence=tx_in.sequence,
-            ).serialize()
+            )
+            # add the serialization of the TxIn object
+            s += new_tx_in.serialize()
         # add how many outputs there are using encode_varint
         s += encode_varint(len(self.tx_outs))
         # add the serialization of each output
