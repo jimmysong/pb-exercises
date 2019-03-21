@@ -1,2 +1,7 @@
 jupyter
 requests
+nose
+pycrypto
+mock
+csiphash
+pbkdf2
