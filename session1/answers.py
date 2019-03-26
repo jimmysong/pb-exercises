@@ -96,7 +96,7 @@ ecc:FieldElementTest:test_pow:
 #endunittest
 #exercise
 #### BONUS QUESTION, ONLY ATTEMPT IF YOU HAVE TIME
-Write a program to calculate \\(k^{30}\\) for all k in \\(F_{31}\\). Notice anything?
+Write a program to calculate \\(i^{30}\\) for all i in \\(F_{31}\\). Notice anything?
 ---
 >>> # Bonus
 >>> prime = 31
