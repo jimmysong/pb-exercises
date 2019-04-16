@@ -97,7 +97,7 @@ Download the first 40,000 blocks for testnet and validate them.
 ---
 >>> from network import SimpleNode, GetHeadersMessage, HeadersMessage
 >>> from block import TESTNET_GENESIS_BLOCK_HASH
->>> # connect to tbtc.programmingblockchain.com
+>>> # connect to tbtc.programmingblockchain.com with testnet=True
 >>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)  #/
 >>> # handshake
 >>> node.handshake()  #/
@@ -124,9 +124,9 @@ Download the first 40,000 blocks for testnet and validate them.
 ...         # print the id every 2016 blocks (difficulty adjustment)
 ...         if current_height % 2016 == 0:  #/
 ...             print(header.id())  #/
-...         # increment the block count
+...         # increment the current_height
 ...         current_height += 1  #/
-...         # set the last block hash
+...         # set the last_block_hash to the current header's hash
 ...         last_block_hash = header.hash()  #/
 0000000089d757fd95d79f7fcc2bc25ca7fc16492dca9aa610730ea05d9d3de9
 000000001af3b22a7598b10574deb6b3e2d596f36d62b0a49cb89a1f99ab81eb

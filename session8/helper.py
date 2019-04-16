@@ -156,7 +156,7 @@ def merkle_parent_level(hashes):
     #       and put it at the end so it has an even number of elements
     if len(hashes) % 2 == 1:
         hashes.append(hashes[-1])
-    # initialize next level
+    # initialize parent level
     parent_level = []
     # loop over every pair (use: for i in range(0, len(hashes), 2))
     for i in range(0, len(hashes), 2):

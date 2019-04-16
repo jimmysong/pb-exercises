@@ -62,7 +62,7 @@ class NetworkEnvelope:
 
     def serialize(self):
         '''Returns the byte serialization of the entire network message'''
-        # add the network magic
+        # add the network magic using self.magic
         # command 12 bytes, fill leftover with b'\x00' * (12 - len(self.command))
         # payload length 4 bytes, little endian
         # checksum 4 bytes, first four of hash256 of payload
@@ -256,7 +256,7 @@ class HeadersMessage:
         # number of headers is in a varint
         # initialize the headers array
         # loop through number of headers times
-            # add a header to the headers array by parsing the stream
+            # add a header to the headers array by using Block.parse_header(s)
             # read the next varint (num_txs)
             # num_txs should be 0 or raise a RuntimeError
         # return a class instance

@@ -152,7 +152,7 @@ def merkle_parent_level(hashes):
     # if the list has exactly 1 element raise an error
     # if the list has an odd number of elements, duplicate the last one
     #       and put it at the end so it has an even number of elements
-    # initialize next level
+    # initialize parent level
     # loop over every pair (use: for i in range(0, len(hashes), 2))
         # get the merkle parent of i and i+1 hashes
         # append parent to parent level
