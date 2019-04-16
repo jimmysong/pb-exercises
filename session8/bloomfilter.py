@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from helper import bit_field_to_bytes, encode_varint, int_to_little_endian, murmur3
+from network import GenericMessage
 
 
 BIP37_CONSTANT = 0xfba4c795
@@ -27,12 +28,13 @@ class BloomFilter:
         return bit_field_to_bytes(self.bit_field)
 
     def filterload(self, flag=1):
-        '''Return the payload that goes in a filterload message'''
+        '''Return a network message whose command is filterload'''
         # encode_varint self.size
         # next is the self.filter_bytes()
         # function count is 4 bytes little endian
         # tweak is 4 bytes little endian
         # flag is 1 byte little endian
+        # return a GenericMessage with b'filterload' as the command
         raise NotImplementedError
 
 

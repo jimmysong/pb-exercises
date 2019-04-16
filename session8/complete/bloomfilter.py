@@ -32,7 +32,7 @@ class BloomFilter:
         return bit_field_to_bytes(self.bit_field)
 
     def filterload(self, flag=1):
-        '''Return the payload that goes in a filterload message'''
+        '''Return a network message whose command is filterload'''
         # encode_varint self.size
         payload = encode_varint(self.size)
         # next is the self.filter_bytes()
@@ -43,6 +43,7 @@ class BloomFilter:
         payload += int_to_little_endian(self.tweak, 4)
         # flag is 1 byte little endian
         payload += int_to_little_endian(flag, 1)
+        # return a GenericMessage with b'filterload' as the command
         return GenericMessage(b'filterload', payload)
 
 
