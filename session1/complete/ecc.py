@@ -190,6 +190,8 @@ class Point:
             return self.__class__(x, y, self.a, self.b)
 
         # Case 3: self.x == other.x, self.y == other.y
+        if self == other and self.y == 0:
+            return self.__class__(None, None, self.a, self.b)
         else:
             # Formula (x3,y3)=(x1,y1)+(x1,y1)
             # s=(3*x1**2+a)/(2*y1)
