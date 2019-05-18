@@ -283,6 +283,7 @@ Find the compressed and uncompressed SEC format for pub keys where the private k
 999**3, 123, 42424242
 ```
 ---
+>>> from ecc import G
 >>> secrets = (999**3, 123, 42424242)
 >>> # iterate through secrets
 >>> for secret in secrets:  #/
@@ -330,6 +331,7 @@ Find the mainnet and testnet addresses corresponding to the private keys:
 * 4242424242, uncompressed
 ---
 >>> from ecc import G
+>>> from helper import encode_base58, hash160, hash256
 >>> components = (
 ...     # (secret, compressed)
 ...     (888**3, True),
@@ -378,7 +380,7 @@ Create a testnet address using your own secret key (use your name and email as t
 >>> secret = little_endian_to_int(hash256(passphrase))
 >>> # get the public point
 >>> point = secret*G  #/
->>> # if you completed 7.2, just do the .address(testnet=True) method on the public point
+>>> # if you completed exercise 14, just do the .address(testnet=True) method on the public point
 >>> print(point.address(testnet=True))  #/
 mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 

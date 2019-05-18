@@ -144,6 +144,7 @@ Target to Difficulty formula is
 
 where \\(\texttt{min} = \texttt{0xffff}\cdot256^{(\texttt{0x1d}-3)}\\)
 ---
+>>> from helper import little_endian_to_int
 >>> hex_bits = 'f2881718'
 >>> # bytes.fromhex to get the bits
 >>> bits = bytes.fromhex(hex_bits)  #/

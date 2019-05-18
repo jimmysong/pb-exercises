@@ -7,8 +7,8 @@
 >>> # Addition/Subtraction example
 >>> print((11 + 6) % 19)
 17
->>> print((17 - 11) % 19)
-6
+>>> print((17 - 6) % 19)
+11
 >>> print((8 + 14) % 19)
 3
 >>> print((4 - 12) % 19)

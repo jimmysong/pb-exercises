@@ -49,7 +49,7 @@ Send 0.04 TBTC to this address
 
 `mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv`
 
-#### Go here to send your transaction: https://live.blockcypher.com/btc-testnet/pushtx/
+#### Go here to send your transaction: https://blockstream.info/testnet/tx/push
 ---
 >>> from tx import Tx, TxIn, TxOut
 >>> from helper import decode_base58, hash256, little_endian_to_int
