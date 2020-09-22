@@ -73,7 +73,7 @@
 
 #endcode
 #exercise
-Given a Bloom Filter with these parameters: size=10, function count=5, tweak=99, which bits are set after adding these items? 
+Given a Bloom Filter with these parameters: size=10, function count=5, tweak=99, which bits are set after adding these items?
 
  * `b'Hello World'`
  * `b'Goodbye!'`
@@ -141,8 +141,8 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> bf = BloomFilter(filter_size, filter_num_functions, filter_tweak)  #/
 >>> # add the h160 to the bloom filter
 >>> bf.add(h160)  #/
->>> # connect to tbtc.programmingblockchain.com in testnet mode
->>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)  #/
+>>> # connect to testnet.programmingbitcoin.com in testnet mode
+>>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
 >>> # complete the handshake
 >>> node.handshake()  #/
 >>> # send the filterload message
@@ -177,7 +177,7 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 network:SimpleNodeTest:test_get_filtered_txs:
 #endunittest
 #exercise
-You have been sent some unknown amount of testnet bitcoins to your address. 
+You have been sent some unknown amount of testnet bitcoins to your address.
 
 Send all of it back (minus fees) to `mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv` using only the networking protocol.
 
@@ -208,8 +208,8 @@ Remember turn on logging in `SimpleNode` if you need to debug
 >>> target_script = p2pkh_script(target_h160)
 >>> bloom_filter = BloomFilter(30, 5, 90210)
 >>> fee = 5000  # fee in satoshis
->>> # connect to tbtc.programmingblockchain.com in testnet mode
->>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)  #/
+>>> # connect to testnet.programmingbitcoin.com in testnet mode
+>>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
 >>> # add the h160 to the bloom filter
 >>> bloom_filter.add(h160)  #/
 >>> # complete the handshake

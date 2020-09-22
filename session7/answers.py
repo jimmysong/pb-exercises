@@ -40,7 +40,7 @@ network:HeadersMessageTest:test_parse:
 #code
 >>> # Handshake Example
 >>> from network import SimpleNode, VersionMessage, VerAckMessage
->>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)
+>>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)
 >>> version = VersionMessage()
 >>> node.send(version)
 >>> print(node.wait_for(VerAckMessage).command)
@@ -54,7 +54,7 @@ network:SimpleNodeTest:test_handshake:
 >>> # Block Header Download Example
 >>> from network import GetHeadersMessage, HeadersMessage, SimpleNode
 >>> from block import GENESIS_BLOCK_HASH
->>> node = SimpleNode('btc.programmingblockchain.com', testnet=False)
+>>> node = SimpleNode('mainnet.programmingbitcoin.com', testnet=False)
 >>> node.handshake()
 >>> last_block_hash = GENESIS_BLOCK_HASH
 >>> current_height = 1
@@ -97,8 +97,8 @@ Download the first 40,000 blocks for testnet and validate them.
 ---
 >>> from network import SimpleNode, GetHeadersMessage, HeadersMessage
 >>> from block import TESTNET_GENESIS_BLOCK_HASH
->>> # connect to tbtc.programmingblockchain.com with testnet=True
->>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)  #/
+>>> # connect to testnet.programmingbitcoin.com with testnet=True
+>>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
 >>> # handshake
 >>> node.handshake()  #/
 >>> # set the last block hash to the TESTNET_GENESIS_BLOCK_HASH
@@ -393,8 +393,8 @@ Block Hash:
 >>> from block import Block
 >>> block_hex = '0000000000044b01a9440b34f582fe171c7b8642fedd0ebfccf8fdf6a1810900'
 >>> block_hash = bytes.fromhex(block_hex)
->>> # connect to tbtc.programmingblockchain.com on testnet
->>> node = SimpleNode('tbtc.programmingblockchain.com', testnet=True)  #/
+>>> # connect to testnet.programmingbitcoin.com on testnet
+>>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
 >>> # handshake
 >>> node.handshake()  #/
 >>> # create a GetDataMessage
