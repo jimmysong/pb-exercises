@@ -9,13 +9,14 @@ Parse this message
 f9beb4d976657261636b000000000000000000005df6e0e2
 ```
 ---
+>>> from helper import little_endian_to_int
 >>> msg = bytes.fromhex('f9beb4d976657261636b000000000000000000005df6e0e2')
 >>> # first 4 are network magic
 >>> magic = msg[:4]  #/
 >>> # next 12 are command
 >>> command = msg[4:16]  #/
 >>> # next 4 are payload length
->>> payload_length = msg[16:20]  #/
+>>> payload_length = little_endian_to_int(msg[16:20])  #/
 >>> # next 4 are checksum
 >>> checksum = msg[20:24]  #/
 >>> # rest is payload
@@ -64,9 +65,9 @@ network:SimpleNodeTest:test_handshake:
 ...     headers = node.wait_for(HeadersMessage)
 ...     for header in headers.headers:
 ...         if not header.check_pow():
-...             raise RuntimeError('bad proof of work at block {}'.format(count))
+...             raise RuntimeError(f'bad proof of work at block {count}')
 ...         if last_block_hash != GENESIS_BLOCK_HASH and header.prev_block != last_block_hash:
-...             raise RuntimeError('discontinuous block at {}'.format(count))
+...             raise RuntimeError(f'discontinuous block at {count}')
 ...         if current_height % 2016 == 0:
 ...             print(header.id())
 ...         current_height += 1
@@ -117,10 +118,10 @@ Download the first 40,000 blocks for testnet and validate them.
 ...     for header in headers.headers:  #/
 ...         # check the proof of work
 ...         if not header.check_pow():  #/
-...             raise RuntimeError('bad proof of work at block {}'.format(count))  #/
+...             raise RuntimeError(f'bad proof of work at block {count}')  #/
 ...         # the prev_block of the current block should be the last block
 ...         if last_block_hash != TESTNET_GENESIS_BLOCK_HASH and header.prev_block != last_block_hash:  #/
-...             raise RuntimeError('discontinuous block at {}'.format(count))  #/
+...             raise RuntimeError(f'discontinuous block at {count}')  #/
 ...         # print the id every 2016 blocks (difficulty adjustment)
 ...         if current_height % 2016 == 0:  #/
 ...             print(header.id())  #/
@@ -404,15 +405,15 @@ Block Hash:
 >>> # send the getdata message
 >>> node.send(getdata)  #/
 >>> # wait for the block message in response
->>> b = node.wait_for(Block)  #/
+>>> block_obj = node.wait_for(Block)  #/
 >>> # check the proof of work
->>> if not b.check_pow():  #/
+>>> if not block_obj.check_pow():  #/
 ...     raise RuntimeError('bad proof of work')  #/
 >>> # validate the tx_hashes
->>> if not b.validate_merkle_root():  #/
+>>> if not block_obj.validate_merkle_root():  #/
 ...     raise RuntimeError('bad merkle root')  #/
 >>> # print the merkle root hex
->>> print(b.merkle_root.hex())  #/
+>>> print(block_obj.merkle_root.hex())  #/
 627bf8053bd767ad72c6afcd2d91638311f9c7520905a634be13aa8853f7a446
 
 #endexercise
@@ -603,7 +604,7 @@ def parse_ne(cls, s, testnet=False):
     else:
         expected_magic = NETWORK_MAGIC
     if magic != expected_magic:
-        raise RuntimeError('magic is not right {} vs {}'.format(magic.hex(), expected_magic.hex()))
+        raise RuntimeError('magic is not right {magic.hex()} vs {expected_magic.hex()}')
     command = s.read(12)
     command = command.strip(b'\x00')
     payload_length = little_endian_to_int(s.read(4))

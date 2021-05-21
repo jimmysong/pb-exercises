@@ -644,6 +644,7 @@ def op_hash160(stack):
     # add the hash160 of the element to the end of the stack
     h160 = hash160(element)
     stack.append(h160)
+    # return True to show execution went through
     return True
 
 
@@ -673,6 +674,7 @@ def op_checksig(stack, z):
         stack.append(encode_num(1))
     else:
         stack.append(encode_num(0))
+    # return True to show execution went through
     return True
 
 
@@ -699,7 +701,7 @@ def op_checkmultisig(stack, z):
     # OP_CHECKMULTISIG bug
     stack.pop()
     try:
-        # parse the sec pubkeys into an array of points
+        # parse the sec_pubkeys into an array of points
         # parse the der_signatures into an array of signatures
         # loop through the signatures
             # bail early if we don't have any points left
@@ -782,6 +784,14 @@ class OpTest(TestCase):
         stack = [b'', sig1, sig2, b'\x02', sec1, sec2, b'\x02']
         self.assertTrue(op_checkmultisig(stack, z))
         self.assertEqual(decode_num(stack[0]), 1)
+
+
+def op_name(index):
+    return OP_CODE_NAMES.get(index)
+
+
+def op_function(index):
+    return OP_CODE_FUNCTIONS[index]
 
 
 OP_CODE_FUNCTIONS = {

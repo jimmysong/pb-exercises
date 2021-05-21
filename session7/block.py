@@ -94,17 +94,29 @@ class Block:
         # that is 001
         return self.version >> 29 == 0b001
 
+    def bip112(self):
+        '''Returns whether this block is signaling readiness for BIP112'''
+        # BIP112 is signalled if the first bit from the right is 1
+        # shift 0 bits to the right and see if the last bit is 1
+        return self.version >> 0 & 1 == 1
+
+    def bip141(self):
+        '''Returns whether this block is signaling readiness for BIP141'''
+        # BIP141 is signalled if the 2nd bit from the right is 1
+        # shift 1 bit to the right and see if the last bit is 1
+        return self.version >> 1 & 1 == 1
+
+    def bip341(self):
+        '''Returns whether this block is signaling readiness for BIP341'''
+        # BIP341 is signalled if the 3rd bit from the right is 1
+        # shift 2 bits to the right and see if the last bit is 1
+        return self.version >> 2 & 1 == 1
+
     def bip91(self):
         '''Returns whether this block is signaling readiness for BIP91'''
         # BIP91 is signalled if the 5th bit from the right is 1
         # shift 4 bits to the right and see if the last bit is 1
         return self.version >> 4 & 1 == 1
-
-    def bip141(self):
-        '''Returns whether this block is signaling readiness for BIP141'''
-        # BIP91 is signalled if the 2nd bit from the right is 1
-        # shift 1 bit to the right and see if the last bit is 1
-        return self.version >> 1 & 1 == 1
 
     def target(self):
         '''Returns the proof-of-work target based on the bits'''
@@ -181,15 +193,15 @@ class BlockTest(TestCase):
         block = Block.parse_header(stream)
         self.assertFalse(block.bip9())
 
-    def test_bip91(self):
-        block_raw = bytes.fromhex('1200002028856ec5bca29cf76980d368b0a163a0bb81fc192951270100000000000000003288f32a2831833c31a25401c52093eb545d28157e200a64b21b3ae8f21c507401877b5935470118144dbfd1')
+    def test_bip112(self):
+        block_raw = bytes.fromhex('010000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d')
         stream = BytesIO(block_raw)
         block = Block.parse_header(stream)
-        self.assertTrue(block.bip91())
-        block_raw = bytes.fromhex('020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d')
+        self.assertTrue(block.bip112())
+        block_raw = bytes.fromhex('0400002066f09203c1cf5ef1531f24ed21b1915ae9abeb691f0d2e0100000000000000003de0976428ce56125351bae62c5b8b8c79d8297c702ea05d60feabb4ed188b59c36fa759e93c0118b74b2618')
         stream = BytesIO(block_raw)
         block = Block.parse_header(stream)
-        self.assertFalse(block.bip91())
+        self.assertFalse(block.bip112())
 
     def test_bip141(self):
         block_raw = bytes.fromhex('020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d')
@@ -200,6 +212,26 @@ class BlockTest(TestCase):
         stream = BytesIO(block_raw)
         block = Block.parse_header(stream)
         self.assertFalse(block.bip141())
+
+    def test_bip341(self):
+        block_raw = bytes.fromhex('040000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d')
+        stream = BytesIO(block_raw)
+        block = Block.parse_header(stream)
+        self.assertTrue(block.bip341())
+        block_raw = bytes.fromhex('0100002066f09203c1cf5ef1531f24ed21b1915ae9abeb691f0d2e0100000000000000003de0976428ce56125351bae62c5b8b8c79d8297c702ea05d60feabb4ed188b59c36fa759e93c0118b74b2618')
+        stream = BytesIO(block_raw)
+        block = Block.parse_header(stream)
+        self.assertFalse(block.bip341())
+
+    def test_bip91(self):
+        block_raw = bytes.fromhex('1200002028856ec5bca29cf76980d368b0a163a0bb81fc192951270100000000000000003288f32a2831833c31a25401c52093eb545d28157e200a64b21b3ae8f21c507401877b5935470118144dbfd1')
+        stream = BytesIO(block_raw)
+        block = Block.parse_header(stream)
+        self.assertTrue(block.bip91())
+        block_raw = bytes.fromhex('020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d')
+        stream = BytesIO(block_raw)
+        block = Block.parse_header(stream)
+        self.assertFalse(block.bip91())
 
     def test_target(self):
         block_raw = bytes.fromhex('020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d')

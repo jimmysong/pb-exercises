@@ -5,8 +5,7 @@ class FieldElement:
 
     def __init__(self, num, prime):
         if num >= prime or num < 0:
-            error = 'Num {} not in field range 0 to {}'.format(
-                num, prime - 1)
+            error = f'Num {num} not in field range 0 to {prime-1}'
             raise ValueError(error)
         self.num = num
         self.prime = prime
@@ -21,7 +20,7 @@ class FieldElement:
         return not (self == other)
 
     def __repr__(self):
-        return 'FieldElement_{}({})'.format(self.prime, self.num)
+        return f'FieldElement_{self.prime}({self.num})'
 
     def __add__(self, other):
         if self.prime != other.prime:
@@ -57,11 +56,12 @@ class FieldElement:
         return self.__class__(num, prime)
 
     def __pow__(self, n):
-        # Exercise 10: remember Fermat's Little Theorem:
-        # Exercise 10: self.num**(p-1) % p == 1
-        # Exercise 10: you might want to use % operator on n
+        # self.num is the base, n is the exponent
+        # self.prime is what you'll need to mod against
         prime = self.prime
-        num = pow(self.num, n % (prime - 1), prime)
+        # use pow(base, exponent, prime) to calculate the number
+        num = pow(self.num, n, prime)
+        # use: self.__class__(num, prime)
         return self.__class__(num, prime)
 
     def __truediv__(self, other):
@@ -145,7 +145,7 @@ class Point:
         # y**2 == x**3 + a*x + b
         if self.y**2 != self.x**3 + a * x + b:
             # if not, raise a ValueError
-            raise ValueError('({}, {}) is not on the curve'.format(self.x, self.y))
+            raise ValueError(f'({self.x}, {self.y}) is not on the curve')
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \
@@ -159,11 +159,11 @@ class Point:
         if self.x is None:
             return 'Point(infinity)'
         else:
-            return 'Point({},{})_{}'.format(self.x.num, self.y.num, self.x.prime)
+            return f'Point({self.x.num},{self.y.num})_{self.x.prime}'
 
     def __add__(self, other):
         if self.a != other.a or self.b != other.b:
-            raise TypeError('Points {}, {} are not on the same curve'.format(self, other))
+            raise TypeError(f'Points {self}, {other} are not on the same curve')
         # Case 0.0: self is the point at infinity, return other
         if self.x is None:
             return other
@@ -187,9 +187,10 @@ class Point:
             x = s**2 - self.x - other.x
             # y3=s*(x1-x3)-y1
             y = s * (self.x - x) - self.y
+            # use: self.__class__(x, y, self.a, self.b)
             return self.__class__(x, y, self.a, self.b)
 
-        # Case 3: self.x == other.x, self.y == other.y
+        # Case 3: self == other
         else:
             # Formula (x3,y3)=(x1,y1)+(x1,y1)
             # s=(3*x1**2+a)/(2*y1)
@@ -198,6 +199,7 @@ class Point:
             x = s**2 - 2 * self.x
             # y3=s*(x1-x3)-y1
             y = s * (self.x - x) - self.y
+            # use: self.__class__(x, y, self.a, self.b)
             return self.__class__(x, y, self.a, self.b)
 
 

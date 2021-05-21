@@ -36,11 +36,11 @@ class MerkleTree:
                 if h is None:
                     short = 'None'
                 else:
-                    short = '{}...'.format(h.hex()[:8])
+                    short = f'{h.hex()[:8]}...'
                 if depth == self.current_depth and index == self.current_index:
-                    items.append('*{}*'.format(short[:-2]))
+                    items.append(f'*{short[:-2]}*')
                 else:
-                    items.append('{}'.format(short))
+                    items.append(f'{short}')
             result.append(', '.join(items))
         return '\n'.join(result)
 
@@ -127,7 +127,7 @@ class MerkleTree:
                     # we've completed this sub-tree, go up
                     self.up()
         if len(hashes) != 0:
-            raise RuntimeError('hashes not all consumed {}'.format(len(hashes)))
+            raise RuntimeError(f'hashes not all consumed {len(hashes)}')
         for flag_bit in flag_bits:
             if flag_bit != 0:
                 raise RuntimeError('flag bits not all consumed')

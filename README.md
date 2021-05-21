@@ -1,10 +1,10 @@
 # Pre-Requisites
 
-Install python 3.5 or above on your machine:
+Install python 3.8 or above on your machine:
 
- * Windows: https://www.python.org/ftp/python/3.6.2/python-3.6.2-amd64.exe
- * Mac OS X: https://www.python.org/ftp/python/3.6.2/python-3.6.2-macosx10.6.pkg
- * Linux: see your distro docs
+ * Windows: https://www.python.org/downloads/release/python-395/
+ * Mac OS X: https://www.python.org/downloads/release/python-395/
+ * Linux: see your distro docs (on Debian/Ubuntu `sudo apt get install python3` should work)
 
 Install pip:
 

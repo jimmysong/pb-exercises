@@ -690,6 +690,14 @@ def op_checksequenceverify(stack, version, sequence):
     return True
 
 
+def op_name(index):
+    return OP_CODE_NAMES.get(index)
+
+
+def op_function(index):
+    return OP_CODE_FUNCTIONS[index]
+
+
 OP_CODE_FUNCTIONS = {
     0: op_0,
     79: op_1negate,

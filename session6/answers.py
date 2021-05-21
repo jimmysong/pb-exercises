@@ -85,22 +85,32 @@ block:BlockTest:test_hash:
 >>> stream = BytesIO(bin_block)
 >>> b = Block.parse(stream)
 >>> version = b.version
->>> print('BIP9: {}'.format(version >> 29 == 0b001))
+>>> print(f'BIP9: {version >> 29 == 0b001}')
 BIP9: True
->>> print('BIP91: {}'.format(version >> 4 & 1 == 1))
-BIP91: False
->>> print('BIP141: {}'.format(version >> 1 & 1 == 1))
+>>> print(f'BIP112: {version >> 0 & 1 == 1}')
+BIP112: False
+>>> print(f'BIP141: {version >> 1 & 1 == 1}')
 BIP141: True
+>>> print(f'BIP341: {version >> 2 & 1 == 1}')
+BIP341: False
+>>> print(f'BIP91: {version >> 4 & 1 == 1}')
+BIP91: False
 
 #endcode
 #unittest
 block:BlockTest:test_bip9:
 #endunittest
 #unittest
-block:BlockTest:test_bip91:
+block:BlockTest:test_bip112:
 #endunittest
 #unittest
 block:BlockTest:test_bip141:
+#endunittest
+#unittest
+block:BlockTest:test_bip341:
+#endunittest
+#unittest
+block:BlockTest:test_bip91:
 #endunittest
 #code
 >>> # Calculating Target from Bits Example
@@ -109,7 +119,7 @@ block:BlockTest:test_bip141:
 >>> exponent = bits[-1]
 >>> coefficient = little_endian_to_int(bits[:-1])
 >>> target = coefficient*256**(exponent-3)
->>> print('{:x}'.format(target).zfill(64))
+>>> print(f'{target:x}'.zfill(64))
 0000000000000000013ce9000000000000000000000000000000000000000000
 
 #endcode
@@ -132,13 +142,13 @@ Calculate the target and difficulty for these bits:
 f2881718
 ```
 
-Bits to target formula is 
+Bits to target formula is
 
-\\(\texttt{coefficient}\cdot256^{(\texttt{exponent}-3)}\\) 
+\\(\texttt{coefficient}\cdot256^{(\texttt{exponent}-3)}\\)
 
 where coefficient is the first three bytes in little endian and exponent is the last byte.
 
-Target to Difficulty formula is 
+Target to Difficulty formula is
 
 \\(\texttt{difficulty} = \texttt{min} / \texttt{target}\\)
 
@@ -154,8 +164,8 @@ where \\(\texttt{min} = \texttt{0xffff}\cdot256^{(\texttt{0x1d}-3)}\\)
 >>> coefficient = little_endian_to_int(bits[:-1])  #/
 >>> # plug into formula coefficient * 256^(exponent-3) to get the target
 >>> target = coefficient * 256**(exponent-3)  #/
->>> # print target using print('{:x}'.format(target).zfill(64))
->>> print('{:x}'.format(target).zfill(64))  #/
+>>> # print target using print(f'{target:x}'.zfill(64))
+>>> print(f'{target:x}'.zfill(64))  #/
 00000000000000001788f2000000000000000000000000000000000000000000
 >>> # difficulty formula is 0xffff * 256**(0x1d - 3) / target
 >>> difficulty = 0xffff * 256**(0x1d - 3) // target  #/
@@ -183,13 +193,13 @@ Check that the proof-of-work (hash256 interpreted as a little-endian number) is 
 >>> # make a stream using BytesIO
 >>> stream = BytesIO(bin_block)  #/
 >>> # parse the Block
->>> b = Block.parse(stream)  #/
+>>> block_obj = Block.parse(stream)  #/
 >>> # hash256 the serialization
->>> h256 = hash256(b.serialize())  #/
+>>> h256 = hash256(block_obj.serialize())  #/
 >>> # interpret the result as a number in little endian
 >>> proof = little_endian_to_int(h256)  #/
 >>> # get the target
->>> target = b.target()  #/
+>>> target = block_obj.target()  #/
 >>> # check proof of work < target
 >>> print(proof < target)  #/
 True
@@ -262,12 +272,20 @@ def bip9(self):
     return self.version >> 29 == 0b001
 
 
-def bip91(self):
-    return self.version >> 4 & 1 == 1
+def bip112(self):
+    return self.version >> 0 & 1 == 1
 
 
 def bip141(self):
     return self.version >> 1 & 1 == 1
+
+
+def bip341(self):
+    return self.version >> 2 & 1 == 1
+
+
+def bip91(self):
+    return self.version >> 4 & 1 == 1
 
 
 def target(self):
@@ -296,8 +314,10 @@ class Session6Test(TestCase):
         Block.serialize = serialize
         Block.hash = hash
         Block.bip9 = bip9
-        Block.bip91 = bip91
+        Block.bip112 = bip112
         Block.bip141 = bip141
+        Block.bip341 = bip341
+        Block.bip91 = bip91
         Block.target = target
         Block.difficulty = difficulty
         Block.check_pow = check_pow

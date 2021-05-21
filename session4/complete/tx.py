@@ -28,12 +28,12 @@ class TxFetcher:
     @classmethod
     def fetch(cls, tx_id, testnet=False, fresh=False):
         if fresh or (tx_id not in cls.cache):
-            url = '{}/tx/{}.hex'.format(cls.get_url(testnet), tx_id)
+            url = f'{cls.get_url(testnet)}/tx/{tx_id}.hex'
             response = requests.get(url)
             try:
                 raw = bytes.fromhex(response.text.strip())
             except ValueError:
-                raise ValueError('unexpected response: {}'.format(response.text))
+                raise ValueError(f'unexpected response: {response.text}')
             if raw[4] == 0:
                 raw = raw[:4] + raw[6:]
                 tx = Tx.parse(BytesIO(raw), testnet=testnet)
@@ -42,7 +42,7 @@ class TxFetcher:
                 tx = Tx.parse(BytesIO(raw), testnet=testnet)
             # make sure the tx we got matches to the hash we requested
             if tx.id() != tx_id:
-                raise ValueError('not the same id: {} vs {}'.format(tx.id(), tx_id))
+                raise ValueError(f'not the same id: {tx.id()} vs {tx_id}')
             cls.cache[tx_id] = tx
         cls.cache[tx_id].testnet = testnet
         return cls.cache[tx_id]
@@ -71,19 +71,9 @@ class Tx:
         self.testnet = testnet
 
     def __repr__(self):
-        tx_ins = ''
-        for tx_in in self.tx_ins:
-            tx_ins += tx_in.__repr__() + '\n'
-        tx_outs = ''
-        for tx_out in self.tx_outs:
-            tx_outs += tx_out.__repr__() + '\n'
-        return 'tx: {}\nversion: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
-            self.hash().hex(),
-            self.version,
-            tx_ins,
-            tx_outs,
-            self.locktime,
-        )
+        tx_ins = ' '.join([f'{tx_in}' for tx_in in self.tx_ins])
+        tx_outs = ' '.join([f'{tx_out}' for tx_out in self.tx_outs])
+        return f'tx: {self.hash().hex()}\nversion: {self.version}\ntx_ins:\n{tx_ins}\ntx_outs:\n{tx_outs}\nlocktime: {self.locktime}\n'
 
     def id(self):
         '''Human-readable hexadecimal of the transaction hash'''
@@ -170,15 +160,15 @@ class Tx:
             # Otherwise, the ScriptSig is empty
             else:
                 script_sig = None
-            # create a TxIn object with the prev_tx, prev_index and sequence
-            # the same as the current tx_in and the script_sig from above
+            # create a new TxIn with the same parameters
+            #  as tx_in, but change the script_sig
             new_tx_in = TxIn(
                 prev_tx=tx_in.prev_tx,
                 prev_index=tx_in.prev_index,
                 script_sig=script_sig,
                 sequence=tx_in.sequence,
             )
-            # add the serialization of the TxIn object
+            # add the serialization of the new TxIn
             s += new_tx_in.serialize()
         # add how many outputs there are using encode_varint
         s += encode_varint(len(self.tx_outs))
@@ -206,10 +196,7 @@ class TxIn:
         self.sequence = sequence
 
     def __repr__(self):
-        return '{}:{}'.format(
-            self.prev_tx.hex(),
-            self.prev_index,
-        )
+        return f'{self.prev_tx.hex()}:{self.prev_index}'
 
     @classmethod
     def parse(cls, s):
@@ -272,7 +259,7 @@ class TxOut:
         self.script_pubkey = script_pubkey
 
     def __repr__(self):
-        return '{}:{}'.format(self.amount, self.script_pubkey)
+        return f'{self.amount}:{self.script_pubkey}'
 
     @classmethod
     def parse(cls, s):

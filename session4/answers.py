@@ -11,7 +11,7 @@
 ...         return False
 ...     stack.append(stack[-1])
 ...     return True
->>> 
+>>>
 >>> def op_hash256(stack):
 ...     if len(stack) < 1:
 ...         return False
@@ -61,7 +61,7 @@ Determine a ScriptSig that will satisfy this scriptPubKey:
 >>> script_pubkey = Script([0x76, 0x76, 0x95, 0x93, 0x56, 0x87])
 >>> # print the script_pubkey
 >>> print(script_pubkey)  #/
-OP_DUP OP_DUP OP_MUL OP_ADD OP_6 OP_EQUAL 
+OP_DUP OP_DUP OP_MUL OP_ADD OP_6 OP_EQUAL
 >>> # Find the right scriptSig
 >>> script_sig = Script([0x52])  #/
 >>> # combine the scripts
@@ -87,7 +87,7 @@ Determine what this ScriptPubKey is doing:
 >>> script_pubkey = Script([0x6e, 0x87, 0x91, 0x69, 0xa7, 0x7c, 0xa7, 0x87])
 >>> # print the script_pubkey
 >>> print(script_pubkey)  #/
-OP_2DUP OP_EQUAL OP_NOT OP_VERIFY OP_SHA1 OP_SWAP OP_SHA1 OP_EQUAL 
+OP_2DUP OP_EQUAL OP_NOT OP_VERIFY OP_SHA1 OP_SWAP OP_SHA1 OP_EQUAL
 >>> # SOLUTION  #/
 >>> hex_script_sig = 'fd86024d4001255044462d312e330a25e2e3cfd30a0a0a312030206f626a0a3c3c2f57696474682032203020522f4865696768742033203020522f547970652034203020522f537562747970652035203020522f46696c7465722036203020522f436f6c6f7253706163652037203020522f4c656e6774682038203020522f42697473506572436f6d706f6e656e7420383e3e0a73747265616d0affd8fffe00245348412d3120697320646561642121212121852fec092339759c39b1a1c63c4c97e1fffe017f46dc93a6b67e013b029aaa1db2560b45ca67d688c7f84b8c4c791fe02b3df614f86db1690901c56b45c1530afedfb76038e972722fe7ad728f0e4904e046c230570fe9d41398abe12ef5bc942be33542a4802d98b5d70f2a332ec37fac3514e74ddc0f2cc1a874cd0c78305a21566461309789606bd0bf3f98cda8044629a14d4001255044462d312e330a25e2e3cfd30a0a0a312030206f626a0a3c3c2f57696474682032203020522f4865696768742033203020522f547970652034203020522f537562747970652035203020522f46696c7465722036203020522f436f6c6f7253706163652037203020522f4c656e6774682038203020522f42697473506572436f6d706f6e656e7420383e3e0a73747265616d0affd8fffe00245348412d3120697320646561642121212121852fec092339759c39b1a1c63c4c97e1fffe017346dc9166b67e118f029ab621b2560ff9ca67cca8c7f85ba84c79030c2b3de218f86db3a90901d5df45c14f26fedfb3dc38e96ac22fe7bd728f0e45bce046d23c570feb141398bb552ef5a0a82be331fea48037b8b5d71f0e332edf93ac3500eb4ddc0decc1a864790c782c76215660dd309791d06bd0af3f98cda4bc4629b1'  #/
 >>> script_sig = Script.parse(BytesIO(bytes.fromhex(hex_script_sig)))  #/
@@ -102,7 +102,7 @@ tx:TxTest:test_serialize:
 #code
 >>> # Example of how to look up a transaction using fetch_tx() method
 >>> from tx import TxIn
->>> prev_tx = bytes.fromhex('d1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81') 
+>>> prev_tx = bytes.fromhex('d1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81')
 >>> tx_in = TxIn(prev_tx, 0)
 >>> print(tx_in.fetch_tx().tx_ins)
 [cbf43825e0b92ba3bfabaec509e14ee9132df1e92ffdfc6636f848fbf0537c13:0, 590133d8ac653229dfd8d72d2a81564502051f21554f919ae59ac27be7727451:1]
@@ -115,20 +115,20 @@ d1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81
 ```
 ---
 >>> from tx import TxIn
->>> prev_tx = bytes.fromhex('d1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81') 
+>>> prev_tx = bytes.fromhex('d1c789a9c60383bf715f3f6ad9d14b91fe55f3deb369fe5d9280cb1a01793f81')
 >>> prev_index = 0
 >>> # create the transaction input
 >>> tx_in = TxIn(prev_tx, 0)  #/
 >>> # fetch the transaction
->>> t = tx_in.fetch_tx()  #/
+>>> tx_obj = tx_in.fetch_tx()  #/
 >>> # grab the output at the index
->>> prev_output = t.tx_outs[prev_index]  #/
+>>> prev_output = tx_obj.tx_outs[prev_index]  #/
 >>> # show the amount
 >>> print(prev_output.amount)  #/
 42505594
 >>> # show the script_pubkey
 >>> print(prev_output.script_pubkey)  #/
-OP_DUP OP_HASH160 a802fc56c704ce87c42d7c92eb75e7896bdc41ae OP_EQUALVERIFY OP_CHECKSIG 
+OP_DUP OP_HASH160 a802fc56c704ce87c42d7c92eb75e7896bdc41ae OP_EQUALVERIFY OP_CHECKSIG
 
 #endexercise
 #unittest
@@ -151,19 +151,19 @@ Fee is simply the sum of the inputs (use the value() method) minus the outputs (
 >>> # bytes.fromhex the tx, make stream
 >>> stream = BytesIO(bytes.fromhex(hex_tx))
 >>> # parse the tx
->>> t = Tx.parse(stream)  #/
+>>> tx_obj = Tx.parse(stream)  #/
 >>> # initialize input sum
 >>> input_sum = 0  #/
->>> # iterate over all inputs (t.tx_ins)
->>> for tx_in in t.tx_ins:  #/
+>>> # iterate over all inputs (tx_obj.tx_ins)
+>>> for tx_in in tx_obj.tx_ins:  #/
 ...     # get the values from the TxIn.value method you wrote in 4.2
 ...     value = tx_in.value()  #/
 ...     # add to input sum
 ...     input_sum += value  #/
 >>> # initialize output sum
 >>> output_sum = 0  #/
->>> # iterate over all outputs (t.tx_outs)
->>> for tx_out in t.tx_outs:  #/
+>>> # iterate over all outputs (tx_obj.tx_outs)
+>>> for tx_out in tx_obj.tx_outs:  #/
 ...     # get the amounts from the TxOut.amount property
 ...     value = tx_out.amount  #/
 ...     # add to output sum
@@ -218,11 +218,11 @@ Validate the signature for the first input in this transaction.
 >>> stream = BytesIO(bytes.fromhex(hex_tx))
 >>> index = 0
 >>> # parse the transaction using Tx.parse
->>> t = Tx.parse(stream)  #/
+>>> tx_obj = Tx.parse(stream)  #/
 >>> # grab the input at index
->>> tx_in = t.tx_ins[index]  #/
+>>> tx_in = tx_obj.tx_ins[index]  #/
 >>> # use the sig_hash method on index to get z
->>> z = t.sig_hash(index)  #/
+>>> z = tx_obj.sig_hash(index)  #/
 >>> # combine the script_sig and script_pubkey
 >>> combined_script = tx_in.script_sig + tx_in.script_pubkey()  #/
 >>> # evaluate the combined script

@@ -18,26 +18,6 @@ You can execute by pressing shift-enter. Try it! You can also click the Run butt
 hello world
 
 #endcode
-#code
->>> s = 'hello world'
->>> b = b'hello world'
->>> 
->>> print(s==b) # False
-False
->>> 
->>> # You convert from string to bytes this way:
->>> 
->>> hello_world_bytes = s.encode('ascii')
->>> print(hello_world_bytes == b) # True
-True
->>> 
->>> # You convert from bytes to string this way:
->>> 
->>> hello_world_string = b.decode('ascii')
->>> print(hello_world_string == s) # True
-True
-
-#endcode
 #exercise
 You can do a lot more than just print "hello world"
 
@@ -69,18 +49,18 @@ These may look the same but the 'b' prefix means that the variable `b` is bytes 
 #code
 >>> s = 'hello world'
 >>> b = b'hello world'
->>> 
+>>>
 >>> print(s==b) # False
 False
->>> 
+>>>
 >>> # You convert from string to bytes this way:
->>> 
+>>>
 >>> hello_world_bytes = s.encode('ascii')
 >>> print(hello_world_bytes == b) # True
 True
->>> 
+>>>
 >>> # You convert from bytes to string this way:
->>> 
+>>>
 >>> hello_world_string = b.decode('ascii')
 >>> print(hello_world_string == s) # True
 True
@@ -97,10 +77,10 @@ This way, making everything work will be a lot easier.
 #code
 >>> # this is how you import an entire module
 >>> import helper
->>> 
+>>>
 >>> # this is how you import a particular function, class or constant
 >>> from helper import little_endian_to_int
->>> 
+>>>
 >>> # used in the next exercise
 >>> some_long_variable_name = 'something'
 
@@ -151,7 +131,7 @@ print(b[::-1]) # b'dlrow olleh'
 Indexing bytes will get you the numerical value:
 
 ```python
-print(b'&'[0]) # 38 since & is charcter #38 
+print(b'&'[0]) # 38 since & is charcter #38
 ```
 
 You can do the reverse by using bytes:
@@ -164,17 +144,17 @@ print(bytes([38])) # b'&'
 >>> a = [1, 2, 3, 4, 5]
 >>> print(a[::-1]) # [5, 4, 3, 2, 1]
 [5, 4, 3, 2, 1]
->>> 
+>>>
 >>> s = 'hello world'
 >>> print(s[::-1]) # 'dlrow olleh'
 dlrow olleh
 >>> b = b'hello world'
 >>> print(b[::-1]) # b'dlrow olleh'
 b'dlrow olleh'
->>> 
+>>>
 >>> print(b'&'[0]) # 38 since & charcter #38
 38
->>> 
+>>>
 >>> print(bytes([38])) # b'&'
 b'&'
 
@@ -288,12 +268,12 @@ n = int.from_bytes(little_endian, 'little')  # 1234567890
 >>> n = 1234567890
 >>> big_endian = n.to_bytes(4, 'big')
 >>> little_endian = n.to_bytes(4, 'little')
->>> 
+>>>
 >>> print(big_endian.hex())
 499602d2
 >>> print(little_endian.hex())
 d2029649
->>> 
+>>>
 >>> print(int.from_bytes(big_endian, 'big'))
 1234567890
 >>> print(int.from_bytes(little_endian, 'little'))

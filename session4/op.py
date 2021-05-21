@@ -735,6 +735,14 @@ class OpTest(TestCase):
         self.assertEqual(decode_num(stack[0]), 1)
 
 
+def op_name(index):
+    return OP_CODE_NAMES.get(index)
+
+
+def op_function(index):
+    return OP_CODE_FUNCTIONS[index]
+
+
 OP_CODE_FUNCTIONS = {
     0: op_0,
     79: op_1negate,

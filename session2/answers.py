@@ -34,9 +34,9 @@ Find out which points are valid on the curve \\( y^2 = x^3 + 7: F_{223} \\)
 ...     # print whether it's on the curve or not
 ...     try:  #/
 ...         p = Point(x, y, a, b)  #/
-...         print('({},{}) is on the curve'.format(x_raw, y_raw))  #/
+...         print(f'({x_raw},{y_raw}) is on the curve')  #/
 ...     except ValueError:  #/
-...         print('({},{}) is not on the curve'.format(x_raw, y_raw))  #/
+...         print(f'({x_raw},{y_raw}) is not on the curve')  #/
 (192,105) is on the curve
 (17,56) is on the curve
 (200,119) is not on the curve
@@ -85,7 +85,7 @@ Find the following point additions on the curve  \\( y^2 = x^3 + 7: F_{223} \\)
 ...     y2 = FieldElement(y2_raw, prime)  #/
 ...     p2 = Point(x2, y2, a, b)  #/
 ...     # print p1+p2
-...     print('{} + {} = {}'.format(p1, p2, p1+p2))  #/
+...     print(f'{p1} + {p2} = {p1+p2}')  #/
 Point(192,105)_223 + Point(17,56)_223 = Point(170,142)_223
 Point(47,71)_223 + Point(117,141)_223 = Point(60,139)_223
 Point(143,98)_223 + Point(76,66)_223 = Point(47,71)_223
@@ -136,7 +136,7 @@ Find the following scalar multiplications on the curve  \\( y^2 = x^3 + 7: F_{22
 ...     for _ in range(n):  #/
 ...         # add the point to the product
 ...         product = product + p  #/
-...     # print product    
+...     # print product
 ...     print(product)  #/
 Point(49,71)_223
 Point(64,168)_223
@@ -157,7 +157,7 @@ Point(infinity)
 >>> total = g
 >>> count = 1
 >>> while total != inf:
-...     print('{}:{}'.format(count, total))
+...     print(f'{count}:{total}')
 ...     total += g
 ...     count += 1
 1:Point(47,71)_223
@@ -180,7 +180,7 @@ Point(infinity)
 18:Point(15,86)_223
 19:Point(36,112)_223
 20:Point(47,152)_223
->>> print('{}:{}'.format(count, total))
+>>> print(f'{count}:{total}')
 21:Point(infinity)
 
 #endcode
@@ -237,7 +237,7 @@ S256Point(infinity)
 >>> secret = 999
 >>> point = secret*G
 >>> print(point)
-S256Point(0x9680241112d370b56da22eb535745d9e314380e568229e09f7241066003bc471,0xddac2d377f03c201ffa0419d6596d10327d6c70313bb492ff495f946285d8f38)
+S256Point(9680241112d370b56da22eb535745d9e314380e568229e09f7241066003bc471,ddac2d377f03c201ffa0419d6596d10327d6c70313bb492ff495f946285d8f38)
 
 #endcode
 #exercise
@@ -248,15 +248,16 @@ Get the public point where the scalar is the following:
 * \\(2^{128}\\)
 * \\(2^{240}+2^{31}\\)
 ---
+>>> from ecc import G
 >>> secrets = (7, 1485, 2**128, 2**240+2**31)
 >>> # iterate over secrets
 >>> for secret in secrets:  #/
 ...     # get the public point
 ...     print(secret*G)  #/
-S256Point(0x5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc,0x6aebca40ba255960a3178d6d861a54dba813d0b813fde7b5a5082628087264da)
-S256Point(0xc982196a7466fbbbb0e27a940b6af926c1a74d5ad07128c82824a11b5398afda,0x7a91f9eae64438afb9ce6448a1c133db2d8fb9254e4546b6f001637d50901f55)
-S256Point(0x8f68b9d2f63b5f339239c1ad981f162ee88c5678723ea3351b7b444c9ec4c0da,0x662a9f2dba063986de1d90c2b6be215dbbea2cfe95510bfdf23cbf79501fff82)
-S256Point(0x9577ff57c8234558f293df502ca4f09cbc65a6572c842b39b366f21717945116,0x10b49c67fa9365ad7b90dab070be339a1daf9052373ec30ffae4f72d5e66d053)
+S256Point(5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc,6aebca40ba255960a3178d6d861a54dba813d0b813fde7b5a5082628087264da)
+S256Point(c982196a7466fbbbb0e27a940b6af926c1a74d5ad07128c82824a11b5398afda,7a91f9eae64438afb9ce6448a1c133db2d8fb9254e4546b6f001637d50901f55)
+S256Point(8f68b9d2f63b5f339239c1ad981f162ee88c5678723ea3351b7b444c9ec4c0da,662a9f2dba063986de1d90c2b6be215dbbea2cfe95510bfdf23cbf79501fff82)
+S256Point(9577ff57c8234558f293df502ca4f09cbc65a6572c842b39b366f21717945116,10b49c67fa9365ad7b90dab070be339a1daf9052373ec30ffae4f72d5e66d053)
 
 #endexercise
 #unittest

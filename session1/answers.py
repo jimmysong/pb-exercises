@@ -113,7 +113,7 @@ Write a program to calculate \\(i^{30}\\) for all i in \\(F_{31}\\). Notice anyt
 7
 >>> print(3 * 15**17 % 19)
 4
->>> print(3 * pow(15, 17, 19) % 19)
+>>> print(3 * pow(15, -1, 19) % 19)
 4
 
 #endcode
@@ -138,7 +138,6 @@ Solve these equations in \\(F_{31}\\):
 #endexercise
 #unittest
 ecc:FieldElementTest:test_div:
-Hint: the `__pow__` method needs a positive number for the exponent. You can mod by p-1
 #endunittest
 #code
 >>> # Elliptic Curve Example
@@ -157,9 +156,9 @@ For the curve \\(y^2 = x^3 + 5x + 7\\), which of these points are on the curve?
 >>> for x, y in points:
 ...     # determine whether (x,y) is on the curve
 ...     if y**2 == x**3 + 5*x + 7:  #/
-...         print('({},{}) is on the curve'.format(x,y))  #/
+...         print(f'({x},{y}) is on the curve')  #/
 ...     else:  #/
-...         print('({},{}) is not on the curve'.format(x,y))  #/
+...         print(f'({x},{y}) is not on the curve')  #/
 (-2,4) is not on the curve
 (3,7) is on the curve
 (18,77) is on the curve
@@ -288,12 +287,12 @@ def __init__(self, x, y, a, b):
     if self.x is None and self.y is None:
         return
     if self.y**2 != self.x**3 + a * x + b:
-            raise ValueError('({}, {}) is not on the curve'.format(self.x, self.y))
+            raise ValueError(f'({self.x}, {self.y}) is not on the curve')
 
 
 def point_add(self, other):
     if self.a != other.a or self.b != other.b:
-        raise TypeError('Points {}, {} are not on the same curve'.format(self, other))
+        raise TypeError(f'Points {self}, {other} are not on the same curve')
     if self.x is None:
         return other
     if other.x is None:

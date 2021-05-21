@@ -18,18 +18,9 @@ class Tx:
         self.testnet = testnet
 
     def __repr__(self):
-        tx_ins = ''
-        for tx_in in self.tx_ins:
-            tx_ins += tx_in.__repr__() + '\n'
-        tx_outs = ''
-        for tx_out in self.tx_outs:
-            tx_outs += tx_out.__repr__() + '\n'
-        return 'version: {}\ntx_ins:\n{}\ntx_outs:\n{}\nlocktime: {}\n'.format(
-            self.version,
-            tx_ins,
-            tx_outs,
-            self.locktime,
-        )
+        tx_ins = ' '.join([f'{tx_in}' for tx_in in self.tx_ins])
+        tx_outs = ' '.join([f'{tx_out}' for tx_out in self.tx_outs])
+        return f'version: {self.version}\ntx_ins:\n{tx_ins}\ntx_outs:\n{tx_outs}\nlocktime: {self.locktime}\n'
 
     @classmethod
     def parse(cls, s, testnet=False):
@@ -58,10 +49,7 @@ class TxIn:
         self.sequence = sequence
 
     def __repr__(self):
-        return '{}:{}'.format(
-            self.prev_tx.hex(),
-            self.prev_index,
-        )
+        return f'{self.prev_tx.hex()}:{prev_index}'
 
     @classmethod
     def parse(cls, s):
@@ -85,7 +73,7 @@ class TxOut:
         self.script_pubkey = script_pubkey
 
     def __repr__(self):
-        return '{}:{}'.format(self.amount, self.script_pubkey)
+        return f'{self.amount}:{self.script_pubkey}'
 
     @classmethod
     def parse(cls, s):

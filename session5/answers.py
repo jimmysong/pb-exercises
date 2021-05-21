@@ -45,7 +45,7 @@ tx:TxTest:test_verify_p2pkh:
 tx:TxTest:test_sign_input:
 #endunittest
 #exercise
-Send 0.04 TBTC to this address 
+Send 0.04 TBTC to this address
 
 `mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv`
 
@@ -70,24 +70,24 @@ Send 0.04 TBTC to this address
 >>> # initialize outputs
 >>> tx_outs = []  #/
 >>> # decode the hash160 from the target address
->>> h160 = decode_base58(target_address)  #/
+>>> target_h160 = decode_base58(target_address)  #/
 >>> # convert hash160 to p2pkh script
->>> script_pubkey = p2pkh_script(h160)  #/
+>>> target_script_pubkey = p2pkh_script(target_h160)  #/
 >>> # convert target amount to satoshis (multiply by 100 million)
 >>> target_satoshis = int(target_amount*100000000)  #/
 >>> # create a new tx output for target with amount and script_pubkey
->>> tx_outs.append(TxOut(target_satoshis, script_pubkey))  #/
+>>> tx_outs.append(TxOut(target_satoshis, target_script_pubkey))  #/
 >>> # decode the hash160 from the change address
->>> h160 = decode_base58(change_address)  #/
+>>> change_h160 = decode_base58(change_address)  #/
 >>> # convert hash160 to p2pkh script
->>> script_pubkey = p2pkh_script(h160)  #/
+>>> change_script_pubkey = p2pkh_script(change_h160)  #/
 >>> # get the value for the transaction input (remember testnet=True)
 >>> prev_amount = tx_ins[0].value(testnet=True)  #/
 >>> # calculate change_satoshis based on previous amount, target_satoshis & fee
 >>> change_satoshis = prev_amount - target_satoshis - fee  #/
 >>> # create a new tx output for target with amount and script_pubkey
->>> tx_outs.append(TxOut(change_satoshis, script_pubkey))  #/
->>> # create the transaction (name it tx_obj to not conflict and set testnet=True)
+>>> tx_outs.append(TxOut(change_satoshis, change_script_pubkey))  #/
+>>> # create the transaction (name it tx_obj and set testnet=True)
 >>> tx_obj = Tx(1, tx_ins, tx_outs, 0, testnet=True)  #/
 >>> # now sign the 0th input with the private_key using sign_input
 >>> tx_obj.sign_input(0, private_key)  #/
@@ -100,7 +100,7 @@ True
 ...     raise RuntimeError('Output is not something you can spend with this private key. Check that the prev_tx and prev_index are correct')
 >>> # SANITY CHECK: fee is reasonable
 >>> if tx_obj.fee() > 0.05*100000000 or tx_obj.fee() <= 0:
-...     raise RuntimeError('Check that the change amount is reasonable. Fee is {}'.format(tx_obj.fee()))
+...     raise RuntimeError(f'Check that the change amount is reasonable. Fee is {tx_obj.fee()}')
 >>> # serialize and hex()
 >>> print(tx_obj.serialize().hex())  #/
 0100000001adf63c0ff706522946f4b350bfc62fdf880cd4b80366e9aa8faea23a9d4b020c000000006b48304502210082b7c32b331cdb56d959d37158dd2f6c31e8098d0daa25b3fecc5a5c0b253ff5022047b7e50d72524da02daa0f512436e0daea779e907924c22672c4abd16560d093012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff0200093d00000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac30ca5a00000000001976a914850af0029eb376691c3eef244c25eceb4e50c50388ac00000000
@@ -109,7 +109,7 @@ True
 #exercise
 #### Bonus Question. Only attempt if you've finished Exercise 3 and have time to try it.
 
-Get some testnet coins and spend both outputs (one from your change address and one from the testnet faucet) to 
+Get some testnet coins and spend both outputs (one from your change address and one from the testnet faucet) to
 
 `mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv`
 
@@ -156,7 +156,7 @@ True
 ...     raise RuntimeError('Output is not something you can spend with this private key. Check that the prev_tx and prev_index are correct')
 >>> # SANITY CHECK: fee is reasonable
 >>> if tx_obj.fee() > 0.05*100000000 or tx_obj.fee() <= 0:
-...     raise RuntimeError('Check that the change amount is reasonable. Fee is {}'.format(tx_obj.fee()))
+...     raise RuntimeError('Check that the change amount is reasonable. Fee is {tx_obj.fee()}')
 >>> # serialize and hex()
 >>> print(tx_obj.serialize().hex())  #/
 01000000027e5e13043b4504531b475d8decda4ffeb9f67b70330d8e47129a96277e538608010000006a47304402202d964dc5cb71aac6f6a22f1841d901da52930290d813b2ef534541d424556e3b02203906bb187f88f6f2c3eacf411fc097e70dab461d00c4c06e641ee747c3a9b22a012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffffc586682732bdce1baa4ececf844a6d06f62437bf8eebc971acccdf19c1759dda010000006a4730440220211aad339dd9623dcaf36fc35bce892ee102a9bbc124e975782eebde9c06c51b022006ecb13fefd1382e36b5afc0e21fb19aa945ea97b60111bff355cbe037dd5b4d012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff0110d1b400000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000

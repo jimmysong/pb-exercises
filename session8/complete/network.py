@@ -36,10 +36,7 @@ class NetworkEnvelope:
             self.magic = NETWORK_MAGIC
 
     def __repr__(self):
-        return '{}: {}'.format(
-            self.command.decode('ascii'),
-            self.payload.hex(),
-        )
+        return '{self.command.decode("ascii"")}: {self.payload.hex()}'
 
     @classmethod
     def parse(cls, s, testnet=False):
@@ -53,7 +50,7 @@ class NetworkEnvelope:
         else:
             expected_magic = NETWORK_MAGIC
         if magic != expected_magic:
-            raise RuntimeError('magic is not right {} vs {}'.format(magic.hex(), expected_magic.hex()))
+            raise RuntimeError(f'magic is not right {magic.hx()} vs {expected_magic.hex()}')
         # command 12 bytes, strip the trailing 0's using .strip(b'\x00')
         command = s.read(12).strip(b'\x00')
         # payload length 4 bytes, little endian
@@ -381,7 +378,7 @@ class SimpleNode:
         envelope = NetworkEnvelope(
             message.command, message.serialize(), testnet=self.testnet)
         if self.logging:
-            print('sending: {}'.format(envelope))
+            print(f'sending: {envelope}')
         # send the serialized envelope over the socket using sendall
         self.socket.sendall(envelope.serialize())
 
@@ -389,7 +386,7 @@ class SimpleNode:
         '''Read a message from the socket'''
         envelope = NetworkEnvelope.parse(self.stream, testnet=self.testnet)
         if self.logging:
-            print('receiving: {}'.format(envelope))
+            print(f'receiving: {envelope}')
         return envelope
 
     def wait_for(self, *message_classes):
@@ -442,7 +439,7 @@ class SimpleNode:
                 tx_obj = self.wait_for(Tx)
                 # check that the hash matches
                 if tx_obj.hash() != tx_hash:
-                    raise RuntimeError('Wrong tx sent {} vs {}'.format(tx_hash.hex(), tx_obj.id()))
+                    raise RuntimeError(f'Wrong tx sent {tx_hash.hx()} vs {tx_obj.id()}')
                 # add to the results
                 results.append(tx_obj)
         # return the results

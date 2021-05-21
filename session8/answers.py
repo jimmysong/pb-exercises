@@ -196,7 +196,7 @@ Remember turn on logging in `SimpleNode` if you need to debug
 >>> from tx import Tx, TxIn, TxOut
 >>> start_block_hex = '000000000000011f34db8b77b66d78abcf2e242299c8aed30dd915911c4fa97f'  #/start_block_hex = '<block hash from class>'  # CHANGE
 >>> start_block = bytes.fromhex(start_block_hex)
->>> end_block_hex = '000000000000000bf70f0f61df923b0ac97cc578240490dea5e9c35382f9eef0'  #/end_block_hex = '<block hash from class>'  # CHANGE
+>>> end_block_hex = '000000000000000bf70f0f61df923b0ac97cc578240490dea5e9c35382f9eef0'  #/end_block_hex = '00' * 32
 >>> end_block = bytes.fromhex(end_block_hex)
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
@@ -345,7 +345,7 @@ def get_filtered_txs(self, block_hashes):
         for tx_hash in mb.proved_txs():
             tx_obj = self.wait_for(Tx)
             if tx_obj.hash() != tx_hash:
-                raise RuntimeError('Wrong tx sent {} vs {}'.format(tx_hash.hex(), tx_obj.id()))
+                raise RuntimeError(f'Wrong tx sent {tx_hash.hex()} vs {tx_obj.id()}')
             results.append(tx_obj)
     return results
 

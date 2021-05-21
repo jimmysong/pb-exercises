@@ -5,8 +5,7 @@ class FieldElement:
 
     def __init__(self, num, prime):
         if num >= prime or num < 0:
-            error = 'Num {} not in field range 0 to {}'.format(
-                num, prime - 1)
+            error = f'Num {num} not in field range 0 to {prime-1}'
             raise ValueError(error)
         self.num = num
         self.prime = prime
@@ -21,7 +20,7 @@ class FieldElement:
         return not (self == other)
 
     def __repr__(self):
-        return 'FieldElement_{}({})'.format(self.prime, self.num)
+        return f'FieldElement_{self.prime}({self.num})'
 
     def __add__(self, other):
         if self.prime != other.prime:
@@ -51,9 +50,10 @@ class FieldElement:
         raise NotImplementedError
 
     def __pow__(self, n):
-        # Exercise 10: remember Fermat's Little Theorem:
-        # Exercise 10: self.num**(p-1) % p == 1
-        # Exercise 10: you might want to use % operator on n
+        # self.num is the base, n is the exponent
+        # self.prime is what you'll need to mod against
+        # use pow(base, exponent, prime) to calculate the number
+        # use: self.__class__(num, prime)
         raise NotImplementedError
 
     def __truediv__(self, other):
@@ -145,28 +145,32 @@ class Point:
         if self.x is None:
             return 'Point(infinity)'
         else:
-            return 'Point({},{})_{}'.format(self.x.num, self.y.num, self.x.prime)
+            return f'Point({self.x.num},{self.y.num})_{self.x.prime}'
 
     def __add__(self, other):
         if self.a != other.a or self.b != other.b:
-            raise TypeError('Points {}, {} are not on the same curve'.format(self, other))
+            raise TypeError(f'Points {self}, {other} are not on the same curve')
         # Case 0.0: self is the point at infinity, return other
         # Case 0.1: other is the point at infinity, return self
 
         # Case 1: self.x == other.x, self.y != other.y
         # Result is point at infinity
+            # Remember to return an instance of this class:
+            # self.__class__(x, y, a, b)
 
         # Case 2: self.x != other.x
             # Formula (x3,y3)==(x1,y1)+(x2,y2)
             # s=(y2-y1)/(x2-x1)
             # x3=s**2-x1-x2
             # y3=s*(x1-x3)-y1
+            # use: self.__class__(x, y, self.a, self.b)
 
-        # Case 3: self.x == other.x, self.y == other.y
+        # Case 3: self == other
             # Formula (x3,y3)=(x1,y1)+(x1,y1)
             # s=(3*x1**2+a)/(2*y1)
             # x3=s**2-2*x1
             # y3=s*(x1-x3)-y1
+            # use: self.__class__(x, y, self.a, self.b)
         raise NotImplementedError
 
 

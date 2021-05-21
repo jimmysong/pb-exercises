@@ -8,8 +8,8 @@ from helper import (
     read_varint,
 )
 from op import (
-    OP_CODE_FUNCTIONS,
-    OP_CODE_NAMES,
+    op_name,
+    op_function,
 )
 
 
@@ -22,17 +22,16 @@ class Script:
             self.commands = commands
 
     def __repr__(self):
-        result = ''
+        strings = []
         for command in self.commands:
             if type(command) == int:
-                if OP_CODE_NAMES.get(command):
-                    name = OP_CODE_NAMES.get(command)
+                if op_name(command):
+                    strings.append(op_name(command))
                 else:
-                    name = 'OP_[{}]'.format(command)
-                result += '{} '.format(name)
+                    strings.append(f'OP_[{command}]')
             else:
-                result += '{} '.format(command.hex())
-        return result
+                strings.append(command.hex())
+        return ' '.join(strings)
 
     def __add__(self, other):
         return Script(self.commands + other.commands)
@@ -128,26 +127,26 @@ class Script:
             command = commands.pop(0)
             if type(command) == int:
                 # do what the op code says
-                operation = OP_CODE_FUNCTIONS[command]
+                operation = op_function(command)
                 if command in (99, 100):
                     # op_if/op_notif require the commands array
                     if not operation(stack, commands):
-                        print('bad op: {}'.format(OP_CODE_NAMES[command]))
+                        print(f'bad op: {op_name(command)}')
                         return False
                 elif command in (107, 108):
                     # op_toaltstack/op_fromaltstack require the altstack
                     if not operation(stack, altstack):
-                        print('bad op: {}'.format(OP_CODE_NAMES[command]))
+                        print(f'bad op: {op_name(command)}')
                         return False
                 elif command in (172, 173, 174, 175):
                     # these are signing operations, they need a sig_hash
                     # to check against
                     if not operation(stack, z):
-                        print('bad op: {}'.format(OP_CODE_NAMES[command]))
+                        print(f'bad op: {op_name(command)}')
                         return False
                 else:
                     if not operation(stack):
-                        print('bad op: {}'.format(OP_CODE_NAMES[command]))
+                        print(f'bad op: {op_name(command)}')
                         return False
             else:
                 # add the command to the stack

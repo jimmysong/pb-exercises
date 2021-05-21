@@ -12,8 +12,7 @@ class FieldElement:
 
     def __init__(self, num, prime):
         if num >= prime or num < 0:
-            error = 'Num {} not in field range 0 to {}'.format(
-                num, prime - 1)
+            error = f'Num {num} not in field range 0 to {prime-1}'
             raise ValueError(error)
         self.num = num
         self.prime = prime
@@ -28,7 +27,7 @@ class FieldElement:
         return not (self == other)
 
     def __repr__(self):
-        return 'FieldElement_{}({})'.format(self.prime, self.num)
+        return f'FieldElement_{self.prime}({self.num})'
 
     def __add__(self, other):
         if self.prime != other.prime:
@@ -64,11 +63,12 @@ class FieldElement:
         return self.__class__(num, prime)
 
     def __pow__(self, n):
-        # remember Fermat's Little Theorem:
-        # self.num**(p-1) % p == 1
-        # you might want to use % operator on n
+        # self.num is the base, n is the exponent
+        # self.prime is what you'll need to mod against
         prime = self.prime
-        num = pow(self.num, n % (prime - 1), prime)
+        # use pow(base, exponent, prime) to calculate the number
+        num = pow(self.num, n, prime)
+        # use: self.__class__(num, prime)
         return self.__class__(num, prime)
 
     def __truediv__(self, other):
@@ -156,7 +156,7 @@ class Point:
         # y**2 == x**3 + a*x + b
         if self.y**2 != self.x**3 + a * x + b:
             # if not, raise a ValueError
-            raise ValueError('({}, {}) is not on the curve'.format(self.x, self.y))
+            raise ValueError(f'({self.x}, {self.y}) is not on the curve')
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \
@@ -170,11 +170,11 @@ class Point:
         if self.x is None:
             return 'Point(infinity)'
         else:
-            return 'Point({},{})_{}'.format(self.x.num, self.y.num, self.x.prime)
+            return f'Point({self.x.num},{self.y.num})_{self.x.prime}'
 
     def __add__(self, other):
         if self.a != other.a or self.b != other.b:
-            raise TypeError('Points {}, {} are not on the same curve'.format(self, other))
+            raise TypeError(f'Points {self}, {other} are not on the same curve')
         # Case 0.0: self is the point at infinity, return other
         if self.x is None:
             return other
@@ -198,9 +198,10 @@ class Point:
             x = s**2 - self.x - other.x
             # y3=s*(x1-x3)-y1
             y = s * (self.x - x) - self.y
+            # use: self.__class__(x, y, self.a, self.b)
             return self.__class__(x, y, self.a, self.b)
 
-        # Case 3: self.x == other.x, self.y == other.y
+        # Case 3: self == other
         else:
             # Formula (x3,y3)=(x1,y1)+(x1,y1)
             # s=(3*x1**2+a)/(2*y1)
@@ -209,6 +210,7 @@ class Point:
             x = s**2 - 2 * self.x
             # y3=s*(x1-x3)-y1
             y = s * (self.x - x) - self.y
+            # use: self.__class__(x, y, self.a, self.b)
             return self.__class__(x, y, self.a, self.b)
 
     def __rmul__(self, coefficient):
@@ -294,8 +296,7 @@ class ECCTest(TestCase):
             x = FieldElement(x_raw, prime)
             y = FieldElement(y_raw, prime)
             # check that creating the point results in a ValueError
-            # with self.assertRaises(ValueError):
-            #     Point(x, y, a, b)
+            # use: with self.assertRaises(ValueError):
             with self.assertRaises(ValueError):
                 Point(x, y, a, b)
 
@@ -395,7 +396,7 @@ class S256Field(FieldElement):
         super().__init__(num=num, prime=P)
 
     def hex(self):
-        return '{:x}'.format(self.num).zfill(64)
+        return f'{self.num:x}'.zfill(64)
 
     def __repr__(self):
         return self.hex()
@@ -417,7 +418,7 @@ class S256Point(Point):
         if self.x is None:
             return 'S256Point(infinity)'
         else:
-            return 'S256Point({},{})'.format(hex(self.x.num), hex(self.y.num))
+            return f'S256Point({self.x.num:x},{self.y.num:x})'
 
     def __rmul__(self, coefficient):
         # we want to mod by N to make this simple
@@ -444,7 +445,7 @@ class S256Point(Point):
         sec = self.sec(compressed)
         # hash160 the sec
         h160 = hash160(sec)
-        # raw is hash 160 prepended w/ b'\x00' for mainnet, b'\x6f' for testnet
+        # prefix is b'\x00' for mainnet, b'\x6f' for testnet
         if testnet:
             prefix = b'\x6f'
         else:
@@ -454,8 +455,8 @@ class S256Point(Point):
 
     def verify(self, z, sig):
         # remember sig.r and sig.s are the main things we're checking
-        # remember 1/s = pow(s, N-2, N)
-        s_inv = pow(sig.s, N - 2, N)
+        # remember 1/s = pow(s, -1, N)
+        s_inv = pow(sig.s, -1, N)
         # u = z / s
         u = z * s_inv % N
         # v = r / s
@@ -591,7 +592,7 @@ class Signature:
         self.s = s
 
     def __repr__(self):
-        return 'Signature({:x},{:x})'.format(self.r, self.s)
+        return f'Signature({self.r:x},{self.s:x})'
 
     def der(self):
         # convert the r part to bytes
@@ -654,15 +655,15 @@ class PrivateKey:
         self.point = secret * G
 
     def hex(self):
-        return '{:x}'.format(self.secret).zfill(64)
+        return f'{secret:x}'.zfill(64)
 
     def sign(self, z):
         # we need use deterministic k
         k = self.deterministic_k(z)
         # r is the x coordinate of the resulting point k*G
         r = (k * G).x.num
-        # remember 1/k = pow(k, N-2, N)
-        k_inv = pow(k, N - 2, N)
+        # remember 1/k = pow(k, -1, N)
+        k_inv = pow(k, -1, N)
         # s = (z+r*secret) / k
         s = (z + r * self.secret) * k_inv % N
         if s > N / 2:

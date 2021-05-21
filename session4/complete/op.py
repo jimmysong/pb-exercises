@@ -653,6 +653,7 @@ def op_hash160(stack):
     # add the hash160 of the element to the end of the stack
     h160 = hash160(element)
     stack.append(h160)
+    # return True to show execution went through
     return True
 
 
@@ -682,6 +683,7 @@ def op_checksig(stack, z):
         stack.append(encode_num(1))
     else:
         stack.append(encode_num(0))
+    # return True to show execution went through
     return True
 
 
@@ -748,6 +750,14 @@ class OpTest(TestCase):
         stack = [sig, sec]
         self.assertTrue(op_checksig(stack, z))
         self.assertEqual(decode_num(stack[0]), 1)
+
+
+def op_name(index):
+    return OP_CODE_NAMES.get(index)
+
+
+def op_function(index):
+    return OP_CODE_FUNCTIONS[index]
 
 
 OP_CODE_FUNCTIONS = {
