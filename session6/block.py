@@ -52,6 +52,38 @@ class Block:
         '''Human-readable hexadecimal of the block hash'''
         return self.hash().hex()
 
+
+    def bip9(self):
+        '''Returns whether this block is signaling readiness for BIP9'''
+        # BIP9 is signalled if the top 3 bits are 001
+        # remember version is 32 bytes so right shift 29 (>> 29) and see if
+        # that is 001
+        raise NotImplementedError
+
+    def bip112(self):
+        '''Returns whether this block is signaling readiness for BIP112'''
+        # BIP112 is signalled if the first bit from the right is 1
+        # shift 0 bits to the right and see if the last bit is 1
+        raise NotImplementedError
+
+    def bip141(self):
+        '''Returns whether this block is signaling readiness for BIP141'''
+        # BIP141 is signalled if the 2nd bit from the right is 1
+        # shift 1 bit to the right and see if the last bit is 1
+        raise NotImplementedError
+
+    def bip341(self):
+        '''Returns whether this block is signaling readiness for BIP341'''
+        # BIP341 is signalled if the 3rd bit from the right is 1
+        # shift 2 bits to the right and see if the last bit is 1
+        raise NotImplementedError
+
+    def bip91(self):
+        '''Returns whether this block is signaling readiness for BIP91'''
+        # BIP91 is signalled if the 5th bit from the right is 1
+        # shift 4 bits to the right and see if the last bit is 1
+        raise NotImplementedError
+
     def target(self):
         '''Returns the proof-of-work target based on the bits'''
         # last byte is exponent

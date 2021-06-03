@@ -85,7 +85,7 @@ Send 0.04 TBTC to this address
 >>> prev_amount = tx_ins[0].value(testnet=True)  #/
 >>> # calculate change_satoshis based on previous amount, target_satoshis & fee
 >>> change_satoshis = prev_amount - target_satoshis - fee  #/
->>> # create a new tx output for target with amount and script_pubkey
+>>> # create a new tx output for change with amount and script_pubkey
 >>> tx_outs.append(TxOut(change_satoshis, change_script_pubkey))  #/
 >>> # create the transaction (name it tx_obj and set testnet=True)
 >>> tx_obj = Tx(1, tx_ins, tx_outs, 0, testnet=True)  #/
