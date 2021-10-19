@@ -216,6 +216,9 @@ class Script:
             and type(self.commands[1]) == bytes and len(self.commands[1]) == 20 \
             and self.commands[2] == 0x87
 
+    def has_op_return(self):
+        return 106 in self.commands
+
     def hash160(self):
         # if p2pkh
         if self.is_p2pkh_script_pubkey():  # p2pkh
@@ -237,7 +240,7 @@ class Script:
             # convert to p2sh address using h160_to_p2sh_address (remember testnet)
             return h160_to_p2sh_address(self.hash160(), testnet)
         # raise a ValueError
-        raise ValueError('Unknown ScriptPubKey')
+        return None
 
 
 class ScriptTest(TestCase):

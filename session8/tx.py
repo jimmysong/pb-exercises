@@ -23,19 +23,19 @@ class TxFetcher:
     @classmethod
     def get_url(cls, testnet=False):
         if testnet:
-            return 'http://testnet.programmingbitcoin.com'
+            return 'http://blockstream.info/testnet/api'
         else:
-            return 'http://mainnet.programmingbitcoin.com'
+            return 'http://blockstream.info/api'
 
     @classmethod
     def fetch(cls, tx_id, testnet=False, fresh=False):
         if fresh or (tx_id not in cls.cache):
-            url = f'{cls.get_url(testnet)}/tx/{tx_id}.hex'
+            url = f'{cls.get_url(testnet)}/tx/{tx_id}/hex'
             response = requests.get(url)
             try:
                 raw = bytes.fromhex(response.text.strip())
             except ValueError:
-                raise ValueError(f'unexpected response: {response.text}')
+                raise ValueError(f'unexpected response: {response.text} {url} {testnet}')
             if raw[4] == 0:
                 raw = raw[:4] + raw[6:]
                 tx = Tx.parse(BytesIO(raw), testnet=testnet)
@@ -65,6 +65,7 @@ class TxFetcher:
 
 class Tx:
     command = b'tx'
+    define_network = True
 
     def __init__(self, version, tx_ins, tx_outs, locktime, testnet=False, segwit=False):
         self.version = version
@@ -126,41 +127,35 @@ class Tx:
 
     @classmethod
     def parse_segwit(cls, s, testnet=False):
-        '''Takes a byte stream and parses a segwit transaction'''
+        """Takes a byte stream and parses a segwit transaction"""
         # s.read(n) will return n bytes
         # version has 4 bytes, little-endian, interpret as int
         version = little_endian_to_int(s.read(4))
-        # next two bytes need to be 0x00 and 0x01
+        # next two bytes need to be 0x00 and 0x01, otherwise raise RuntimeError
         marker = s.read(2)
-        if marker != b'\x00\x01':
-            raise RuntimeError(f'Not a segwit transaction {marker}')
+        if marker != b"\x00\x01":
+            raise RuntimeError("Not a segwit transaction {}".format(marker))
         # num_inputs is a varint, use read_varint(s)
         num_inputs = read_varint(s)
-        # each input needs parsing
+        # each input needs parsing, create inputs array
         inputs = []
+        # parse each input and add to the inputs array
         for _ in range(num_inputs):
             inputs.append(TxIn.parse(s))
         # num_outputs is a varint, use read_varint(s)
         num_outputs = read_varint(s)
-        # each output needs parsing
+        # each output needs parsing, create outputs array
         outputs = []
+        # parse each output and add to the outputs array
         for _ in range(num_outputs):
             outputs.append(TxOut.parse(s))
-        # now parse the witness
+        # there is a witness for each input
         for tx_in in inputs:
-            num_items = read_varint(s)
-            items = []
-            for _ in range(num_items):
-                item_len = read_varint(s)
-                if item_len == 0:
-                    items.append(0)
-                else:
-                    items.append(s.read(item_len))
-            tx_in.witness = items
+            tx_in.witness = Witness.parse(s)
         # locktime is 4 bytes, little-endian
         locktime = little_endian_to_int(s.read(4))
         # return an instance of the class (cls(...))
-        return cls(version, inputs, outputs, locktime, testnet=testnet, segwit=True)
+        return cls(version, inputs, outputs, locktime, network=network, segwit=True)
 
     def serialize(self):
         '''Returns the byte serialization of the transaction'''

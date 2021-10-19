@@ -17,6 +17,7 @@ TESTNET_GENESIS_BLOCK_HASH = bytes.fromhex('000000000933ea01ad0ee984209779baaec3
 
 class Block:
     command = b'block'
+    define_network = True
 
     def __init__(self, version, prev_block, merkle_root, timestamp, bits, nonce, tx_hashes=None):
         self.version = version
@@ -47,15 +48,20 @@ class Block:
         # initialize class
         return cls(version, prev_block, merkle_root, timestamp, bits, nonce)
 
+
     @classmethod
-    def parse(cls, s):
+    def parse(cls, s, testnet=False):
+        """Takes a byte stream and parses a block. Returns a Block object"""
         b = cls.parse_header(s)
         num_txs = read_varint(s)
-        tx_hashes = []
+        b.txs = []
+        b.tx_hashes = []
+        b.tx_lookup = {}
         for _ in range(num_txs):
-            t = Tx.parse(s)
-            tx_hashes.append(t.hash())
-        b.tx_hashes = tx_hashes
+            t = Tx.parse(s, testnet=testnet)
+            b.txs.append(t)
+            b.tx_hashes.append(t.hash())
+            b.tx_lookup[t.hash()] = t
         return b
 
     def serialize(self):
@@ -157,6 +163,37 @@ class Block:
         # the reverse of the calculated merkle root
         return root[::-1] == self.merkle_root
 
+    def get_outpoints(self):
+        if not self.txs:
+            return []
+        for t in self.txs:
+            for tx_out in t.tx_outs:
+                if not tx_out.script_pubkey.has_op_return():
+                    yield (tx_out.script_pubkey.raw_serialize())
+
+    def get_transactions(self, addresses):
+        if not self.txs:
+            return []
+        address_set = set(addresses)
+        txs = []
+        for t in self.txs:
+            evaluate = True
+            if not t.is_coinbase():
+                for tx_in in t.tx_ins:
+                    address = tx_in.script_pubkey(t.testnet).address(testnet=t.testnet)
+                    if address in address_set:
+                        txs.append(t)
+                        break
+                else:
+                    evaluate = False
+            if evaluate:
+                for tx_out in t.tx_outs:
+
+                    address = tx_out.script_pubkey.address(testnet=t.testnet)
+                    print(address)
+                    if address in address_set:
+                        txs.append(t)
+        return txs
 
 class BlockTest(TestCase):
 
