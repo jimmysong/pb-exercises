@@ -8,8 +8,6 @@ change testnet seeds to
 
 change mainnet seeds to the same
 
-Change over to blockstream.info/api for tx fetcher
-
 Remove bloom filters and add neutrino
 
 Change exercises to use neutrino
