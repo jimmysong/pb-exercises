@@ -7,12 +7,13 @@ from helper import (
     little_endian_to_int,
     merkle_root,
     read_varint,
+    target_to_bits,
 )
 from tx import Tx
 
 
-GENESIS_BLOCK_HASH = bytes.fromhex('000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f')
-TESTNET_GENESIS_BLOCK_HASH = bytes.fromhex('000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943')
+MAX_TARGET = 0xFFFF * 256 ** (0x1D - 3)
+TWO_WEEKS = 60 * 60 * 24 * 14
 
 
 class Block:
@@ -27,6 +28,9 @@ class Block:
         self.nonce = nonce
         self.tx_hashes = tx_hashes
         self.merkle_tree = None
+
+    def __eq__(self, other):
+        return self.hash() == other.hash()
 
     @classmethod
     def parse_header(cls, s):
@@ -130,10 +134,8 @@ class Block:
 
     def difficulty(self):
         '''Returns the block difficulty based on the bits'''
-        # note difficulty is (target of lowest difficulty) / (self's target)
-        # lowest difficulty has bits that equal 0xffff001d
-        lowest = 0xffff * 256**(0x1d - 3)
-        return lowest / self.target()
+        # note difficulty is MAX_TARGET / (self's target)
+        return MAX_TARGET / self.target()
 
     def check_pow(self):
         '''Returns whether this block satisfies proof of work'''
@@ -154,6 +156,31 @@ class Block:
         # return whether self.merkle root is the same as
         # the reverse of the calculated merkle root
         raise NotImplementedError
+
+    def new_bits(self, beginning_block):
+        """Calculates the new bits for a 2016-block epoch.
+        Assumes current block is the last of the 2016-block epoch.
+        Requires the first block of the epoch."""
+        # calculate the time differential
+        time_differential = self.timestamp - beginning_block.timestamp
+        # if the time differential is greater than 8 weeks, set to 8 weeks
+        if time_differential > TWO_WEEKS * 4:
+            time_differential = TWO_WEEKS * 4
+        # if the time differential is less than half a week, set to half a week
+        if time_differential < TWO_WEEKS // 4:
+            time_differential = TWO_WEEKS // 4
+        # the new target is the current target * time differential / two weeks
+        new_target = self.target() * time_differential // TWO_WEEKS
+        # if the new target is bigger than MAX_TARGET, set to MAX_TARGET
+        if new_target > MAX_TARGET:
+            new_target = MAX_TARGET
+        # convert the new target to bits using the target_to_bits function
+        return target_to_bits(new_target)
+
+
+GENESIS_BLOCK = Block.parse_header(BytesIO(bytes.fromhex('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c')))
+TESTNET_GENESIS_BLOCK = Block.parse_header(BytesIO(bytes.fromhex('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4adae5494dffff001d1aa4ae18')))
+
 
 
 class BlockTest(TestCase):
@@ -249,6 +276,12 @@ class BlockTest(TestCase):
         stream = BytesIO(block_raw)
         block = Block.parse_header(stream)
         self.assertFalse(block.check_pow())
+
+    def test_new_bits(self):
+        block1 = Block.parse_header(BytesIO(bytes.fromhex('000000203471101bbda3fe307664b3283a9ef0e97d9a38a7eacd8800000000000000000010c8aba8479bbaa5e0848152fd3c2289ca50e1c3e58c9a4faaafbdf5803c5448ddb845597e8b0118e43a81d3')))
+        block2 = Block.parse_header(BytesIO(bytes.fromhex('02000020f1472d9db4b563c35f97c428ac903f23b7fc055d1cfc26000000000000000000b3f449fcbe1bc4cfbcb8283a0d2c037f961a3fdf2b8bedc144973735eea707e1264258597e8b0118e5f00474')))
+        want = bytes.fromhex('80df6217')
+        self.assertEqual(block1.new_bits(block2), want)
 
     def test_validate_merkle_root(self):
         hashes_hex = [

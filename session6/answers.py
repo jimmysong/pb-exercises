@@ -208,16 +208,64 @@ True
 #unittest
 block:BlockTest:test_check_pow:
 #endunittest
+#exercise
+
+Calculate the new bits given the first and last blocks of this 2,016-block difficulty adjustment period:
+
+* Block 471744:
++
+```
+000000203471101bbda3fe307664b3283a9ef0e97d9a38a7eacd88000000000000000000
+10c8aba8479bbaa5e0848152fd3c2289ca50e1c3e58c9a4faaafbdf5803c5448ddb84559
+7e8b0118e43a81d3
+```
+
+* Block 473759:
++
+```
+02000020f1472d9db4b563c35f97c428ac903f23b7fc055d1cfc26000000000000000000
+b3f449fcbe1bc4cfbcb8283a0d2c037f961a3fdf2b8bedc144973735eea707e126425859
+7e8b0118e5f00474
+```
+---
+>>> from io import BytesIO
+>>> from block import Block, TWO_WEEKS
+>>> from helper import target_to_bits
+>>> block1_hex = '000000203471101bbda3fe307664b3283a9ef0e97d9a38a7eacd8800000000000000000010c8aba8479bbaa5e0848152fd3c2289ca50e1c3e58c9a4faaafbdf5803c5448ddb845597e8b0118e43a81d3'
+>>> block2_hex = '02000020f1472d9db4b563c35f97c428ac903f23b7fc055d1cfc26000000000000000000b3f449fcbe1bc4cfbcb8283a0d2c037f961a3fdf2b8bedc144973735eea707e1264258597e8b0118e5f00474'
+>>> last_block = Block.parse(BytesIO(bytes.fromhex(block1_hex)))
+>>> first_block = Block.parse(BytesIO(bytes.fromhex(block2_hex)))
+>>> # calculate the differential in time between the two blocks
+>>> time_differential = last_block.timestamp - first_block.timestamp  #/
+>>> # max differential is 4 * TWO_WEEKS
+>>> if time_differential > TWO_WEEKS * 4:  #/
+...     time_differential = TWO_WEEKS * 4  #/
+>>> # min differential is TWO_WEEKS // 4
+>>> if time_differential < TWO_WEEKS // 4:  #/
+...     time_differential = TWO_WEEKS // 4  #/
+>>> # formula for new target is target * time differential // TWO_WEEKS
+>>> new_target = last_block.target() * time_differential // TWO_WEEKS  #/
+>>> # convert the target to bits
+>>> new_bits = target_to_bits(new_target)
+>>> # print the new bits in hex
+>>> print(new_bits.hex())
+80df6217
+
+#endexercise
+#unittest
+block:BlockTest:test_new_bits:
+#endunittest
 '''
 
 
 from unittest import TestCase
 
-from block import Block
+from block import Block, MAX_TARGET, TWO_WEEKS
 from helper import (
     hash256,
     int_to_little_endian,
     little_endian_to_int,
+    target_to_bits,
 )
 from tx import Tx
 
@@ -295,14 +343,25 @@ def target(self):
 
 
 def difficulty(self):
-    lowest = 0xffff * 256**(0x1d - 3)
-    return lowest / self.target()
+    return MAX_TARGET / self.target()
 
 
 def check_pow(self):
     h256 = hash256(self.serialize())
     proof = little_endian_to_int(h256)
     return proof < self.target()
+
+
+def new_bits(self, beginning_block):
+    time_differential = self.timestamp - beginning_block.timestamp
+    if time_differential > TWO_WEEKS * 4:
+        time_differential = TWO_WEEKS * 4
+    if time_differential < TWO_WEEKS // 4:
+        time_differential = TWO_WEEKS // 4
+    new_target = self.target() * time_differential // TWO_WEEKS
+    if new_target > MAX_TARGET:
+        new_target = MAX_TARGET
+    return target_to_bits(new_target)
 
 
 class Session6Test(TestCase):
@@ -321,3 +380,4 @@ class Session6Test(TestCase):
         Block.target = target
         Block.difficulty = difficulty
         Block.check_pow = check_pow
+        Block.new_bits = new_bits

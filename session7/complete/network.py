@@ -264,6 +264,10 @@ class HeadersMessage:
     def __init__(self, headers):
         self.headers = headers
 
+    def __iter__(self):
+        for header in self.headers:
+            yield header
+
     @classmethod
     def parse(cls, s):
         # number of headers is in a varint

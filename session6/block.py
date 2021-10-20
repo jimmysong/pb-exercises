@@ -8,6 +8,10 @@ from helper import (
 )
 
 
+MAX_TARGET = 0xFFFF * 256 ** (0x1D - 3)
+TWO_WEEKS = 60 * 60 * 24 * 14
+
+
 class Block:
 
     def __init__(self, version, prev_block, merkle_root, timestamp, bits, nonce):
@@ -105,6 +109,18 @@ class Block:
         # return whether this integer is less than the target
         raise NotImplementedError
 
+    def new_bits(self, beginning_block):
+        """Calculates the new bits for a 2016-block epoch.
+        Assumes current block is the last of the 2016-block epoch.
+        Requires the first block of the epoch."""
+        # calculate the time differential
+        # if the time differential is greater than 8 weeks, set to 8 weeks
+        # if the time differential is less than half a week, set to half a week
+        # the new target is the current target * time differential / two weeks
+        # if the new target is bigger than MAX_TARGET, set to MAX_TARGET
+        # convert the new target to bits using the target_to_bits function
+        raise NotImplementedError
+
 
 class BlockTest(TestCase):
 
@@ -199,3 +215,9 @@ class BlockTest(TestCase):
         stream = BytesIO(block_raw)
         block = Block.parse(stream)
         self.assertFalse(block.check_pow())
+
+    def test_new_bits(self):
+        block1 = Block.parse(BytesIO(bytes.fromhex('000000203471101bbda3fe307664b3283a9ef0e97d9a38a7eacd8800000000000000000010c8aba8479bbaa5e0848152fd3c2289ca50e1c3e58c9a4faaafbdf5803c5448ddb845597e8b0118e43a81d3')))
+        block2 = Block.parse(BytesIO(bytes.fromhex('02000020f1472d9db4b563c35f97c428ac903f23b7fc055d1cfc26000000000000000000b3f449fcbe1bc4cfbcb8283a0d2c037f961a3fdf2b8bedc144973735eea707e1264258597e8b0118e5f00474')))
+        want = bytes.fromhex('80df6217')
+        self.assertEqual(block1.new_bits(block2), want)

@@ -1,125 +1,16 @@
 '''
 #code
->>> import bloomfilter, network
+>>> import network
 
 #endcode
-#code
->>> # Example Bloom Filter
->>> from helper import hash256
->>> bit_field_size = 10
->>> bit_field = [0] * bit_field_size
->>> h256 = hash256(b'hello world')
->>> bit = int.from_bytes(h256, 'big') % bit_field_size
->>> bit_field[bit] = 1
->>> print(bit_field)
-[0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-
-#endcode
-#code
->>> # Example Bloom Filter 2
->>> from helper import hash256
->>> bit_field_size = 10
->>> bit_field = [0] * bit_field_size
->>> h = hash256(b'hello world')
->>> bit = int.from_bytes(h, 'big') % bit_field_size
->>> bit_field[bit] = 1
->>> h = hash256(b'goodbye')
->>> bit = int.from_bytes(h, 'big') % bit_field_size
->>> bit_field[bit] = 1
->>> print(bit_field)
-[0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
-
-#endcode
-#code
->>> # Example Bloom Filter 3
->>> from helper import hash160, hash256
->>> bit_field_size = 10
->>> bit_field = [0] * bit_field_size
->>> phrase1 = b'hello world'
->>> h1 = hash256(phrase1)
->>> bit1 = int.from_bytes(h1, 'big') % bit_field_size
->>> bit_field[bit1] = 1
->>> h2 = hash160(phrase1)
->>> bit2 = int.from_bytes(h2, 'big') % bit_field_size
->>> bit_field[bit2] = 1
->>> phrase2 = b'goodbye'
->>> h1 = hash256(phrase2)
->>> bit1 = int.from_bytes(h1, 'big') % bit_field_size
->>> bit_field[bit1] = 1
->>> h2 = hash160(phrase2)
->>> bit2 = int.from_bytes(h2, 'big') % bit_field_size
->>> bit_field[bit2] = 1
->>> print(bit_field)
-[1, 1, 1, 0, 0, 0, 0, 0, 0, 1]
-
-#endcode
-#code
->>> # Example BIP0037 Bloom Filter
->>> from helper import murmur3
->>> from bloomfilter import BIP37_CONSTANT
->>> field_size = 2
->>> num_functions = 2
->>> tweak = 42
->>> bit_field_size = field_size * 8
->>> bit_field = [0] * bit_field_size
->>> for phrase in (b'hello world', b'goodbye'):
-...     for i in range(num_functions):
-...         seed = i * BIP37_CONSTANT + tweak
-...         h = murmur3(phrase, seed=seed)
-...         bit = h % bit_field_size
-...         bit_field[bit] = 1
->>> print(bit_field)
-[0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0]
-
-#endcode
-#exercise
-Given a Bloom Filter with these parameters: size=10, function count=5, tweak=99, which bits are set after adding these items?
-
- * `b'Hello World'`
- * `b'Goodbye!'`
----
->>> from bloomfilter import BIP37_CONSTANT
->>> from helper import murmur3, bit_field_to_bytes
->>> field_size = 10
->>> function_count = 5
->>> tweak = 99
->>> items = (b'Hello World',  b'Goodbye!')
->>> # bit_field_size is 8 * field_size
->>> bit_field_size = field_size * 8  #/
->>> # create a bit field with the appropriate size
->>> bit_field = [0] * bit_field_size  #/
->>> # for each item you want to add to the filter
->>> for item in items:  #/
-...     # iterate function_count number of times
-...     for i in range(function_count):  #/
-...         # BIP0037 spec seed is i*BIP37_CONSTANT + tweak
-...         seed = i * BIP37_CONSTANT + tweak  #/
-...         # get the murmur3 hash given that seed
-...         h = murmur3(item, seed=seed)  #/
-...         # set the bit to be h mod the bit_field_size
-...         bit = h % bit_field_size  #/
-...         # set the bit_field at the index bit to be 1
-...         bit_field[bit] = 1  #/
->>> # print the bit field converted to bytes using bit_field_to_bytes in hex
->>> print(bit_field_to_bytes(bit_field).hex())  #/
-4000600a080000010940
-
-#endexercise
-#unittest
-bloomfilter:BloomFilterTest:test_add:
-#endunittest
-#unittest
-bloomfilter:BloomFilterTest:test_filterload:
-#endunittest
 #exercise
 Do the following:
 
 * Connect to a testnet node
-* Load a filter for your testnet address
-* Send a request for transactions from the block which had your previous testnet transaction
-* Receive the merkleblock and tx messages.
+* Download some compact filters
+* Send a request for blocks which your address matches
+* Find your transaction
 ---
->>> from bloomfilter import BloomFilter
 >>> from ecc import PrivateKey
 >>> from helper import decode_base58, hash256, little_endian_to_int
 >>> from merkleblock import MerkleBlock
@@ -132,21 +23,10 @@ Do the following:
 >>> addr = private_key.point.address(testnet=True)
 >>> print(addr)
 mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
->>> filter_size = 30
->>> filter_num_functions = 5
->>> filter_tweak = 90210  #/filter_tweak = -1  # CHANGE
->>> # get the hash160 of the address using decode_base58
->>> h160 = decode_base58(addr)  #/
->>> # create a bloom filter using the filter_size, filter_num_functions and filter_tweak above
->>> bf = BloomFilter(filter_size, filter_num_functions, filter_tweak)  #/
->>> # add the h160 to the bloom filter
->>> bf.add(h160)  #/
 >>> # connect to seed.tbtc.petertodd.org in testnet mode
 >>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)  #/
 >>> # complete the handshake
 >>> node.handshake()  #/
->>> # send the filterload message
->>> node.send(bf.filterload())  #/
 >>> # create a getdata message
 >>> getdata = GetDataMessage()  #/
 >>> # add_data (FILTERED_BLOCK_DATA_TYPE, block_hash) to request the block

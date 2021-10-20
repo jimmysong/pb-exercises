@@ -53,25 +53,32 @@ network:SimpleNodeTest:test_handshake:
 #endunittest
 #code
 >>> # Block Header Download Example
+>>> from block import GENESIS_BLOCK, MAX_TARGET
+>>> from helper import target_to_bits
 >>> from network import GetHeadersMessage, HeadersMessage, SimpleNode
->>> from block import GENESIS_BLOCK_HASH
->>> node = SimpleNode('seed.btc.petertodd.net', testnet=False)
+>>> node = SimpleNode('seed.btc.petertodd.org', testnet=False)
 >>> node.handshake()
->>> last_block_hash = GENESIS_BLOCK_HASH
+>>> last_block = GENESIS_BLOCK
+>>> epoch_start_block = GENESIS_BLOCK
 >>> current_height = 1
 >>> for _ in range(20):
-...     getheaders = GetHeadersMessage(start_block=last_block_hash)
+...     getheaders = GetHeadersMessage(start_block=last_block.hash())
 ...     node.send(getheaders)
 ...     headers = node.wait_for(HeadersMessage)
-...     for header in headers.headers:
+...     for header in headers:
 ...         if not header.check_pow():
 ...             raise RuntimeError(f'bad proof of work at block {count}')
-...         if last_block_hash != GENESIS_BLOCK_HASH and header.prev_block != last_block_hash:
-...             raise RuntimeError(f'discontinuous block at {count}')
-...         if current_height % 2016 == 0:
-...             print(header.id())
+...         if last_block != GENESIS_BLOCK:
+...             if header.prev_block != last_block.hash():
+...                 raise RuntimeError(f'discontinuous block at {count}')
+...             if current_height % 2016 == 0:
+...                 expected_bits = last_block.new_bits(epoch_start_block)
+...                 if header.bits != expected_bits:
+...                     raise RuntimeError(f'bits are off {header.bits.hex()} vs {expected_bits.hex()}')
+...                 epoch_start_block = header
+...                 print(header.id())
+...         last_block = header
 ...         current_height += 1
-...         last_block_hash = header.hash()
 00000000a141216a896c54f211301c436e557a8d55900637bbdce14c6c7bddef
 00000000ca4b69045a03d7b20624def97a5366418648d5005e82fd3b345d20d0
 000000004c63907577f6beb84a97af137738c2342de8ee7872c0cd4df1dcb213
@@ -97,38 +104,50 @@ network:SimpleNodeTest:test_handshake:
 Download the first 40,000 blocks for testnet and validate them.
 ---
 >>> from network import SimpleNode, GetHeadersMessage, HeadersMessage
->>> from block import TESTNET_GENESIS_BLOCK_HASH
+>>> from block import TESTNET_GENESIS_BLOCK
 >>> # connect to seed.tbtc.petertodd.org with testnet=True
 >>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)  #/
 >>> # handshake
 >>> node.handshake()  #/
->>> # set the last block hash to the TESTNET_GENESIS_BLOCK_HASH
->>> last_block_hash = TESTNET_GENESIS_BLOCK_HASH  #/
+>>> # set the last block hash to the TESTNET_GENESIS_BLOCK
+>>> last_block = TESTNET_GENESIS_BLOCK  #/
+>>> # set the first block of the epoch to the genesis block
+>>> epoch_start_block = TESTNET_GENESIS_BLOCK  #/
 >>> # set the current height to 1
 >>> current_height = 1  #/
 >>> # loop until we we get 40,000 blocks
 >>> while current_height < 40000:  #/
 ...     # create a GetHeadersMessage starting from the last block we have
-...     getheaders = GetHeadersMessage(start_block=last_block_hash)  #/
+...     getheaders = GetHeadersMessage(start_block=last_block.hash())  #/
 ...     # send the getheaders message
 ...     node.send(getheaders)  #/
 ...     # wait for the HeadersMessage in response
 ...     headers = node.wait_for(HeadersMessage)  #/
 ...     # loop through the headers from the headers message
-...     for header in headers.headers:  #/
+...     for header in headers:  #/
 ...         # check the proof of work
 ...         if not header.check_pow():  #/
 ...             raise RuntimeError(f'bad proof of work at block {count}')  #/
-...         # the prev_block of the current block should be the last block
-...         if last_block_hash != TESTNET_GENESIS_BLOCK_HASH and header.prev_block != last_block_hash:  #/
-...             raise RuntimeError(f'discontinuous block at {count}')  #/
-...         # print the id every 2016 blocks (difficulty adjustment)
-...         if current_height % 2016 == 0:  #/
-...             print(header.id())  #/
+...         # only check if the current hash isn't the first one
+...         if last_block != TESTNET_GENESIS_BLOCK:  #/
+...             # the prev_block of the current block should be the last block
+...             if header.prev_block != last_block.hash():  #/
+...                 raise RuntimeError(f'discontinuous block at {count}')  #/
+...             # when it's a multiple of 2016
+...             if current_height % 2016 == 0:  #/
+...                 # set the expected bits using the new_bits method using the last block
+...                 expected_bits = last_block.new_bits(epoch_start_block)  #/
+...                 # check that the bits are what we expect
+...                 if header.bits != expected_bits:  #/
+...                     raise RuntimeError(f'bits are off {header.bits.hex()} vs {expected_bits.hex()}')  #/
+...                 # set the epoch start block to the current one
+...                 epoch_start_block = header  #/
+...                 # print the current id  #/
+...                 print(header.id())  #/
 ...         # increment the current_height
 ...         current_height += 1  #/
-...         # set the last_block_hash to the current header's hash
-...         last_block_hash = header.hash()  #/
+...         # set the last_block to the current header's hash
+...         last_block = header  #/
 0000000089d757fd95d79f7fcc2bc25ca7fc16492dca9aa610730ea05d9d3de9
 000000001af3b22a7598b10574deb6b3e2d596f36d62b0a49cb89a1f99ab81eb
 000000000be66197ad285aedd52e56036f28d595fe281858bc5d562173d4d6de

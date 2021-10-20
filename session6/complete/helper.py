@@ -140,6 +140,26 @@ def h160_to_p2sh_address(h160, testnet=False):
     return encode_base58_checksum(prefix + h160)
 
 
+def target_to_bits(target):
+    """Turns a target integer back into bits, which is 4 bytes"""
+    raw_bytes = target.to_bytes(32, "big")
+    # get rid of leading 0's
+    raw_bytes = raw_bytes.lstrip(b"\x00")
+    if raw_bytes[0] > 0x7F:
+        # if the first bit is 1, we have to start with 00
+        exponent = len(raw_bytes) + 1
+        coefficient = b"\x00" + raw_bytes[:2]
+    else:
+        # otherwise, we can show the first 3 bytes
+        # exponent is the number of digits in base-256
+        exponent = len(raw_bytes)
+        # coefficient is the first 3 digits of the base-256 number
+        coefficient = raw_bytes[:3]
+    # we've truncated the number after the first 3 digits of base-256
+    new_bits = coefficient[::-1] + bytes([exponent])
+    return new_bits
+
+
 class HelperTest(TestCase):
 
     def test_bytes(self):
@@ -190,3 +210,8 @@ class HelperTest(TestCase):
         self.assertEqual(h160_to_p2sh_address(h160, testnet=False), want)
         want = '2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B'
         self.assertEqual(h160_to_p2sh_address(h160, testnet=True), want)
+
+    def test_target_to_bits(self):
+        target = 0x13ce9000000000000000000000000000000000000000000
+        want = bytes.fromhex('e93c0118')
+        self.assertEqual(target_to_bits(target), want)
