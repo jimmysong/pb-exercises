@@ -141,8 +141,8 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> bf = BloomFilter(filter_size, filter_num_functions, filter_tweak)  #/
 >>> # add the h160 to the bloom filter
 >>> bf.add(h160)  #/
->>> # connect to testnet.programmingbitcoin.com in testnet mode
->>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
+>>> # connect to seed.tbtc.petertodd.org in testnet mode
+>>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)  #/
 >>> # complete the handshake
 >>> node.handshake()  #/
 >>> # send the filterload message
@@ -208,8 +208,8 @@ Remember turn on logging in `SimpleNode` if you need to debug
 >>> target_script = p2pkh_script(target_h160)
 >>> bloom_filter = BloomFilter(30, 5, 90210)
 >>> fee = 5000  # fee in satoshis
->>> # connect to testnet.programmingbitcoin.com in testnet mode
->>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
+>>> # connect to seed.tbtc.petertodd.org in testnet mode
+>>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)  #/
 >>> # add the h160 to the bloom filter
 >>> bloom_filter.add(h160)  #/
 >>> # complete the handshake

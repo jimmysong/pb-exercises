@@ -41,7 +41,7 @@ network:HeadersMessageTest:test_parse:
 #code
 >>> # Handshake Example
 >>> from network import SimpleNode, VersionMessage, VerAckMessage
->>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)
+>>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)
 >>> version = VersionMessage()
 >>> node.send(version)
 >>> print(node.wait_for(VerAckMessage).command)
@@ -55,7 +55,7 @@ network:SimpleNodeTest:test_handshake:
 >>> # Block Header Download Example
 >>> from network import GetHeadersMessage, HeadersMessage, SimpleNode
 >>> from block import GENESIS_BLOCK_HASH
->>> node = SimpleNode('mainnet.programmingbitcoin.com', testnet=False)
+>>> node = SimpleNode('seed.btc.petertodd.net', testnet=False)
 >>> node.handshake()
 >>> last_block_hash = GENESIS_BLOCK_HASH
 >>> current_height = 1
@@ -98,8 +98,8 @@ Download the first 40,000 blocks for testnet and validate them.
 ---
 >>> from network import SimpleNode, GetHeadersMessage, HeadersMessage
 >>> from block import TESTNET_GENESIS_BLOCK_HASH
->>> # connect to testnet.programmingbitcoin.com with testnet=True
->>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
+>>> # connect to seed.tbtc.petertodd.org with testnet=True
+>>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)  #/
 >>> # handshake
 >>> node.handshake()  #/
 >>> # set the last block hash to the TESTNET_GENESIS_BLOCK_HASH
@@ -394,8 +394,8 @@ Block Hash:
 >>> from block import Block
 >>> block_hex = '0000000000044b01a9440b34f582fe171c7b8642fedd0ebfccf8fdf6a1810900'
 >>> block_hash = bytes.fromhex(block_hex)
->>> # connect to testnet.programmingbitcoin.com on testnet
->>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
+>>> # connect to seed.tbtc.petertodd.org on testnet
+>>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)  #/
 >>> # handshake
 >>> node.handshake()  #/
 >>> # create a GetDataMessage
@@ -417,151 +417,6 @@ Block Hash:
 627bf8053bd767ad72c6afcd2d91638311f9c7520905a634be13aa8853f7a446
 
 #endexercise
-#code
->>> # Merkle Tree Example
->>> from math import ceil, log
->>> total = 16
->>> max_depth = ceil(log(total, 2))
->>> merkle_tree = []
->>> for depth in range(max_depth + 1):
-...     num_items = ceil(total / 2**(max_depth - depth))
-...     level_hashes = [None] * num_items
-...     merkle_tree.append(level_hashes)
->>> for level in merkle_tree:
-...     print(level)
-[None]
-[None, None]
-[None, None, None, None]
-[None, None, None, None, None, None, None, None]
-[None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
-
-#endcode
-#code
->>> # Merkle Tree Populating and Navigating Example
->>> from merkleblock import MerkleTree
->>> hex_hashes = [
-...     "9745f7173ef14ee4155722d1cbf13304339fd00d900b759c6f9d58579b5765fb",
-...     "5573c8ede34936c29cdfdfe743f7f5fdfbd4f54ba0705259e62f39917065cb9b",
-...     "82a02ecbb6623b4274dfcab82b336dc017a27136e08521091e443e62582e8f05",
-...     "507ccae5ed9b340363a0e6d765af148be9cb1c8766ccc922f83e4ae681658308",
-...     "a7a4aec28e7162e1e9ef33dfa30f0bc0526e6cf4b11a576f6c5de58593898330",
-...     "bb6267664bd833fd9fc82582853ab144fece26b7a8a5bf328f8a059445b59add",
-...     "ea6d7ac1ee77fbacee58fc717b990c4fcccf1b19af43103c090f601677fd8836",
-...     "457743861de496c429912558a106b810b0507975a49773228aa788df40730d41",
-...     "7688029288efc9e9a0011c960a6ed9e5466581abf3e3a6c26ee317461add619a",
-...     "b1ae7f15836cb2286cdd4e2c37bf9bb7da0a2846d06867a429f654b2e7f383c9",
-...     "9b74f89fa3f93e71ff2c241f32945d877281a6a50a6bf94adac002980aafe5ab",
-...     "b3a92b5b255019bdaf754875633c2de9fec2ab03e6b8ce669d07cb5b18804638",
-...     "b5c0b915312b9bdaedd2b86aa2d0f8feffc73a2d37668fd9010179261e25e263",
-...     "c9d52c5cb1e557b92c84c52e7c4bfbce859408bedffc8a5560fd6e35e10b8800",
-...     "c555bc5fc3bc096df0a0c9532f07640bfb76bfe4fc1ace214b8b228a1297a4c2",
-...     "f9dbfafc3af3400954975da24eb325e326960a25b87fffe23eef3e7ed2fb610e",
-... ]
->>> tree = MerkleTree(len(hex_hashes))
->>> tree.nodes[4] = [bytes.fromhex(h) for h in hex_hashes]
->>> tree.nodes[3] = merkle_parent_level(tree.nodes[4])
->>> tree.nodes[2] = merkle_parent_level(tree.nodes[3])
->>> tree.nodes[1] = merkle_parent_level(tree.nodes[2])
->>> tree.nodes[0] = merkle_parent_level(tree.nodes[1])
->>> print(tree)
-*597c4baf.*
-6382df3f..., 87cf8fa3...
-3ba6c080..., 8e894862..., 7ab01bb6..., 3df760ac...
-272945ec..., 9a38d037..., 4a64abd9..., ec7c95e1..., 3b67006c..., 850683df..., d40d268b..., 8636b7a3...
-9745f717..., 5573c8ed..., 82a02ecb..., 507ccae5..., a7a4aec2..., bb626766..., ea6d7ac1..., 45774386..., 76880292..., b1ae7f15..., 9b74f89f..., b3a92b5b..., b5c0b915..., c9d52c5c..., c555bc5f..., f9dbfafc...
-
-#endcode
-#code
->>> # Merkle Tree Populating Example #2
->>> from merkleblock import MerkleTree
->>> hex_hashes = [
-...     "9745f7173ef14ee4155722d1cbf13304339fd00d900b759c6f9d58579b5765fb",
-...     "5573c8ede34936c29cdfdfe743f7f5fdfbd4f54ba0705259e62f39917065cb9b",
-...     "82a02ecbb6623b4274dfcab82b336dc017a27136e08521091e443e62582e8f05",
-...     "507ccae5ed9b340363a0e6d765af148be9cb1c8766ccc922f83e4ae681658308",
-...     "a7a4aec28e7162e1e9ef33dfa30f0bc0526e6cf4b11a576f6c5de58593898330",
-...     "bb6267664bd833fd9fc82582853ab144fece26b7a8a5bf328f8a059445b59add",
-...     "ea6d7ac1ee77fbacee58fc717b990c4fcccf1b19af43103c090f601677fd8836",
-...     "457743861de496c429912558a106b810b0507975a49773228aa788df40730d41",
-...     "7688029288efc9e9a0011c960a6ed9e5466581abf3e3a6c26ee317461add619a",
-...     "b1ae7f15836cb2286cdd4e2c37bf9bb7da0a2846d06867a429f654b2e7f383c9",
-...     "9b74f89fa3f93e71ff2c241f32945d877281a6a50a6bf94adac002980aafe5ab",
-...     "b3a92b5b255019bdaf754875633c2de9fec2ab03e6b8ce669d07cb5b18804638",
-...     "b5c0b915312b9bdaedd2b86aa2d0f8feffc73a2d37668fd9010179261e25e263",
-...     "c9d52c5cb1e557b92c84c52e7c4bfbce859408bedffc8a5560fd6e35e10b8800",
-...     "c555bc5fc3bc096df0a0c9532f07640bfb76bfe4fc1ace214b8b228a1297a4c2",
-...     "f9dbfafc3af3400954975da24eb325e326960a25b87fffe23eef3e7ed2fb610e",
-... ]
->>> tree = MerkleTree(len(hex_hashes))
->>> tree.nodes[4] = [bytes.fromhex(h) for h in hex_hashes]
->>> while tree.root() is None:
-...     if tree.is_leaf():
-...         tree.up()
-...     else:
-...         left_hash = tree.get_left_node()
-...         right_hash = tree.get_right_node()
-...         if left_hash is None:
-...             tree.left()
-...         elif right_hash is None:
-...             tree.right()
-...         else:
-...             tree.set_current_node(merkle_parent(left_hash, right_hash))
-...             tree.up()
->>> print(tree)
-597c4baf...
-6382df3f..., 87cf8fa3...
-3ba6c080..., 8e894862..., 7ab01bb6..., 3df760ac...
-272945ec..., 9a38d037..., 4a64abd9..., ec7c95e1..., 3b67006c..., 850683df..., d40d268b..., 8636b7a3...
-9745f717..., 5573c8ed..., 82a02ecb..., 507ccae5..., a7a4aec2..., bb626766..., ea6d7ac1..., 45774386..., 76880292..., b1ae7f15..., 9b74f89f..., b3a92b5b..., b5c0b915..., c9d52c5c..., c555bc5f..., f9dbfafc...
-
-#endcode
-#code
->>> # Merkle Tree Populating Example #3
->>> from merkleblock import MerkleTree
->>> hex_hashes = [
-...     "9745f7173ef14ee4155722d1cbf13304339fd00d900b759c6f9d58579b5765fb",
-...     "5573c8ede34936c29cdfdfe743f7f5fdfbd4f54ba0705259e62f39917065cb9b",
-...     "82a02ecbb6623b4274dfcab82b336dc017a27136e08521091e443e62582e8f05",
-...     "507ccae5ed9b340363a0e6d765af148be9cb1c8766ccc922f83e4ae681658308",
-...     "a7a4aec28e7162e1e9ef33dfa30f0bc0526e6cf4b11a576f6c5de58593898330",
-...     "bb6267664bd833fd9fc82582853ab144fece26b7a8a5bf328f8a059445b59add",
-...     "ea6d7ac1ee77fbacee58fc717b990c4fcccf1b19af43103c090f601677fd8836",
-...     "457743861de496c429912558a106b810b0507975a49773228aa788df40730d41",
-...     "7688029288efc9e9a0011c960a6ed9e5466581abf3e3a6c26ee317461add619a",
-...     "b1ae7f15836cb2286cdd4e2c37bf9bb7da0a2846d06867a429f654b2e7f383c9",
-...     "9b74f89fa3f93e71ff2c241f32945d877281a6a50a6bf94adac002980aafe5ab",
-...     "b3a92b5b255019bdaf754875633c2de9fec2ab03e6b8ce669d07cb5b18804638",
-...     "b5c0b915312b9bdaedd2b86aa2d0f8feffc73a2d37668fd9010179261e25e263",
-...     "c9d52c5cb1e557b92c84c52e7c4bfbce859408bedffc8a5560fd6e35e10b8800",
-...     "c555bc5fc3bc096df0a0c9532f07640bfb76bfe4fc1ace214b8b228a1297a4c2",
-... ]
->>> tree = MerkleTree(len(hex_hashes))
->>> tree.nodes[4] = [bytes.fromhex(h) for h in hex_hashes]
->>> while tree.root() is None:
-...     if tree.is_leaf():
-...         tree.up()
-...     else:
-...         left_hash = tree.get_left_node()
-...         if left_hash is None:
-...             tree.left()
-...         elif tree.right_exists():
-...             right_hash = tree.get_right_node()
-...             if right_hash is None:
-...                 tree.right()
-...             else:
-...                 tree.set_current_node(merkle_parent(left_hash, right_hash))
-...                 tree.up()
-...         else:
-...             tree.set_current_node(merkle_parent(left_hash, left_hash))
-...             tree.up()
->>> print(tree)
-dc87b7e3...
-6382df3f..., 6440941e...
-3ba6c080..., 8e894862..., 7ab01bb6..., 996be980...
-272945ec..., 9a38d037..., 4a64abd9..., ec7c95e1..., 3b67006c..., 850683df..., d40d268b..., f542a085...
-9745f717..., 5573c8ed..., 82a02ecb..., 507ccae5..., a7a4aec2..., bb626766..., ea6d7ac1..., 45774386..., 76880292..., b1ae7f15..., 9b74f89f..., b3a92b5b..., b5c0b915..., c9d52c5c..., c555bc5f...
-
-#endcode
 '''
 
 

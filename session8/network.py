@@ -482,7 +482,7 @@ class SimpleNode:
 class SimpleNodeTest(TestCase):
 
     def test_handshake(self):
-        node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)
+        node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)
         node.handshake()
 
     def test_get_filtered_txs(self):
@@ -490,7 +490,7 @@ class SimpleNodeTest(TestCase):
         bf = BloomFilter(30, 5, 90210)
         h160 = decode_base58('mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5')
         bf.add(h160)
-        node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)
+        node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)
         node.handshake()
         node.send(bf.filterload())
         block_hash = bytes.fromhex('00000000000377db7fde98411876c53e318a395af7304de298fd47b7c549d125')
