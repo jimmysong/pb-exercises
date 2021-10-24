@@ -3,12 +3,12 @@ from unittest import TestCase
 
 from helper import (
     decode_base58,
-    encode_varint,
+    encode_varstr,
     h160_to_p2pkh_address,
     h160_to_p2sh_address,
     int_to_little_endian,
     little_endian_to_int,
-    read_varint,
+    read_varstr,
 )
 from op import (
     op_equal,
@@ -49,13 +49,18 @@ class Script:
                 strings.append(command.hex())
         return ' '.join(strings)
 
+    def __eq__(self, other):
+        return self.raw_serialize() == other.raw_serialize()
+
     def __add__(self, other):
         return Script(self.commands + other.commands)
 
     @classmethod
-    def parse(cls, s):
-        # get the length of the entire field
-        length = read_varint(s)
+    def parse(cls, stream):
+        # get the field
+        raw = read_varstr(stream)
+        length = len(raw)
+        s = BytesIO(raw)
         # initialize the commands array
         commands = []
         # initialize the number of bytes we've read to 0
@@ -91,8 +96,6 @@ class Script:
                 op_code = current_byte
                 # add the op_code to the list of commands
                 commands.append(op_code)
-        if count != length:
-            raise SyntaxError(f'parsing script failed {count} vs {length}')
         return cls(commands)
 
     def raw_serialize(self):
@@ -126,12 +129,8 @@ class Script:
         return result
 
     def serialize(self):
-        # get the raw serialization (no prepended length)
-        result = self.raw_serialize()
-        # get the length of the whole thing
-        total = len(result)
-        # encode_varint the total length of the result and prepend
-        return encode_varint(total) + result
+        # encode_varstr the raw serialization (no prepended length)
+        return encode_varstr(self.raw_serialize())
 
     def evaluate(self, z):
         # create a copy as we may need to add to this list if we have a
@@ -173,7 +172,7 @@ class Script:
                 if len(commands) == 3 and commands[0] == 0xa9 \
                     and type(commands[1]) == bytes and len(commands[1]) == 20 \
                     and commands[2] == 0x87:
-                    redeem_script = encode_varint(len(command)) + command
+                    redeem_script = encode_varstr(command)
                     # we execute the next three op codes
                     commands.pop()
                     h160 = commands.pop()

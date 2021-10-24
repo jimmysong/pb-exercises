@@ -3,13 +3,12 @@ from unittest import TestCase
 
 from helper import (
     decode_base58,
-    encode_varint,
+    encode_varstr,
     h160_to_p2pkh_address,
     h160_to_p2sh_address,
     int_to_little_endian,
     little_endian_to_int,
-    read_varint,
-    sha256,
+    read_varstr,
 )
 from op import (
     op_equal,
@@ -28,16 +27,6 @@ def p2pkh_script(h160):
 def p2sh_script(h160):
     '''Takes a hash160 and returns the p2sh scriptPubKey'''
     return Script([0xa9, h160, 0x87])
-
-
-def p2wpkh_script(h160):
-    '''Takes a hash160 and returns the p2wpkh scriptPubKey'''
-    return Script([0x00, h160])
-
-
-def p2wsh_script(h256):
-    '''Takes a hash160 and returns the p2wsh scriptPubKey'''
-    return Script([0x00, h256])
 
 
 class Script:
@@ -60,13 +49,18 @@ class Script:
                 strings.append(command.hex())
         return ' '.join(strings)
 
+    def __eq__(self, other):
+        return self.raw_serialize() == other.raw_serialize()
+
     def __add__(self, other):
         return Script(self.commands + other.commands)
 
     @classmethod
-    def parse(cls, s):
-        # get the length of the entire field
-        length = read_varint(s)
+    def parse(cls, stream):
+        # get the field
+        raw = read_varstr(stream)
+        length = len(raw)
+        s = BytesIO(raw)
         # initialize the commands array
         commands = []
         # initialize the number of bytes we've read to 0
@@ -102,8 +96,6 @@ class Script:
                 op_code = current_byte
                 # add the op_code to the list of commands
                 commands.append(op_code)
-        if count != length:
-            raise SyntaxError('parsing script failed')
         return cls(commands)
 
     def raw_serialize(self):
@@ -137,14 +129,10 @@ class Script:
         return result
 
     def serialize(self):
-        # get the raw serialization (no prepended length)
-        result = self.raw_serialize()
-        # get the length of the whole thing
-        total = len(result)
-        # encode_varint the total length of the result and prepend
-        return encode_varint(total) + result
+        # encode_varstr the raw serialization (no prepended length)
+        return encode_varstr(self.raw_serialize())
 
-    def evaluate(self, z, witness):
+    def evaluate(self, z):
         # create a copy as we may need to add to this list if we have a
         # RedeemScript
         commands = self.commands[:]
@@ -184,7 +172,7 @@ class Script:
                 if len(commands) == 3 and commands[0] == 0xa9 \
                     and type(commands[1]) == bytes and len(commands[1]) == 20 \
                     and commands[2] == 0x87:
-                    redeem_script = encode_varint(len(command)) + command
+                    redeem_script = encode_varstr(command)
                     # we execute the next three op codes
                     commands.pop()
                     h160 = commands.pop()
@@ -201,27 +189,6 @@ class Script:
                     # hashes match! now add the RedeemScript
                     stream = BytesIO(redeem_script)
                     commands.extend(Script.parse(stream).commands)
-                # witness program version 0 rule. if stack commands are:
-                # 0 <20 byte hash> this is p2wpkh
-                if len(stack) == 2 and stack[0] == b'' and len(stack[1]) == 20:
-                    h160 = stack.pop()
-                    stack.pop()
-                    commands.extend(witness)
-                    commands.extend(p2pkh_script(h160).commands)
-                # witness program version 0 rule. if stack commands are:
-                # 0 <32 byte hash> this is p2wsh
-                if len(stack) == 2 and stack[0] == b'' and len(stack[1]) == 32:
-                    h256 = stack.pop()
-                    stack.pop()
-                    commands.extend(witness[:-1])
-                    witness_script = witness[-1]
-                    if h256 != sha256(witness_script):
-                        print(f'bad sha256 {h256.hex()} vs {sha256(witness_script).hex()}')
-                        return False
-                    # hashes match! now add the Witness Script
-                    stream = BytesIO(encode_varint(len(witness_script)) + witness_script)
-                    witness_script_commands = Script.parse(stream).commands
-                    commands.extend(witness_script_commands)
         if len(stack) == 0:
             return False
         if stack.pop() == b'':
@@ -248,17 +215,8 @@ class Script:
             and type(self.commands[1]) == bytes and len(self.commands[1]) == 20 \
             and self.commands[2] == 0x87
 
-    def is_p2wpkh_script_pubkey(self):
-        '''Returns whether this follows the
-        OP_0 <20 byte hash> pattern.'''
-        return len(self.commands) == 2 and self.commands[0] == 0x00 \
-            and type(self.commands[1]) == bytes and len(self.commands[1]) == 20
-
-    def is_p2wsh_script_pubkey(self):
-        '''Returns whether this follows the
-        OP_0 <20 byte hash> pattern.'''
-        return len(self.commands) == 2 and self.commands[0] == 0x00 \
-            and type(self.commands[1]) == bytes and len(self.commands[1]) == 32
+    def has_op_return(self):
+        return 106 in self.commands
 
     def hash160(self):
         # if p2pkh
@@ -281,7 +239,7 @@ class Script:
             # convert to p2sh address using h160_to_p2sh_address (remember testnet)
             return h160_to_p2sh_address(self.hash160(), testnet)
         # raise a ValueError
-        raise ValueError('Unknown ScriptPubKey')
+        return None
 
 
 class ScriptTest(TestCase):

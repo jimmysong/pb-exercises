@@ -52,14 +52,18 @@ class Block:
         return cls(version, prev_block, merkle_root, timestamp, bits, nonce)
 
     @classmethod
-    def parse(cls, s):
+    def parse(cls, s, testnet=False):
+        """Takes a byte stream and parses a block. Returns a Block object"""
         b = cls.parse_header(s)
         num_txs = read_varint(s)
-        tx_hashes = []
+        b.txs = []
+        b.tx_hashes = []
+        b.tx_lookup = {}
         for _ in range(num_txs):
-            t = Tx.parse(s)
-            tx_hashes.append(t.hash())
-        b.tx_hashes = tx_hashes
+            t = Tx.parse(s, testnet=testnet)
+            b.txs.append(t)
+            b.tx_hashes.append(t.hash())
+            b.tx_lookup[t.hash()] = t
         return b
 
     def serialize(self):
@@ -162,20 +166,12 @@ class Block:
         Assumes current block is the last of the 2016-block epoch.
         Requires the first block of the epoch."""
         # calculate the time differential
-        time_differential = self.timestamp - beginning_block.timestamp
         # if the time differential is greater than 8 weeks, set to 8 weeks
-        if time_differential > TWO_WEEKS * 4:
-            time_differential = TWO_WEEKS * 4
         # if the time differential is less than half a week, set to half a week
-        if time_differential < TWO_WEEKS // 4:
-            time_differential = TWO_WEEKS // 4
         # the new target is the current target * time differential / two weeks
-        new_target = self.target() * time_differential // TWO_WEEKS
         # if the new target is bigger than MAX_TARGET, set to MAX_TARGET
-        if new_target > MAX_TARGET:
-            new_target = MAX_TARGET
         # convert the new target to bits using the target_to_bits function
-        return target_to_bits(new_target)
+        raise NotImplementedError
 
 
 GENESIS_BLOCK = Block.parse_header(BytesIO(bytes.fromhex('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c')))

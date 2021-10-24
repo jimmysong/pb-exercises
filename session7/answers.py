@@ -53,7 +53,7 @@ network:SimpleNodeTest:test_handshake:
 #endunittest
 #code
 >>> # Block Header Download Example
->>> from block import GENESIS_BLOCK, MAX_TARGET
+>>> from block import GENESIS_BLOCK
 >>> from helper import target_to_bits
 >>> from network import GetHeadersMessage, HeadersMessage, SimpleNode
 >>> node = SimpleNode('seed.btc.petertodd.org', testnet=False)
@@ -444,13 +444,14 @@ from unittest import TestCase
 import helper
 import merkleblock
 
-from block import Block
+from block import Block, TWO_WEEKS, MAX_TARGET
 from helper import (
     encode_varint,
     hash256,
     int_to_little_endian,
     little_endian_to_int,
     read_varint,
+    target_to_bits,
 )
 from merkleblock import MerkleTree
 from network import (
@@ -533,9 +534,9 @@ def parse_h(cls, stream):
     num_headers = read_varint(stream)
     headers = []
     for _ in range(num_headers):
-        headers.append(Block.parse_header(stream))
-        num_txs = read_varint(stream)
-        if num_txs != 0:
+        header = Block.parse(stream)
+        headers.append(header)
+        if len(header.tx_hashes) != 0:
             raise RuntimeError('number of txs not 0')
     return cls(headers)
 
@@ -575,6 +576,18 @@ def validate_merkle_root(self):
     return root[::-1] == self.merkle_root
 
 
+def new_bits(self, beginning_block):
+    time_differential = self.timestamp - beginning_block.timestamp
+    if time_differential > TWO_WEEKS * 4:
+        time_differential = TWO_WEEKS * 4
+    if time_differential < TWO_WEEKS // 4:
+        time_differential = TWO_WEEKS // 4
+    new_target = self.target() * time_differential // TWO_WEEKS
+    if new_target > MAX_TARGET:
+        new_target = MAX_TARGET
+    return target_to_bits(new_target)
+
+
 class SessionTest(TestCase):
 
     def test_apply(self):
@@ -589,3 +602,4 @@ class SessionTest(TestCase):
         helper.merkle_parent_level = merkle_parent_level
         helper.merkle_root = merkle_root
         Block.validate_merkle_root = validate_merkle_root
+        Block.new_bits = new_bits

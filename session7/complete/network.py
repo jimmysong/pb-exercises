@@ -276,12 +276,12 @@ class HeadersMessage:
         headers = []
         # loop through number of headers times
         for _ in range(num_headers):
-            # add a header to the headers array by using Block.parse_header(s)
-            headers.append(Block.parse_header(s))
-            # read the next varint (num_txs)
-            num_txs = read_varint(s)
-            # num_txs should be 0 or raise a RuntimeError
-            if num_txs != 0:
+            # parse a header using Block.parse(s)
+            header = Block.parse(s)
+            # add the header to the headers array
+            headers.append(header)
+            # check that the length of the tx_hashes to be 0 or raise a RuntimeError
+            if len(header.tx_hashes) != 0:
                 raise RuntimeError('number of txs not 0')
         # return a class instance
         return cls(headers)

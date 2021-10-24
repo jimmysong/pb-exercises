@@ -24,8 +24,6 @@ COMPACT_BLOCK_DATA_TYPE = 4
 NETWORK_MAGIC = b'\xf9\xbe\xb4\xd9'
 TESTNET_NETWORK_MAGIC = b'\x0b\x11\x09\x07'
 
-BASIC_FILTER_TYPE = 0
-
 
 class NetworkEnvelope:
 
@@ -285,18 +283,18 @@ class HeadersMessage:
         headers = []
         # loop through number of headers times
         for _ in range(num_headers):
-            # add a header to the headers array by using Block.parse_header(s)
-            headers.append(Block.parse_header(s))
-            # read the next varint (num_txs)
-            num_txs = read_varint(s)
-            # num_txs should be 0 or raise a RuntimeError
-            if num_txs != 0:
+            # parse a header using Block.parse(s)
+            header = Block.parse(s)
+            # add the header to the headers array
+            headers.append(header)
+            # check that the length of the tx_hashes to be 0 or raise a RuntimeError
+            if len(header.tx_hashes) != 0:
                 raise RuntimeError('number of txs not 0')
         # return a class instance
         return cls(headers)
 
     def is_valid(self):
-        '''Return whether the headers satisfy proof-of-work and are sequential'''
+        '''Return whether the headers satisfy proof-of-work and are sequential and have the correct bits'''
         last_block = None
         for h in self.headers:
             if not h.check_pow():
@@ -305,13 +303,6 @@ class HeadersMessage:
                 return False
             last_block = h.hash()
         return True
-
-    def merkle_block_request(self):
-        '''Request Merkle Blocks for each header'''
-        get_data = GetDataMessage()
-        for h in self.headers:
-            get_data.add_data(FILTERED_BLOCK_DATA_TYPE, h.hash())
-        return get_data
 
 
 class HeadersMessageTest(TestCase):
@@ -367,137 +358,6 @@ class GenericMessage:
 
     def serialize(self):
         return self.payload
-
-
-
-class GetCFiltersMessage:
-    command = b"getcfilters"
-
-    def __init__(self, filter_type=BASIC_FILTER_TYPE, start_height=1, stop_hash=None):
-        self.filter_type = filter_type
-        self.start_height = start_height
-        if stop_hash is None:
-            raise RuntimeError
-        self.stop_hash = stop_hash
-
-    def serialize(self):
-        result = self.filter_type.to_bytes(1, "big")
-        result += int_to_little_endian(self.start_height, 4)
-        result += self.stop_hash[::-1]
-        return result
-
-
-class CFilterMessage:
-    command = b"cfilter"
-
-    def __init__(self, filter_type, block_hash, filter_bytes, hashes):
-        self.filter_type = filter_type
-        self.block_hash = block_hash
-        self.filter_bytes = filter_bytes
-        self.hashes = hashes
-        self.f = len(self.hashes) * GOLOMB_M
-        self.key = self.block_hash[::-1][:16]
-
-    @classmethod
-    def parse(cls, s):
-        filter_type = s.read(1)[0]
-        block_hash = s.read(32)[::-1]
-        num_bytes = read_varint(s)
-        filter_bytes = s.read(num_bytes)
-        substream = BytesIO(filter_bytes)
-        n = read_varint(substream)
-        bits = unpack_bits(substream.read())
-        hashes = set()
-        current = 0
-        for _ in range(n):
-            delta = decode_golomb(bits, GOLOMB_P)
-            current += delta
-            hashes.add(current)
-        return cls(filter_type, block_hash, filter_bytes, hashes)
-
-    def hash(self, raw_script_pubkey):
-        return hash_to_range(self.key, raw_script_pubkey, self.f)
-
-    def __contains__(self, raw_script_pubkey):
-        if type(raw_script_pubkey) == bytes:
-            return self.hash(raw_script_pubkey) in self.hashes
-        else:
-            for r in raw_script_pubkey:
-                if self.hash(r) in self.hashes:
-                    return True
-            return False
-
-
-class GetCFHeadersMessage:
-    command = b"getcfheaders"
-
-    def __init__(self, filter_type=BASIC_FILTER_TYPE, start_height=0, stop_hash=None):
-        self.filter_type = filter_type
-        self.start_height = start_height
-        if stop_hash is None:
-            raise RuntimeError
-        self.stop_hash = stop_hash
-
-    def serialize(self):
-        result = self.filter_type.to_bytes(1, "big")
-        result += int_to_little_endian(self.start_height, 4)
-        result += self.stop_hash[::-1]
-        return result
-
-
-class CFHeadersMessage:
-    command = b"cfheaders"
-
-    def __init__(self, filter_type, stop_hash, previous_filter_header, filter_hashes):
-        self.filter_type = filter_type
-        self.stop_hash = stop_hash
-        self.previous_filter_header = previous_filter_header
-        self.filter_hashes = filter_hashes
-
-    @classmethod
-    def parse(cls, s):
-        filter_type = s.read(1)[0]
-        stop_hash = s.read(32)[::-1]
-        previous_filter_header = s.read(32)[::-1]
-        filter_hashes_length = read_varint(s)
-        filter_hashes = []
-        for _ in range(filter_hashes_length):
-            filter_hashes.append(s.read(32)[::-1])
-        return cls(filter_type, stop_hash, previous_filter_header, filter_hashes)
-
-
-class GetCFCheckPointMessage:
-    command = b"getcfcheckpt"
-
-    def __init__(self, filter_type=BASIC_FILTER_TYPE, stop_hash=None):
-        self.filter_type = filter_type
-        if stop_hash is None:
-            raise RuntimeError("Need a stop hash")
-        self.stop_hash = stop_hash
-
-    def serialize(self):
-        result = self.filter_type.to_bytes(1, "big")
-        result += self.stop_hash[::-1]
-        return result
-
-
-class CFCheckPointMessage:
-    command = b"cfcheckpt"
-
-    def __init__(self, filter_type, stop_hash, filter_headers):
-        self.filter_type = filter_type
-        self.stop_hash = stop_hash
-        self.filter_headers = filter_headers
-
-    @classmethod
-    def parse(cls, s):
-        filter_type = s.read(1)[0]
-        stop_hash = s.read(32)[::-1]
-        filter_headers_length = read_varint(s)
-        filter_headers = []
-        for _ in range(filter_headers_length):
-            filter_headers.append(s.read(32)[::-1])
-        return cls(filter_type, stop_hash, filter_headers)
 
 
 class SimpleNode:
@@ -580,40 +440,12 @@ class SimpleNode:
         if got_tx.id() == tx_obj.id():
             return True
 
-    def get_filtered_txs(self, block_hashes):
-        '''Returns transactions that match the bloom filter'''
-        from merkleblock import MerkleBlock
-        # create a getdata message
-        get_data = GetDataMessage()
-        # for each block request the filtered block
-        for block_hash in block_hashes:
-            get_data.add_data(FILTERED_BLOCK_DATA_TYPE, block_hash)
-            # add_data (FILTERED_BLOCK_DATA_TYPE, block_hash) to request the block
-        # send the getdata message
-        self.send(get_data)
-        # initialize the results array we'll send back
-        results = []
-        # for each block hash
-        for block_hash in block_hashes:
-            # wait for the merkleblock command
-            mb = self.wait_for(MerkleBlock)
-            # check that the merkle block's hash is the same as the block hash
-            if mb.hash() != block_hash:
-                raise RuntimeError
-            # check that the merkle block is valid
-            if not mb.is_valid():
-                raise RuntimeError
-            # loop through the proved transactions from the Merkle block
-            for tx_hash in mb.proved_txs():
-                # wait for the tx command
-                tx_obj = self.wait_for(Tx)
-                # check that the hash matches
-                if tx_obj.hash() != tx_hash:
-                    raise RuntimeError
-                # add to the results
-                results.append(tx_obj)
-        # return the results
-        return results
+    def get_block(self, block_hash):
+        # create a GetDataMessage
+        # add the block hash to the getdata message
+        # send the message
+        # wait for the Block message and send it back
+        raise NotImplementedError
 
 
 class SimpleNodeTest(TestCase):
@@ -622,16 +454,9 @@ class SimpleNodeTest(TestCase):
         node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)
         node.handshake()
 
-    def test_get_filtered_txs(self):
-        from bloomfilter import BloomFilter
-        bf = BloomFilter(30, 5, 90210)
-        h160 = decode_base58('mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5')
-        bf.add(h160)
+    def test_get_block(self):
         node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)
         node.handshake()
-        node.send(bf.filterload())
-        block_hash = bytes.fromhex('00000000000377db7fde98411876c53e318a395af7304de298fd47b7c549d125')
-        txs = node.get_filtered_txs([block_hash])
-        self.assertEqual(txs[0].id(), '0c024b9d3aa2ae8faae96603b8d40c88df2fc6bf50b3f446295206f70f3cf6ad')
-        self.assertEqual(txs[1].id(), '0886537e27969a12478e0d33707bf6b9fe4fdaec8d5d471b5304453b04135e7e')
-        self.assertEqual(txs[2].id(), '23d4effc88b80fb7dbcc2e6a0b0af9821c6fe3bb4c8dc3b61bcab7c45f0f6888')
+        want = '00000000b4a283fd078500ef347c1646985261f925a4d4b67c143cc1ba2a3b57'
+        b = node.get_block(bytes.fromhex(want))
+        self.assertEqual(b.hash().hex(), want)

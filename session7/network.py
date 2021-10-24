@@ -257,9 +257,9 @@ class HeadersMessage:
         # number of headers is in a varint
         # initialize the headers array
         # loop through number of headers times
-            # add a header to the headers array by using Block.parse_header(s)
-            # read the next varint (num_txs)
-            # num_txs should be 0 or raise a RuntimeError
+            # parse a header using Block.parse(s)
+            # add the header to the headers array
+            # check that the length of the tx_hashes to be 0 or raise a RuntimeError
         # return a class instance
         raise NotImplementedError
 

@@ -52,14 +52,18 @@ class Block:
         return cls(version, prev_block, merkle_root, timestamp, bits, nonce)
 
     @classmethod
-    def parse(cls, s):
+    def parse(cls, s, testnet=False):
+        """Takes a byte stream and parses a block. Returns a Block object"""
         b = cls.parse_header(s)
         num_txs = read_varint(s)
-        tx_hashes = []
+        b.txs = []
+        b.tx_hashes = []
+        b.tx_lookup = {}
         for _ in range(num_txs):
-            t = Tx.parse(s)
-            tx_hashes.append(t.hash())
-        b.tx_hashes = tx_hashes
+            t = Tx.parse(s, testnet=testnet)
+            b.txs.append(t)
+            b.tx_hashes.append(t.hash())
+            b.tx_lookup[t.hash()] = t
         return b
 
     def serialize(self):
