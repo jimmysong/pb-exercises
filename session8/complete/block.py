@@ -18,6 +18,7 @@ TWO_WEEKS = 60 * 60 * 24 * 14
 
 class Block:
     command = b'block'
+    define_network = True
 
     def __init__(self, version, prev_block, merkle_root, timestamp, bits, nonce, tx_hashes=None):
         self.version = version
@@ -52,14 +53,18 @@ class Block:
         return cls(version, prev_block, merkle_root, timestamp, bits, nonce)
 
     @classmethod
-    def parse(cls, s):
+    def parse(cls, s, testnet=False):
+        """Takes a byte stream and parses a block. Returns a Block object"""
         b = cls.parse_header(s)
         num_txs = read_varint(s)
-        tx_hashes = []
+        b.txs = []
+        b.tx_hashes = []
+        b.tx_lookup = {}
         for _ in range(num_txs):
-            t = Tx.parse(s)
-            tx_hashes.append(t.hash())
-        b.tx_hashes = tx_hashes
+            t = Tx.parse(s, testnet=testnet)
+            b.txs.append(t)
+            b.tx_hashes.append(t.hash())
+            b.tx_lookup[t.hash()] = t
         return b
 
     def serialize(self):
@@ -179,10 +184,27 @@ class Block:
         # convert the new target to bits using the target_to_bits function
         return target_to_bits(new_target)
 
+    def get_tx_out_scripts(self):
+        if not self.txs:
+            return []
+        for t in self.txs:
+            for tx_out in t.tx_outs:
+                if not tx_out.script_pubkey.has_op_return():
+                    yield (tx_out.script_pubkey)
+
+    def get_transactions(self, script_pubkey):
+        if not self.txs:
+            return []
+        txs = []
+        for t in self.txs:
+            for tx_out in t.tx_outs:
+                if tx_out.script_pubkey == script_pubkey:
+                    txs.append(t)
+        return txs
+
 
 GENESIS_BLOCK = Block.parse_header(BytesIO(bytes.fromhex('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c')))
 TESTNET_GENESIS_BLOCK = Block.parse_header(BytesIO(bytes.fromhex('0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4adae5494dffff001d1aa4ae18')))
-
 
 
 class BlockTest(TestCase):

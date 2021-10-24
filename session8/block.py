@@ -164,36 +164,42 @@ class Block:
         # the reverse of the calculated merkle root
         return root[::-1] == self.merkle_root
 
-    def get_outpoints(self):
+    def new_bits(self, beginning_block):
+        """Calculates the new bits for a 2016-block epoch.
+        Assumes current block is the last of the 2016-block epoch.
+        Requires the first block of the epoch."""
+        # calculate the time differential
+        time_differential = self.timestamp - beginning_block.timestamp
+        # if the time differential is greater than 8 weeks, set to 8 weeks
+        if time_differential > TWO_WEEKS * 4:
+            time_differential = TWO_WEEKS * 4
+        # if the time differential is less than half a week, set to half a week
+        if time_differential < TWO_WEEKS // 4:
+            time_differential = TWO_WEEKS // 4
+        # the new target is the current target * time differential / two weeks
+        new_target = self.target() * time_differential // TWO_WEEKS
+        # if the new target is bigger than MAX_TARGET, set to MAX_TARGET
+        if new_target > MAX_TARGET:
+            new_target = MAX_TARGET
+        # convert the new target to bits using the target_to_bits function
+        return target_to_bits(new_target)
+
+    def get_tx_out_scripts(self):
         if not self.txs:
             return []
         for t in self.txs:
             for tx_out in t.tx_outs:
                 if not tx_out.script_pubkey.has_op_return():
-                    yield (tx_out.script_pubkey.raw_serialize())
+                    yield (tx_out.script_pubkey)
 
-    def get_transactions(self, addresses):
+    def get_transactions(self, script_pubkey):
         if not self.txs:
             return []
-        address_set = set(addresses)
         txs = []
         for t in self.txs:
-            evaluate = True
-            if not t.is_coinbase():
-                for tx_in in t.tx_ins:
-                    address = tx_in.script_pubkey(t.testnet).address(testnet=t.testnet)
-                    if address in address_set:
-                        txs.append(t)
-                        break
-                else:
-                    evaluate = False
-            if evaluate:
-                for tx_out in t.tx_outs:
-
-                    address = tx_out.script_pubkey.address(testnet=t.testnet)
-                    print(address)
-                    if address in address_set:
-                        txs.append(t)
+            for tx_out in t.tx_outs:
+                if tx_out.script_pubkey == script_pubkey:
+                    txs.append(t)
         return txs
 
 

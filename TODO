@@ -1,9 +1,0 @@
-Remove bloom filters and add neutrino
-
-Change exercises to use neutrino
-
-fix the segwit test in helper.py
-
-Change slides
- - diff adjustment
- - add diff adjustment to s7 header download

@@ -375,6 +375,8 @@ class TxIn:
         '''Get the outpoint value by looking up the tx hash
         Returns the amount in satoshi
         '''
+        if self.prev_tx == b'\x00' * 32:
+            return 0
         # use self.fetch_tx to get the transaction
         tx = self.fetch_tx(testnet=testnet)
         # get the output at self.prev_index
@@ -385,6 +387,8 @@ class TxIn:
         '''Get the scriptPubKey by looking up the tx hash
         Returns a Script object
         '''
+        if self.prev_tx == b'\x00' * 32:
+            return Script()
         # use self.fetch_tx to get the transaction
         tx = self.fetch_tx(testnet=testnet)
         # get the output at self.prev_index

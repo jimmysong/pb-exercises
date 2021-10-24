@@ -111,6 +111,7 @@ class NetworkEnvelopeTest(TestCase):
 
 class VersionMessage:
     command = b'version'
+    define_network = False
 
     def __init__(self, version=70015, services=0, timestamp=None,
                  receiver_services=0,
@@ -183,6 +184,7 @@ class VersionMessageTest(TestCase):
 
 class VerAckMessage:
     command = b'verack'
+    define_network = False
 
     def __init__(self):
         pass
@@ -197,6 +199,7 @@ class VerAckMessage:
 
 class PingMessage:
     command = b'ping'
+    define_network = False
 
     def __init__(self, nonce):
         self.nonce = nonce
@@ -212,6 +215,7 @@ class PingMessage:
 
 class PongMessage:
     command = b'pong'
+    define_network = False
 
     def __init__(self, nonce):
         self.nonce = nonce
@@ -226,6 +230,7 @@ class PongMessage:
 
 class GetHeadersMessage:
     command = b'getheaders'
+    define_network = False
 
     def __init__(self, version=70015, num_hashes=1, start_block=None, end_block=None):
         self.version = version
@@ -261,6 +266,7 @@ class GetHeadersMessageTest(TestCase):
 
 class HeadersMessage:
     command = b'headers'
+    define_network = False
 
     def __init__(self, headers):
         self.headers = headers
@@ -288,7 +294,7 @@ class HeadersMessage:
         return cls(headers)
 
     def is_valid(self):
-        '''Return whether the headers satisfy proof-of-work and are sequential'''
+        '''Return whether the headers satisfy proof-of-work and are sequential and have the correct bits'''
         last_block = None
         for h in self.headers:
             if not h.check_pow():
@@ -312,6 +318,7 @@ class HeadersMessageTest(TestCase):
 
 class GetDataMessage:
     command = b'getdata'
+    define_network = False
 
     def __init__(self):
         self.data = []
@@ -343,6 +350,8 @@ class GetDataMessageTest(TestCase):
 
 
 class GenericMessage:
+    define_network = False
+
     def __init__(self, command, payload):
         self.command = command
         self.payload = payload
@@ -412,42 +421,11 @@ class SimpleNode:
                 # send pong
                 self.send(PongMessage(envelope.payload))
         # return the envelope parsed as a member of the right message class
-        return command_to_class[command].parse(envelope.stream())
-
-    def get_filtered_txs(self, block_hashes):
-        '''Returns transactions that match the bloom filter'''
-        from merkleblock import MerkleBlock
-        # create a getdata message
-        getdata = GetDataMessage()
-        # for each block request the filtered block
-        for block_hash in block_hashes:
-            # add_data (FILTERED_BLOCK_DATA_TYPE, block_hash) to request the block
-            getdata.add_data(FILTERED_BLOCK_DATA_TYPE, block_hash)
-        # send the getdata message
-        self.send(getdata)
-        # initialize the results array we'll send back
-        results = []
-        # for each block hash
-        for block_hash in block_hashes:
-            # wait for the merkleblock command
-            mb = self.wait_for(MerkleBlock)
-            # check that the merkle block's hash is the same as the block hash
-            if mb.hash() != block_hash:
-                raise RuntimeError('Wrong block sent')
-            # check that the merkle block is valid
-            if not mb.is_valid():
-                raise RuntimeError('Merkle Proof is invalid')
-            # loop through the proved transactions from the Merkle block
-            for tx_hash in mb.proved_txs():
-                # wait for the tx command
-                tx_obj = self.wait_for(Tx)
-                # check that the hash matches
-                if tx_obj.hash() != tx_hash:
-                    raise RuntimeError(f'Wrong tx sent {tx_hash.hx()} vs {tx_obj.id()}')
-                # add to the results
-                results.append(tx_obj)
-        # return the results
-        return results
+        cls = command_to_class[command]
+        if cls.define_network:
+            return cls.parse(envelope.stream(), testnet=self.testnet)
+        else:
+            return cls.parse(envelope.stream())
 
     def is_tx_accepted(self, tx_obj):
         '''Returns whether a transaction has been accepted on the network'''
@@ -462,6 +440,16 @@ class SimpleNode:
         if got_tx.id() == tx_obj.id():
             return True
 
+    def get_block(self, block_hash):
+        # create a GetDataMessage
+        get_data = GetDataMessage()
+        # add the block hash to the getdata message
+        get_data.add_data(BLOCK_DATA_TYPE, block_hash)
+        # send the message
+        self.send(get_data)
+        # wait for the Block message and send it back
+        return self.wait_for(Block)
+
 
 class SimpleNodeTest(TestCase):
 
@@ -469,16 +457,9 @@ class SimpleNodeTest(TestCase):
         node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)
         node.handshake()
 
-    def test_get_filtered_txs(self):
-        from bloomfilter import BloomFilter
-        bf = BloomFilter(30, 5, 90210)
-        h160 = decode_base58('mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5')
-        bf.add(h160)
+    def test_get_block(self):
         node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)
         node.handshake()
-        node.send(bf.filterload())
-        block_hash = bytes.fromhex('00000000000377db7fde98411876c53e318a395af7304de298fd47b7c549d125')
-        txs = node.get_filtered_txs([block_hash])
-        self.assertEqual(txs[0].id(), '0c024b9d3aa2ae8faae96603b8d40c88df2fc6bf50b3f446295206f70f3cf6ad')
-        self.assertEqual(txs[1].id(), '0886537e27969a12478e0d33707bf6b9fe4fdaec8d5d471b5304453b04135e7e')
-        self.assertEqual(txs[2].id(), '23d4effc88b80fb7dbcc2e6a0b0af9821c6fe3bb4c8dc3b61bcab7c45f0f6888')
+        want = '00000000b4a283fd078500ef347c1646985261f925a4d4b67c143cc1ba2a3b57'
+        b = node.get_block(bytes.fromhex(want))
+        self.assertEqual(b.hash().hex(), want)

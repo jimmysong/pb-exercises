@@ -53,7 +53,7 @@ network:SimpleNodeTest:test_handshake:
 #endunittest
 #code
 >>> # Block Header Download Example
->>> from block import GENESIS_BLOCK, MAX_TARGET
+>>> from block import GENESIS_BLOCK
 >>> from helper import target_to_bits
 >>> from network import GetHeadersMessage, HeadersMessage, SimpleNode
 >>> node = SimpleNode('seed.btc.petertodd.org', testnet=False)
