@@ -5,6 +5,7 @@ from helper import (
     hash256,
     int_to_little_endian,
     little_endian_to_int,
+    target_to_bits,
 )
 
 

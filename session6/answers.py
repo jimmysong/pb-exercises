@@ -245,9 +245,9 @@ Block 473759:
 >>> if new_target > MAX_TARGET:  #/
 ...     new_target = MAX_TARGET  #/
 >>> # convert the target to bits
->>> new_bits = target_to_bits(new_target)
+>>> new_bits = target_to_bits(new_target)  #/
 >>> # print the new bits in hex
->>> print(new_bits.hex())
+>>> print(new_bits.hex())  #/
 80df6217
 
 #endexercise
