@@ -1,4 +1,4 @@
-'''
+"""
 #code
 >>> import network, compactfilter
 
@@ -13,21 +13,21 @@ Verify that the block which had your previous transaction matches the filter for
 >>> from network import SimpleNode, GetDataMessage, BLOCK_DATA_TYPE
 >>> from script import p2pkh_script
 >>> from tx import Tx
->>> block_hash = bytes.fromhex('00000000000000025d631a0e2d198b3e6904b988c3c37832270f547c5b7f0b4e')  #/block_hash = bytes.fromhex('<block hash from class>')  # CHANGE
->>> block_height = 1976197  #/block_height = -1  # CHANGE
+>>> block_hash = bytes.fromhex('00000006439f526ce138524262a29500258db39130e1ddf0c168ca59002877b8')  #/block_hash = bytes.fromhex('<block hash from class>')  # CHANGE
+>>> block_height = 75912  #/block_height = -1  # CHANGE
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
 >>> private_key = PrivateKey(secret=secret)
->>> addr = private_key.point.address(testnet=True)
+>>> addr = private_key.point.address(network="signet")
 >>> print(addr)
 mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> # convert the address to a ScriptPubKey using decode_base58 and p2pkh_script
 >>> script_pubkey = p2pkh_script(decode_base58(addr))  #/
->>> # connect to testnet.programmingbitcoin.com in testnet mode
->>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
+>>> # connect to signet.programmingbitcoin.com
+>>> node = SimpleNode('signet.programmingbitcoin.com', network="signet")  #/
 >>> # complete the handshake
 >>> node.handshake()  #/
->>> # create a GetCFiltersMessage using the block height and block hash
+>>> # create a GetCFiltersMessage(start_height, stop_hash) using the block height and block hash
 >>> getcfilters = GetCFiltersMessage(start_height=block_height, stop_hash=block_hash)  #/
 >>> # send the getcfilters message
 >>> node.send(getcfilters)  #/
@@ -47,11 +47,11 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> node.send(getdata)  #/
 >>> # wait for the Block
 >>> b = node.wait_for(Block)  #/
->>> # use the get_transactions method of Block to get transactions
+>>> # use the get_transactions(script_pubkey) method of Block to get transactions
 >>> txs = b.get_transactions(script_pubkey)  #/
 >>> # print the first one serialized and hexadecimal
 >>> print(txs[0].serialize().hex())  #/
-0100000001f7cca7a7fbc0a4872661643bbadd7a0d5e2ba62c064fd3fdb80f863285ecc3ee000000006a473044022073561bdf6ab8e5993435637f83859d7b744a10e86e323bcaeb7bfe7a9b6e87140220145989b8a6bcc8aaca79e729c8d7157ea7d3358e7d9ad0384a38bc30a0c9db9a012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff0200093d00000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac07868200000000001976a914850af0029eb376691c3eef244c25eceb4e50c50388ac00000000
+0100000001ff5cf6387deac5a25e72ebb753d6adfa487fbac4d5996731213349546a96ae950100000000ffffffff02a0860100000000001976a914850af0029eb376691c3eef244c25eceb4e50c50388ac43f54e5202000000160014f5a74a3131dedb57a092ae86aad3ee3f9b8d721400000000
 
 #endexercise
 #unittest
@@ -66,7 +66,7 @@ network:SimpleNodeTest:test_get_block:
 >>> with open('block_headers.testnet', 'rb') as f:
 ...     headers = [Block.parse_header(f) for _ in range(num_checkpoints * 1000)]
 >>> block_hashes = [b.hash() for b in headers]
->>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)
+>>> node = SimpleNode('testnet.programmingbitcoin.com', network="testnet")
 >>> node.handshake()
 >>> get_cfcheckpoint = GetCFCheckPointMessage(stop_hash=block_hashes[-1])
 >>> node.send(get_cfcheckpoint)
@@ -89,7 +89,7 @@ network:SimpleNodeTest:test_get_block:
 
 #endcode
 #exercise
-You have been sent some unknown amount of testnet bitcoins to your address.
+You have been sent some unknown number of sats to your address on signet.
 
 Send all of it back (minus fees) to `mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv` using only the networking protocol.
 
@@ -104,14 +104,14 @@ Turn on logging in `SimpleNode` if you need to debug
 >>> from network import GetHeadersMessage, HeadersMessage, SimpleNode, BLOCK_DATA_TYPE
 >>> from script import p2pkh_script
 >>> from tx import Tx, TxIn, TxOut
->>> start_block_hex = '000000008d4459b8110998b565b736360f58355199ca120b9e5fa02f05a71c93'  #/ start_block_hex = '<insert from class>'  # CHANGE
+>>> start_block_hex = '00000031144d96f3d297c17b092c7bed5acd3d027e37dd4a866f3313614bd4ca'  #/start_block_hex = '<insert from class>'  # CHANGE
 >>> start_block = bytes.fromhex(start_block_hex)
->>> start_height = 1486230  #/ start_height = -1  # CHANGE
+>>> start_height = 76218  #/start_height = -1  # CHANGE
 >>> end_block = b'\x00' * 32
->>> passphrase = b'Jimmy Song'  #/ passphrase = b'<get from session 2>'  # CHANGE
+>>> passphrase = b'Jimmy Song'  #/passphrase = b'<get from session 2>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
 >>> private_key = PrivateKey(secret=secret)
->>> addr = private_key.point.address(testnet=True)
+>>> addr = private_key.point.address(network="signet")
 >>> print(addr)
 mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> h160 = decode_base58(addr)
@@ -119,9 +119,9 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> target_address = 'mqYz6JpuKukHzPg94y4XNDdPCEJrNkLQcv'
 >>> target_h160 = decode_base58(target_address)
 >>> target_script = p2pkh_script(target_h160)
->>> fee = 5000  # fee in satoshis
->>> # connect to testnet.programmingbitcoin.com in testnet mode
->>> node = SimpleNode('testnet.programmingbitcoin.com', testnet=True)  #/
+>>> fee = 200  # fee in satoshis
+>>> # connect to signet.programmingbitcoin.com in signet mode
+>>> node = SimpleNode('signet.programmingbitcoin.com', network="signet")  #/
 >>> # complete the handshake
 >>> node.handshake()  #/
 >>> # create GetHeadersMessage with the start_block as the start_block and end_block as the end block
@@ -133,78 +133,64 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> # check that the headers are valid
 >>> if not headers.is_valid():  #/
 ...     raise RuntimeError('bad headers')  #/
->>> # get the 99th hash from the header.headers array
->>> stop_hash = headers.headers[99].hash()  #/
+>>> # get the 20th hash (index 19) from the header.headers array
+>>> stop_hash = headers.headers[19].hash()  #/
 >>> # create a GetCFiltersMessage
 >>> get_cfilters = GetCFiltersMessage(start_height=start_height, stop_hash=stop_hash)  #/
 >>> # send the GetCFiltersMessage
 >>> node.send(get_cfilters)  #/
->>> # initialize the block_hashes array
->>> block_hashes = []  #/
 >>> # loop 100 times
 >>> for _ in range(100):  #/
 ...     # wait for the CFilterMessage
 ...     cfilter = node.wait_for(CFilterMessage)  #/
 ...     # check to see if your ScriptPubKey is in the filter
 ...     if my_script_pubkey in cfilter:  #/
-...         # add cfilter's block hash to the hashes we need to go get
-...         block_hashes.append(cfilter.block_hash)  #/
-...         print(cfilter.block_hash.hex())  #/
-000000001044cfa9a8a4716548cddb324448ef11b495561313b9495d0051bdad
->>> # create a GetDataMessage
->>> get_data = GetDataMessage()  #/
->>> # add_data to the GetDataMessage for each block hash
->>> for block_hash in block_hashes:  #/
-...     get_data.add_data(BLOCK_DATA_TYPE, block_hash)  #/
->>> # send the GetDataMessage
->>> node.send(get_data)  #/
+...         # set block_hash to cfilter's block hash and break
+...         block_hash = cfilter.block_hash  #/
+...         print(block_hash.hex())  #/
+...         break
+0000013cacd6f0e096f8c059241f389211fc014bf7134ed0b83298788a86c9ad
+>>> # get the block object using the get_block method of node
+>>> block_obj = node.get_block(block_hash)  #/
 >>> # initialize the utxos array
 >>> utxos = []  #/
->>> # for every block hash, wait for a block message
->>> for block_hash in block_hashes:  #/
-...     b = node.wait_for(Block)  #/
-...     # check that the hashes match for the block
-...     if b.hash() != block_hash:  #/
-...         raise RuntimeError('bad block')  #/
-...     # loop through the transactions corresponding to our ScriptPubKey using the get_transactions method
-...     for tx_obj in b.get_transactions(my_script_pubkey):  #/
-...         # use find_utxos to get utxos that belong to our address
-...         new_utxos = tx_obj.find_utxos(addr)  #/
-...         # add to the utxos array using extend method
-...         utxos.extend(new_utxos)  #/
->>> # initialize the input sum
->>> input_sum = 0  #/
+>>> # grab the txs from the block using get_transactions(my_script_pubkey) method
+>>> txs = block_obj.get_transactions(my_script_pubkey)  #/
+>>> # there should be one transaction
+>>> if len(txs) != 1:
+...     raise RuntimeError("incorrect number of transactions")
+>>> # set utxos to the tx's utxos for our address using find_utxos(addr) method of the first tx
+>>> utxos = txs[0].find_utxos(addr)  #/
+>>> # there should be one utxo
+>>> if len(utxos) != 1:
+...     raise RuntimeError("incorrect number of utxos")
 >>> # initialize the tx_ins array
 >>> tx_ins = []  #/
->>> # for each utxo, create a TxIn
->>> for utxo in utxos:  #/
-...     # prev_tx, prev_index, prev_amount are what we get in each utxo
-...     prev_tx, prev_index, prev_amount = utxo  #/
-...     # create TxIn and add to array
-...     tx_ins.append(TxIn(prev_tx, prev_index))  #/
-...     # add the amount to the input sum
-...     input_sum += prev_amount  #/
->>> # calculate the output amount (input_sum - fee)
+>>> # prev_tx, prev_index, prev_amount are what we get in the first utxo
+>>> prev_tx, prev_index, prev_amount = utxos[0]  #/
+>>> # create TxIn and add to array
+>>> tx_ins.append(TxIn(prev_tx, prev_index))  #/
+>>> # calculate the output amount (prev_amount - fee)
 >>> output_amount = prev_amount - fee  #/
->>> # create tx_out
+>>> # create TxOut
 >>> tx_out = TxOut(output_amount, target_script)  #/
->>> # create transaction on testnet
->>> tx_obj = Tx(1, tx_ins, [tx_out], 0, testnet=True)  #/
->>> # sign the inputs we have
->>> for i in range(len(tx_ins)):  #/
-...     tx_obj.sign_input(i, private_key)  #/
->>> # serialize and hex to see what it looks like
->>> print(tx_obj.serialize().hex())  #/
-01000000022f4253b1f1ff81a38fbf88424bc4795d0c6d493d30db91265249951beee83e86110000006b483045022100e0c8db514f9a8433930a742295be139208340a27a26dcb3c84bcadce034287150220661f37de000512e663e20b923e53fd6c4b1fed1271deb94da71a669f72e17220012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff45d4df59c7d9b50d73616f509ddfdcc13bd3ad03655bef04056ea969ae15ab260000000000ffffffff01f8829800000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000
+>>> # create transaction on signet
+>>> tx_obj = Tx(1, tx_ins, [tx_out], 0, network="signet")  #/
+>>> # sign the only input in the tx
+>>> tx_obj.sign_input(0, private_key)  #/
+>>> # print the tx's id
+>>> print(tx_obj.id())  #/
+010000000181b0ad7cc5c3c09cee885623770e11bf75b8ba6b116200899232ada028ee0ced000000006a473044022028b72508fff22703396a78b4428ec64ad98c598ca4ac9c0d7da1f4a51442afd6022049bc6580793eb6ba15058bccbada80175547d558b74375e7dc4b2e3de54a0e00012103dc585d46cfca73f3a75ba1ef0c5756a21c1924587480700c6eb64e3f75d22083ffffffff01e1c70000000000001976a9146e13971913b9aa89659a9f53d327baa8826f2d7588ac00000000
 >>> # send this signed transaction on the network
 >>> node.send(tx_obj)  #/
 
 #endexercise
-'''
+"""
 
 
 from unittest import TestCase
 
+from block import Block
 from network import (
     GetDataMessage,
     SimpleNode,
@@ -216,15 +202,18 @@ def get_block(self, block_hash):
     getdata = GetDataMessage()
     getdata.add_data(BLOCK_DATA_TYPE, block_hash)
     self.send(getdata)
-    return self.wait_for(Block)
+    block_obj = self.wait_for(Block)
+    if block_obj.hash() != block_hash:
+        raise RuntimeError("Got the wrong block")
+    return block_obj
 
 
 class Session8Test(TestCase):
-
     def test_apply(self):
         SimpleNode.get_block = get_block
 
 
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

@@ -1,4 +1,4 @@
-'''
+"""
 #code
 >>> import ecc, helper
 
@@ -347,7 +347,7 @@ Find the mainnet and testnet addresses corresponding to the private keys:
 ...     sec = point.sec(compressed)  #/
 ...     # hash160 the result
 ...     h160 = hash160(sec)  #/
-...     # prepend b'\\x00' for mainnet b'\\x6f' for testnet
+...     # prepend b'\\x00' for mainnet b'\\x6f' for testnet/signet
 ...     for prefix in (b'\\x00', b'\\x6f'):  #/
 ...         # raw is the prefix + h160
 ...         raw = prefix + h160  #/
@@ -372,7 +372,7 @@ helper:HelperTest:test_encode_base58_checksum:
 ecc:S256Test:test_address:
 #endunittest
 #exercise
-Create a testnet address using your own secret key (use your name and email as the password if you can't think of anything). Record this secret key for tomorrow!
+Create a testnet/signet address using your own secret key (use your name and email as the password if you can't think of anything). Record this secret key for tomorrow!
 ---
 >>> from ecc import G
 >>> from helper import little_endian_to_int, hash256
@@ -381,12 +381,12 @@ Create a testnet address using your own secret key (use your name and email as t
 >>> secret = little_endian_to_int(hash256(passphrase))
 >>> # get the public point
 >>> point = secret*G  #/
->>> # if you completed exercise 14, just do the .address(testnet=True) method on the public point
->>> print(point.address(testnet=True))  #/
+>>> # if you completed exercise 14, just do the .address(network="testnet") method on the public point
+>>> print(point.address(network="testnet"))  #/
 mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 
 #endexercise
-'''
+"""
 
 from unittest import TestCase
 
@@ -472,10 +472,26 @@ def t_rmul(self):
 
 def t_pubpoint(self):
     points = (
-        (7, 0x5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc, 0x6aebca40ba255960a3178d6d861a54dba813d0b813fde7b5a5082628087264da),
-        (1485, 0xc982196a7466fbbbb0e27a940b6af926c1a74d5ad07128c82824a11b5398afda, 0x7a91f9eae64438afb9ce6448a1c133db2d8fb9254e4546b6f001637d50901f55),
-        (2**128, 0x8f68b9d2f63b5f339239c1ad981f162ee88c5678723ea3351b7b444c9ec4c0da, 0x662a9f2dba063986de1d90c2b6be215dbbea2cfe95510bfdf23cbf79501fff82),
-        (2**240 + 2**31, 0x9577ff57c8234558f293df502ca4f09cbc65a6572c842b39b366f21717945116, 0x10b49c67fa9365ad7b90dab070be339a1daf9052373ec30ffae4f72d5e66d053),
+        (
+            7,
+            0x5CBDF0646E5DB4EAA398F365F2EA7A0E3D419B7E0330E39CE92BDDEDCAC4F9BC,
+            0x6AEBCA40BA255960A3178D6D861A54DBA813D0B813FDE7B5A5082628087264DA,
+        ),
+        (
+            1485,
+            0xC982196A7466FBBBB0E27A940B6AF926C1A74D5AD07128C82824A11B5398AFDA,
+            0x7A91F9EAE64438AFB9CE6448A1C133DB2D8FB9254E4546B6F001637D50901F55,
+        ),
+        (
+            2**128,
+            0x8F68B9D2F63B5F339239C1AD981F162EE88C5678723EA3351B7B444C9EC4C0DA,
+            0x662A9F2DBA063986DE1D90C2B6BE215DBBEA2CFE95510BFDF23CBF79501FFF82,
+        ),
+        (
+            2**240 + 2**31,
+            0x9577FF57C8234558F293DF502CA4F09CBC65A6572C842B39B366F21717945116,
+            0x10B49C67FA9365AD7B90DAB070BE339A1DAF9052373EC30FFAE4F72D5E66D053,
+        ),
     )
     for secret, x, y in points:
         point = S256Point(x, y)
@@ -485,11 +501,11 @@ def t_pubpoint(self):
 def sec(self, compressed=True):
     if compressed:
         if self.y.num % 2 == 0:
-            return b'\x02' + self.x.num.to_bytes(32, 'big')
+            return b"\x02" + self.x.num.to_bytes(32, "big")
         else:
-            return b'\x03' + self.x.num.to_bytes(32, 'big')
+            return b"\x03" + self.x.num.to_bytes(32, "big")
     else:
-        return b'\x04' + self.x.num.to_bytes(32, 'big') + self.y.num.to_bytes(32, 'big')
+        return b"\x04" + self.x.num.to_bytes(32, "big") + self.y.num.to_bytes(32, "big")
 
 
 def encode_base58_checksum(raw):
@@ -497,20 +513,20 @@ def encode_base58_checksum(raw):
     return encode_base58(raw + checksum)
 
 
-def address(self, compressed=True, testnet=False):
+def address(self, compressed=True, network="mainnet"):
     sec = self.sec(compressed)
     h160 = hash160(sec)
-    if testnet:
-        prefix = b'\x6f'
+    if network in ("testnet", "signet"):
+        prefix = b"\x6f"
     else:
-        prefix = b'\x00'
+        prefix = b"\x00"
     return encode_base58_checksum(prefix + h160)
 
 
 class SessionTest(TestCase):
-
     def test_apply(self):
         from ecc import ECCTest, S256Test
+
         ECCTest.test_on_curve = t_on_curve
         ECCTest.test_add = t_add
         ECCTest.test_rmul = t_rmul

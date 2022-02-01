@@ -1,4 +1,4 @@
-'''
+"""
 #code
 >>> import ecc, helper
 
@@ -119,7 +119,7 @@ Write a program to calculate \\(i^{30}\\) for all i in \\(F_{31}\\). Notice anyt
 #endcode
 #exercise
 Solve these equations in \\(F_{31}\\):
-* \\(3/24 = ?\\)
+* \\(\frac{3}{24} = ?\\)
 * \\(17^{-3} = ?\\)
 * \\(4^{-4}\cdot{11} = ?\\)
 ---
@@ -232,7 +232,7 @@ For the curve \\(y^2 = x^3 + 5x + 7\\), what is \\((-1,1) + (-1,1)\\)?
 #unittest
 ecc:PointTest:test_add2:
 #endunittest
-'''
+"""
 
 
 from random import randint
@@ -243,7 +243,7 @@ from ecc import FieldElement, Point
 
 def __add__(self, other):
     if self.prime != other.prime:
-        raise TypeError('Cannot add two numbers in different Fields')
+        raise TypeError("Cannot add two numbers in different Fields")
     num = (self.num + other.num) % self.prime
     prime = self.prime
     return self.__class__(num, prime)
@@ -251,7 +251,7 @@ def __add__(self, other):
 
 def __sub__(self, other):
     if self.prime != other.prime:
-        raise TypeError('Cannot add two numbers in different Fields')
+        raise TypeError("Cannot add two numbers in different Fields")
     num = (self.num - other.num) % self.prime
     prime = self.prime
     return self.__class__(num, prime)
@@ -259,7 +259,7 @@ def __sub__(self, other):
 
 def __mul__(self, other):
     if self.prime != other.prime:
-        raise TypeError('Cannot add two numbers in different Fields')
+        raise TypeError("Cannot add two numbers in different Fields")
     num = (self.num * other.num) % self.prime
     prime = self.prime
     return self.__class__(num, prime)
@@ -273,7 +273,7 @@ def __pow__(self, n):
 
 def __truediv__(self, other):
     if self.prime != other.prime:
-        raise TypeError('Cannot add two numbers in different Fields')
+        raise TypeError("Cannot add two numbers in different Fields")
     num = (self.num * pow(other.num, self.prime - 2, self.prime)) % self.prime
     prime = self.prime
     return self.__class__(num, prime)
@@ -287,12 +287,12 @@ def __init__(self, x, y, a, b):
     if self.x is None and self.y is None:
         return
     if self.y**2 != self.x**3 + a * x + b:
-            raise ValueError(f'({self.x}, {self.y}) is not on the curve')
+        raise ValueError(f"({self.x}, {self.y}) is not on the curve")
 
 
 def point_add(self, other):
     if self.a != other.a or self.b != other.b:
-        raise TypeError(f'Points {self}, {other} are not on the same curve')
+        raise TypeError(f"Points {self}, {other} are not on the same curve")
     if self.x is None:
         return other
     if other.x is None:
@@ -312,7 +312,6 @@ def point_add(self, other):
 
 
 class SessionTest(TestCase):
-
     def test_apply(self):
         FieldElement.__add__ = __add__
         FieldElement.__sub__ = __sub__

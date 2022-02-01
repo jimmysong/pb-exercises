@@ -4,11 +4,10 @@ from helper import bit_field_to_bytes, encode_varint, int_to_little_endian, murm
 from network import GenericMessage
 
 
-BIP37_CONSTANT = 0xfba4c795
+BIP37_CONSTANT = 0xFBA4C795
 
 
 class BloomFilter:
-
     def __init__(self, size, function_count, tweak):
         self.size = size
         self.bit_field = [0] * (size * 8)
@@ -16,7 +15,7 @@ class BloomFilter:
         self.tweak = tweak
 
     def add(self, item):
-        '''Add an item to the filter'''
+        """Add an item to the filter"""
         # iterate self.function_count number of times
         for i in range(self.function_count):
             # BIP0037 spec seed is i*BIP37_CONSTANT + self.tweak
@@ -32,7 +31,7 @@ class BloomFilter:
         return bit_field_to_bytes(self.bit_field)
 
     def filterload(self, flag=1):
-        '''Return a network message whose command is filterload'''
+        """Return a network message whose command is filterload"""
         # encode_varint self.size
         payload = encode_varint(self.size)
         # next is the self.filter_bytes()
@@ -44,27 +43,26 @@ class BloomFilter:
         # flag is 1 byte little endian
         payload += int_to_little_endian(flag, 1)
         # return a GenericMessage with b'filterload' as the command
-        return GenericMessage(b'filterload', payload)
+        return GenericMessage(b"filterload", payload)
 
 
 class BloomFilterTest(TestCase):
-
     def test_add(self):
         bf = BloomFilter(10, 5, 99)
-        item = b'Hello World'
+        item = b"Hello World"
         bf.add(item)
-        expected = '0000000a080000000140'
+        expected = "0000000a080000000140"
         self.assertEqual(bf.filter_bytes().hex(), expected)
-        item = b'Goodbye!'
+        item = b"Goodbye!"
         bf.add(item)
-        expected = '4000600a080000010940'
+        expected = "4000600a080000010940"
         self.assertEqual(bf.filter_bytes().hex(), expected)
 
     def test_filterload(self):
         bf = BloomFilter(10, 5, 99)
-        item = b'Hello World'
+        item = b"Hello World"
         bf.add(item)
-        item = b'Goodbye!'
+        item = b"Goodbye!"
         bf.add(item)
-        expected = '0a4000600a080000010940050000006300000001'
+        expected = "0a4000600a080000010940050000006300000001"
         self.assertEqual(bf.filterload().payload.hex(), expected)

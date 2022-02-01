@@ -2,10 +2,9 @@ from unittest import TestCase
 
 
 class FieldElement:
-
     def __init__(self, num, prime):
         if num >= prime or num < 0:
-            error = f'Num {num} not in field range 0 to {prime-1}'
+            error = f"Num {num} not in field range 0 to {prime-1}"
             raise ValueError(error)
         self.num = num
         self.prime = prime
@@ -20,11 +19,11 @@ class FieldElement:
         return not (self == other)
 
     def __repr__(self):
-        return f'FieldElement_{self.prime}({self.num})'
+        return f"FieldElement_{self.prime}({self.num})"
 
     def __add__(self, other):
         if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
+            raise TypeError("Cannot add two numbers in different Fields")
         # self.num and other.num are the actual values
         num = (self.num + other.num) % self.prime
         # self.prime is what you'll need to mod against
@@ -35,7 +34,7 @@ class FieldElement:
 
     def __sub__(self, other):
         if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
+            raise TypeError("Cannot add two numbers in different Fields")
         # self.num and other.num are the actual values
         num = (self.num - other.num) % self.prime
         # self.prime is what you'll need to mod against
@@ -46,7 +45,7 @@ class FieldElement:
 
     def __mul__(self, other):
         if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
+            raise TypeError("Cannot add two numbers in different Fields")
         # self.num and other.num are the actual values
         num = (self.num * other.num) % self.prime
         # self.prime is what you'll need to mod against
@@ -66,7 +65,7 @@ class FieldElement:
 
     def __truediv__(self, other):
         if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
+            raise TypeError("Cannot add two numbers in different Fields")
         # self.num and other.num are the actual values
         num = (self.num * pow(other.num, self.prime - 2, self.prime)) % self.prime
         # self.prime is what you'll need to mod against
@@ -81,7 +80,6 @@ class FieldElement:
 
 
 class FieldElementTest(TestCase):
-
     def test_ne(self):
         a = FieldElement(2, 31)
         b = FieldElement(2, 31)
@@ -130,7 +128,6 @@ class FieldElementTest(TestCase):
 
 
 class Point:
-
     def __init__(self, x, y, a, b):
         self.a = a
         self.b = b
@@ -145,11 +142,15 @@ class Point:
         # y**2 == x**3 + a*x + b
         if self.y**2 != self.x**3 + a * x + b:
             # if not, raise a ValueError
-            raise ValueError(f'({self.x}, {self.y}) is not on the curve')
+            raise ValueError(f"({self.x}, {self.y}) is not on the curve")
 
     def __eq__(self, other):
-        return self.x == other.x and self.y == other.y \
-            and self.a == other.a and self.b == other.b
+        return (
+            self.x == other.x
+            and self.y == other.y
+            and self.a == other.a
+            and self.b == other.b
+        )
 
     def __ne__(self, other):
         # this should be the inverse of the == operator
@@ -157,13 +158,13 @@ class Point:
 
     def __repr__(self):
         if self.x is None:
-            return 'Point(infinity)'
+            return "Point(infinity)"
         else:
-            return f'Point({self.x.num},{self.y.num})_{self.x.prime}'
+            return f"Point({self.x.num},{self.y.num})_{self.x.prime}"
 
     def __add__(self, other):
         if self.a != other.a or self.b != other.b:
-            raise TypeError(f'Points {self}, {other} are not on the same curve')
+            raise TypeError(f"Points {self}, {other} are not on the same curve")
         # Case 0.0: self is the point at infinity, return other
         if self.x is None:
             return other
@@ -204,7 +205,6 @@ class Point:
 
 
 class PointTest(TestCase):
-
     def test_ne(self):
         a = Point(x=3, y=-7, a=5, b=7)
         b = Point(x=18, y=77, a=5, b=7)

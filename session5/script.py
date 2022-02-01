@@ -17,17 +17,16 @@ from op import (
 
 
 def p2pkh_script(h160):
-    '''Takes a hash160 and returns the p2pkh scriptPubKey'''
-    return Script([0x76, 0xa9, h160, 0x88, 0xac])
+    """Takes a hash160 and returns the p2pkh scriptPubKey"""
+    return Script([0x76, 0xA9, h160, 0x88, 0xAC])
 
 
 def p2sh_script(h160):
-    '''Takes a hash160 and returns the p2sh scriptPubKey'''
-    return Script([0xa9, h160, 0x87])
+    """Takes a hash160 and returns the p2sh scriptPubKey"""
+    return Script([0xA9, h160, 0x87])
 
 
 class Script:
-
     def __init__(self, commands=None):
         if commands is None:
             self.commands = []
@@ -41,10 +40,10 @@ class Script:
                 if op_name(command):
                     strings.append(op_name(command))
                 else:
-                    strings.append(f'OP_[{command}]')
+                    strings.append(f"OP_[{command}]")
             else:
                 strings.append(command.hex())
-        return ' '.join(strings)
+        return " ".join(strings)
 
     def __add__(self, other):
         return Script(self.commands + other.commands)
@@ -89,12 +88,12 @@ class Script:
                 # add the op_code to the list of commands
                 commands.append(op_code)
         if count != length:
-            raise SyntaxError('parsing script failed')
+            raise SyntaxError("parsing script failed")
         return cls(commands)
 
     def raw_serialize(self):
         # initialize what we'll send back
-        result = b''
+        result = b""
         # go through each command
         for command in self.commands:
             # if the command is an integer, it's an op code
@@ -118,7 +117,7 @@ class Script:
                     result += int_to_little_endian(77, 1)
                     result += int_to_little_endian(length, 2)
                 else:
-                    raise ValueError('too long a command')
+                    raise ValueError("too long a command")
                 result += command
         return result
 
@@ -144,85 +143,92 @@ class Script:
                 if command in (99, 100):
                     # op_if/op_notif require the commands array
                     if not operation(stack, commands):
-                        print(f'bad op: {op_name(command)}')
+                        print(f"bad op: {op_name(command)}")
                         return False
                 elif command in (107, 108):
                     # op_toaltstack/op_fromaltstack require the altstack
                     if not operation(stack, altstack):
-                        print(f'bad op: {op_name(command)}')
+                        print(f"bad op: {op_name(command)}")
                         return False
                 elif command in (172, 173, 174, 175):
                     # these are signing operations, they need a sig_hash
                     # to check against
                     if not operation(stack, z):
-                        print(f'bad op: {op_name(command)}')
+                        print(f"bad op: {op_name(command)}")
                         return False
                 else:
                     if not operation(stack):
-                        print(f'bad op: {op_name(command)}')
+                        print(f"bad op: {op_name(command)}")
                         return False
             else:
                 # add the command to the stack
                 stack.append(command)
         if len(stack) == 0:
             return False
-        if stack.pop() == b'':
+        if stack.pop() == b"":
             return False
         return True
 
     def is_p2pkh_script_pubkey(self):
-        '''Returns whether this follows the
-        OP_DUP OP_HASH160 <20 byte hash> OP_EQUALVERIFY OP_CHECKSIG pattern.'''
+        """Returns whether this follows the
+        OP_DUP OP_HASH160 <20 byte hash> OP_EQUALVERIFY OP_CHECKSIG pattern."""
         # there should be exactly 5 commands
         # OP_DUP (0x76), OP_HASH160 (0xa9), 20-byte hash, OP_EQUALVERIFY (0x88),
         # OP_CHECKSIG (0xac)
         raise NotImplementedError
 
     def is_p2sh_script_pubkey(self):
-        '''Returns whether this follows the
-        OP_HASH160 <20 byte hash> OP_EQUAL pattern.'''
+        """Returns whether this follows the
+        OP_HASH160 <20 byte hash> OP_EQUAL pattern."""
         # there should be exactly 3 commands
         # OP_HASH160 (0xa9), 20-byte hash, OP_EQUAL (0x87)
         raise NotImplementedError
 
-    def address(self, testnet=False):
-        '''Returns the address corresponding to the script'''
+    def address(self, network="mainnet"):
+        """Returns the address corresponding to the script"""
         # if p2pkh
             # hash160 is the 3rd command
-            # convert to p2pkh address using h160_to_p2pkh_address (remember testnet)
+            # convert to p2pkh address using h160_to_p2pkh_address (remember network)
         # if p2sh
             # hash160 is the 2nd command
-            # convert to p2sh address using h160_to_p2sh_address (remember testnet)
+            # convert to p2sh address using h160_to_p2sh_address (remember network)
         # raise a ValueError
         raise NotImplementedError
 
 
 class ScriptTest(TestCase):
-
     def test_parse(self):
-        script_pubkey = BytesIO(bytes.fromhex('6a47304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a7160121035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937'))
+        script_pubkey = BytesIO(
+            bytes.fromhex(
+                "6a47304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a7160121035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937"
+            )
+        )
         script = Script.parse(script_pubkey)
-        want = bytes.fromhex('304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a71601')
+        want = bytes.fromhex(
+            "304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a71601"
+        )
         self.assertEqual(script.commands[0].hex(), want.hex())
-        want = bytes.fromhex('035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937')
+        want = bytes.fromhex(
+            "035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937"
+        )
         self.assertEqual(script.commands[1], want)
 
     def test_serialize(self):
-        want = '6a47304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a7160121035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937'
+        want = "6a47304402207899531a52d59a6de200179928ca900254a36b8dff8bb75f5f5d71b1cdc26125022008b422690b8461cb52c3cc30330b23d574351872b7c361e9aae3649071c1a7160121035d5c93d9ac96881f19ba1f686f15f009ded7c62efe85a872e6a19b43c15a2937"
         script_pubkey = BytesIO(bytes.fromhex(want))
         script = Script.parse(script_pubkey)
         self.assertEqual(script.serialize().hex(), want)
 
     def test_address(self):
-        address_1 = '1BenRpVUFK65JFWcQSuHnJKzc4M8ZP8Eqa'
+        address_1 = "1BenRpVUFK65JFWcQSuHnJKzc4M8ZP8Eqa"
         h160 = decode_base58(address_1)
         p2pkh_script_pubkey = p2pkh_script(h160)
         self.assertEqual(p2pkh_script_pubkey.address(), address_1)
-        address_2 = 'mrAjisaT4LXL5MzE81sfcDYKU3wqWSvf9q'
-        self.assertEqual(p2pkh_script_pubkey.address(testnet=True), address_2)
-        address_3 = '3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh'
+        address_2 = "mrAjisaT4LXL5MzE81sfcDYKU3wqWSvf9q"
+        self.assertEqual(p2pkh_script_pubkey.address(network="signet"), address_2)
+        address_3 = "3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh"
         h160 = decode_base58(address_3)
         p2sh_script_pubkey = p2sh_script(h160)
         self.assertEqual(p2sh_script_pubkey.address(), address_3)
-        address_4 = '2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B'
-        self.assertEqual(p2sh_script_pubkey.address(testnet=True), address_4)
+        address_4 = "2N3u1R6uwQfuobCqbCgBkpsgBxvr1tZpe7B"
+        self.assertEqual(p2sh_script_pubkey.address(network="signet"), address_4)

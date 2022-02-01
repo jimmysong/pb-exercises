@@ -1,4 +1,4 @@
-'''
+"""
 #code
 >>> import ecc, helper, tx, script
 
@@ -142,7 +142,7 @@ OP_DUP OP_HASH160 ab0c0b2e98b1ab6dbf67d4750b0a56244948a879 OP_EQUALVERIFY OP_CHE
 40000000
 
 #endexercise
-'''
+"""
 
 
 from random import randint
@@ -184,9 +184,9 @@ def sign(self, z):
 
 @classmethod
 def parse_tx(cls, s):
-    '''Takes a byte stream and parses the transaction at the start
+    """Takes a byte stream and parses the transaction at the start
     return a Tx object
-    '''
+    """
     version = little_endian_to_int(s.read(4))
     num_inputs = read_varint(s)
     inputs = []
@@ -202,9 +202,9 @@ def parse_tx(cls, s):
 
 @classmethod
 def parse_txin(cls, s):
-    '''Takes a byte stream and parses the tx_input at the start
+    """Takes a byte stream and parses the tx_input at the start
     return a TxIn object
-    '''
+    """
     prev_tx = s.read(32)[::-1]
     prev_index = little_endian_to_int(s.read(4))
     script_sig = Script.parse(s)
@@ -220,7 +220,6 @@ def parse_txout(cls, s):
 
 
 class SessionTest(TestCase):
-
     def test_apply(self):
         S256Point.verify = verify
         PrivateKey.sign = sign

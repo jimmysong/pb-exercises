@@ -1,4 +1,4 @@
-'''
+"""
 #code
 >>> import block, tx
 
@@ -28,28 +28,18 @@ b'The Times 03/Jan/2009 Chancellor on brink of second bailout for banks'
 #unittest
 tx:TxTest:test_coinbase_height:
 #endunittest
-#exercise
-Find the output address corresponding to this ScriptPubKey
-```
-1976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac
-```
+#code
+>>> # Block Subsidy Example
+>>> block_height = 465879
+>>> epoch = block_height // 210000
+>>> subsidy = 5000000000 >> epoch
+>>> print(subsidy)
+1250000000
 
-Remember the structure of pay-to-pubkey-hash (p2pkh) which has `OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG`.
-
-You need to grab the hash160 and turn that into an address.
----
->>> from io import BytesIO
->>> from script import Script
->>> hex_script_pubkey = '1976a914338c84849423992471bffb1a54a8d9b1d69dc28a88ac'
->>> # BytesIO(bytes.fromhex) to get the stream
->>> stream = BytesIO(bytes.fromhex(hex_script_pubkey))  #/
->>> # parse with Script
->>> script_pubkey = Script.parse(stream)  #/
->>> # get the address using address() on the script_pubkey
->>> print(script_pubkey.address())  #/
-15hZo812Lx266Dot6T52krxpnhrNiaqHya
-
-#endexercise
+#endcode
+#unittest
+tx:TxTest:test_coinbase_block_subsidy:
+#endunittest
 #exercise
 What is the hash256 of this block? Notice anything?
 ```
@@ -254,7 +244,7 @@ Block 473759:
 #unittest
 block:BlockTest:test_new_bits:
 #endunittest
-'''
+"""
 
 
 from unittest import TestCase
@@ -273,9 +263,9 @@ def is_coinbase(self):
     if len(self.tx_ins) != 1:
         return False
     first_input = self.tx_ins[0]
-    if first_input.prev_tx != b'\x00' * 32:
+    if first_input.prev_tx != b"\x00" * 32:
         return False
-    if first_input.prev_index != 0xffffffff:
+    if first_input.prev_index != 0xFFFFFFFF:
         return False
     return True
 
@@ -286,6 +276,15 @@ def coinbase_height(self):
     first_input = self.tx_ins[0]
     first_element = first_input.script_sig.commands[0]
     return little_endian_to_int(first_element)
+
+
+def coinbase_block_subsidy(self):
+    """Returns the calculated block subsidy of this coinbase transaction in Satoshis"""
+    height = self.coinbase_height()
+    if height is None:
+        return None
+    epoch = height // 210000
+    return 5000000000 >> epoch
 
 
 @classmethod
@@ -338,7 +337,7 @@ def bip91(self):
 def target(self):
     exponent = self.bits[-1]
     coefficient = little_endian_to_int(self.bits[:-1])
-    return coefficient * 256**(exponent - 3)
+    return coefficient * 256 ** (exponent - 3)
 
 
 def difficulty(self):
@@ -364,10 +363,10 @@ def new_bits(self, beginning_block):
 
 
 class Session6Test(TestCase):
-
     def test_apply(self):
         Tx.is_coinbase = is_coinbase
         Tx.coinbase_height = coinbase_height
+        Tx.coinbase_block_subsidy = coinbase_block_subsidy
         Block.parse = parse
         Block.serialize = serialize
         Block.hash = hash

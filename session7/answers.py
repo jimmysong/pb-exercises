@@ -1,4 +1,4 @@
-'''
+"""
 #code
 >>> import block, helper, network
 
@@ -41,7 +41,7 @@ network:HeadersMessageTest:test_parse:
 #code
 >>> # Handshake Example
 >>> from network import SimpleNode, VersionMessage, VerAckMessage
->>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)
+>>> node = SimpleNode('signet.programmingbitcoin.com', network="signet")
 >>> version = VersionMessage()
 >>> node.send(version)
 >>> print(node.wait_for(VerAckMessage).command)
@@ -53,13 +53,14 @@ network:SimpleNodeTest:test_handshake:
 #endunittest
 #code
 >>> # Block Header Download Example
->>> from block import GENESIS_BLOCK
+>>> from block import GENESIS_BLOCKS
 >>> from helper import target_to_bits
 >>> from network import GetHeadersMessage, HeadersMessage, SimpleNode
->>> node = SimpleNode('seed.btc.petertodd.org', testnet=False)
+>>> net = "mainnet"
+>>> node = SimpleNode('mainnet.programmingbitcoin.com', network=net)
 >>> node.handshake()
->>> last_block = GENESIS_BLOCK
->>> epoch_start_block = GENESIS_BLOCK
+>>> last_block = GENESIS_BLOCKS[net]
+>>> epoch_start_block = GENESIS_BLOCKS[net]
 >>> current_height = 1
 >>> for _ in range(20):
 ...     getheaders = GetHeadersMessage(start_block=last_block.hash())
@@ -68,7 +69,7 @@ network:SimpleNodeTest:test_handshake:
 ...     for header in headers:
 ...         if not header.check_pow():
 ...             raise RuntimeError(f'bad proof of work at block {count}')
-...         if last_block != GENESIS_BLOCK:
+...         if last_block != GENESIS_BLOCKS[net]:
 ...             if header.prev_block != last_block.hash():
 ...                 raise RuntimeError(f'discontinuous block at {count}')
 ...             if current_height % 2016 == 0:
@@ -104,15 +105,16 @@ network:SimpleNodeTest:test_handshake:
 Download the first 40,000 blocks for testnet and validate them.
 ---
 >>> from network import SimpleNode, GetHeadersMessage, HeadersMessage
->>> from block import TESTNET_GENESIS_BLOCK
->>> # connect to seed.tbtc.petertodd.org with testnet=True
->>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)  #/
+>>> from block import GENESIS_BLOCKS
+>>> # connect to testnet.programmingbitcoin.com with network
+>>> net = "testnet"
+>>> node = SimpleNode('testnet.programmingbitcoin.com', network=net)  #/
 >>> # handshake
 >>> node.handshake()  #/
->>> # set the last block hash to the TESTNET_GENESIS_BLOCK
->>> last_block = TESTNET_GENESIS_BLOCK  #/
+>>> # set the last block hash to the GENESIS_BLOCKS[net]
+>>> last_block = GENESIS_BLOCKS[net]  #/
 >>> # set the first block of the epoch to the genesis block
->>> epoch_start_block = TESTNET_GENESIS_BLOCK  #/
+>>> epoch_start_block = GENESIS_BLOCKS[net]  #/
 >>> # set the current height to 1
 >>> current_height = 1  #/
 >>> # loop until we we get 40,000 blocks
@@ -129,7 +131,7 @@ Download the first 40,000 blocks for testnet and validate them.
 ...         if not header.check_pow():  #/
 ...             raise RuntimeError(f'bad proof of work at block {count}')  #/
 ...         # only check if the current hash isn't the first one
-...         if last_block != TESTNET_GENESIS_BLOCK:  #/
+...         if last_block != GENESIS_BLOCKS[net]:  #/
 ...             # the prev_block of the current block should be the last block
 ...             if header.prev_block != last_block.hash():  #/
 ...                 raise RuntimeError(f'discontinuous block at {count}')  #/
@@ -354,7 +356,7 @@ helper:HelperTest:test_merkle_root:
 
 #endcode
 #exercise
-Validate the merkle root for this block on Testnet:
+Validate the merkle root for this block from Testnet:
 Block Hash:
 ```
 0000000000000451fa80fcdb243b84c35eaae215a85a8faa880559e8239e6f20
@@ -403,7 +405,7 @@ True
 block:BlockTest:test_validate_merkle_root:
 #endunittest
 #exercise
-Validate the merkle root for this block on Testnet via network protocol:
+Validate the merkle root for this block from Testnet via network protocol:
 Block Hash:
 ```
 0000000000044b01a9440b34f582fe171c7b8642fedd0ebfccf8fdf6a1810900
@@ -413,8 +415,8 @@ Block Hash:
 >>> from block import Block
 >>> block_hex = '0000000000044b01a9440b34f582fe171c7b8642fedd0ebfccf8fdf6a1810900'
 >>> block_hash = bytes.fromhex(block_hex)
->>> # connect to seed.tbtc.petertodd.org on testnet
->>> node = SimpleNode('seed.tbtc.petertodd.org', testnet=True)  #/
+>>> # connect to testnet.programmingbitcoin.com on testnet
+>>> node = SimpleNode('testnet.programmingbitcoin.com', network="testnet")  #/
 >>> # handshake
 >>> node.handshake()  #/
 >>> # create a GetDataMessage
@@ -436,7 +438,7 @@ Block Hash:
 627bf8053bd767ad72c6afcd2d91638311f9c7520905a634be13aa8853f7a446
 
 #endexercise
-'''
+"""
 
 
 from unittest import TestCase
@@ -463,37 +465,30 @@ from network import (
     VerAckMessage,
     VersionMessage,
     BLOCK_DATA_TYPE,
-    NETWORK_MAGIC,
-    TESTNET_NETWORK_MAGIC,
+    MAGIC,
 )
 from tx import Tx
 
 
 @classmethod
-def parse_ne(cls, s, testnet=False):
+def parse_ne(cls, s, network="mainnet"):
     magic = s.read(4)
-    if magic == b'':
-        raise RuntimeError('Connection reset!')
-    if testnet:
-        expected_magic = TESTNET_NETWORK_MAGIC
-    else:
-        expected_magic = NETWORK_MAGIC
-    if magic != expected_magic:
-        raise RuntimeError('magic is not right {magic.hex()} vs {expected_magic.hex()}')
+    if magic != MAGIC[network]:
+        raise RuntimeError(f"magic is not right {magic.hex()} vs {MAGIC[network].hex()}")
     command = s.read(12)
-    command = command.strip(b'\x00')
+    command = command.strip(b"\x00")
     payload_length = little_endian_to_int(s.read(4))
     checksum = s.read(4)
     payload = s.read(payload_length)
     calculated_checksum = hash256(payload)[:4]
     if calculated_checksum != checksum:
-        raise RuntimeError('checksum does not match')
-    return cls(command, payload, testnet=testnet)
+        raise RuntimeError("checksum does not match")
+    return cls(command, payload, network=network)
 
 
 def serialize_ne(self):
     result = self.magic
-    result += self.command + b'\x00' * (12 - len(self.command))
+    result += self.command + b"\x00" * (12 - len(self.command))
     result += int_to_little_endian(len(self.payload), 4)
     result += hash256(self.payload)[:4]
     result += self.payload
@@ -505,19 +500,19 @@ def serialize_vm(self):
     result += int_to_little_endian(self.services, 8)
     result += int_to_little_endian(self.timestamp, 8)
     result += int_to_little_endian(self.receiver_services, 8)
-    result += b'\x00' * 10 + b'\xff\xff' + self.receiver_ip
+    result += b"\x00" * 10 + b"\xff\xff" + self.receiver_ip
     result += int_to_little_endian(self.receiver_port, 2)
     result += int_to_little_endian(self.sender_services, 8)
-    result += b'\x00' * 10 + b'\xff\xff' + self.sender_ip
+    result += b"\x00" * 10 + b"\xff\xff" + self.sender_ip
     result += int_to_little_endian(self.sender_port, 2)
     result += self.nonce
     result += encode_varint(len(self.user_agent))
     result += self.user_agent
     result += int_to_little_endian(self.latest_block, 4)
     if self.relay:
-        result += b'\x01'
+        result += b"\x01"
     else:
-        result += b'\x00'
+        result += b"\x00"
     return result
 
 
@@ -537,7 +532,7 @@ def parse_h(cls, stream):
         header = Block.parse(stream)
         headers.append(header)
         if len(header.tx_hashes) != 0:
-            raise RuntimeError('number of txs not 0')
+            raise RuntimeError("number of txs not 0")
     return cls(headers)
 
 
@@ -553,7 +548,7 @@ def merkle_parent(hash1, hash2):
 
 def merkle_parent_level(hashes):
     if len(hashes) == 1:
-        raise RuntimeError('Cannot take a parent level with only 1 item')
+        raise RuntimeError("Cannot take a parent level with only 1 item")
     if len(hashes) % 2 == 1:
         hashes.append(hashes[-1])
     parent_level = []
@@ -589,7 +584,6 @@ def new_bits(self, beginning_block):
 
 
 class SessionTest(TestCase):
-
     def test_apply(self):
         NetworkEnvelope.parse = parse_ne
         NetworkEnvelope.serialize = serialize_ne

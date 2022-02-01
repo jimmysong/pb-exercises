@@ -2,10 +2,9 @@ from unittest import TestCase
 
 
 class FieldElement:
-
     def __init__(self, num, prime):
         if num >= prime or num < 0:
-            error = f'Num {num} not in field range 0 to {prime-1}'
+            error = f"Num {num} not in field range 0 to {prime-1}"
             raise ValueError(error)
         self.num = num
         self.prime = prime
@@ -20,11 +19,11 @@ class FieldElement:
         return not (self == other)
 
     def __repr__(self):
-        return f'FieldElement_{self.prime}({self.num})'
+        return f"FieldElement_{self.prime}({self.num})"
 
     def __add__(self, other):
         if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
+            raise TypeError("Cannot add two numbers in different Fields")
         # self.num and other.num are the actual values
         # self.prime is what you'll need to mod against
         # You need to return an element of the same class
@@ -33,7 +32,7 @@ class FieldElement:
 
     def __sub__(self, other):
         if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
+            raise TypeError("Cannot add two numbers in different Fields")
         # self.num and other.num are the actual values
         # self.prime is what you'll need to mod against
         # You need to return an element of the same class
@@ -42,7 +41,7 @@ class FieldElement:
 
     def __mul__(self, other):
         if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
+            raise TypeError("Cannot add two numbers in different Fields")
         # self.num and other.num are the actual values
         # self.prime is what you'll need to mod against
         # You need to return an element of the same class
@@ -58,7 +57,7 @@ class FieldElement:
 
     def __truediv__(self, other):
         if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
+            raise TypeError("Cannot add two numbers in different Fields")
         # self.num and other.num are the actual values
         # self.prime is what you'll need to mod against
         # use fermat's little theorem:
@@ -71,7 +70,6 @@ class FieldElement:
 
 
 class FieldElementTest(TestCase):
-
     def test_ne(self):
         a = FieldElement(2, 31)
         b = FieldElement(2, 31)
@@ -120,7 +118,6 @@ class FieldElementTest(TestCase):
 
 
 class Point:
-
     def __init__(self, x, y, a, b):
         self.a = a
         self.b = b
@@ -131,11 +128,15 @@ class Point:
         # Exercise 13: with None values for both.
         # Exercise 12: make sure that the elliptic curve equation is satisfied
         # y**2 == x**3 + a*x + b
-            # if not, raise a ValueError
+        # if not, raise a ValueError
 
     def __eq__(self, other):
-        return self.x == other.x and self.y == other.y \
-            and self.a == other.a and self.b == other.b
+        return (
+            self.x == other.x
+            and self.y == other.y
+            and self.a == other.a
+            and self.b == other.b
+        )
 
     def __ne__(self, other):
         # this should be the inverse of the == operator
@@ -143,39 +144,38 @@ class Point:
 
     def __repr__(self):
         if self.x is None:
-            return 'Point(infinity)'
+            return "Point(infinity)"
         else:
-            return f'Point({self.x.num},{self.y.num})_{self.x.prime}'
+            return f"Point({self.x.num},{self.y.num})_{self.x.prime}"
 
     def __add__(self, other):
         if self.a != other.a or self.b != other.b:
-            raise TypeError(f'Points {self}, {other} are not on the same curve')
+            raise TypeError(f"Points {self}, {other} are not on the same curve")
         # Case 0.0: self is the point at infinity, return other
         # Case 0.1: other is the point at infinity, return self
 
         # Case 1: self.x == other.x, self.y != other.y
         # Result is point at infinity
-            # Remember to return an instance of this class:
-            # self.__class__(x, y, a, b)
+        # Remember to return an instance of this class:
+        # self.__class__(x, y, a, b)
 
         # Case 2: self.x != other.x
-            # Formula (x3,y3)==(x1,y1)+(x2,y2)
-            # s=(y2-y1)/(x2-x1)
-            # x3=s**2-x1-x2
-            # y3=s*(x1-x3)-y1
-            # use: self.__class__(x, y, self.a, self.b)
+        # Formula (x3,y3)==(x1,y1)+(x2,y2)
+        # s=(y2-y1)/(x2-x1)
+        # x3=s**2-x1-x2
+        # y3=s*(x1-x3)-y1
+        # use: self.__class__(x, y, self.a, self.b)
 
         # Case 3: self == other
-            # Formula (x3,y3)=(x1,y1)+(x1,y1)
-            # s=(3*x1**2+a)/(2*y1)
-            # x3=s**2-2*x1
-            # y3=s*(x1-x3)-y1
-            # use: self.__class__(x, y, self.a, self.b)
+        # Formula (x3,y3)=(x1,y1)+(x1,y1)
+        # s=(3*x1**2+a)/(2*y1)
+        # x3=s**2-2*x1
+        # y3=s*(x1-x3)-y1
+        # use: self.__class__(x, y, self.a, self.b)
         raise NotImplementedError
 
 
 class PointTest(TestCase):
-
     def test_ne(self):
         a = Point(x=3, y=-7, a=5, b=7)
         b = Point(x=18, y=77, a=5, b=7)

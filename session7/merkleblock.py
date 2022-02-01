@@ -8,7 +8,6 @@ from helper import (
 
 
 class MerkleTree:
-
     def __init__(self, total):
         self.total = total
         # compute max depth math.ceil(math.log(self.total, 2))
@@ -19,7 +18,7 @@ class MerkleTree:
         for depth in range(self.max_depth + 1):
             # the number of items at this depth is
             # math.ceil(self.total / 2**(self.max_depth - depth))
-            num_items = math.ceil(self.total / 2**(self.max_depth - depth))
+            num_items = math.ceil(self.total / 2 ** (self.max_depth - depth))
             # create this level's hashes list with the right number of items
             level_hashes = [None] * num_items
             # append this level's hashes to the merkle tree
@@ -34,15 +33,15 @@ class MerkleTree:
             items = []
             for index, h in enumerate(level):
                 if h is None:
-                    short = 'None'
+                    short = "None"
                 else:
-                    short = f'{h.hex()[:8]}...'
+                    short = f"{h.hex()[:8]}..."
                 if depth == self.current_depth and index == self.current_index:
-                    items.append(f'*{short[:-2]}*')
+                    items.append(f"*{short[:-2]}*")
                 else:
-                    items.append(f'{short}')
-            result.append(', '.join(items))
-        return '\n'.join(result)
+                    items.append(f"{short}")
+            result.append(", ".join(items))
+        return "\n".join(result)
 
     def up(self):
         # reduce depth by 1 and halve the index
@@ -127,14 +126,13 @@ class MerkleTree:
                     # we've completed this sub-tree, go up
                     self.up()
         if len(hashes) != 0:
-            raise RuntimeError(f'hashes not all consumed {len(hashes)}')
+            raise RuntimeError(f"hashes not all consumed {len(hashes)}")
         for flag_bit in flag_bits:
             if flag_bit != 0:
-                raise RuntimeError('flag bits not all consumed')
+                raise RuntimeError("flag bits not all consumed")
 
 
 class MerkleTreeTest(TestCase):
-
     def test_init(self):
         tree = MerkleTree(9)
         self.assertEqual(len(tree.nodes[0]), 1)
@@ -165,19 +163,19 @@ class MerkleTreeTest(TestCase):
         tree = MerkleTree(len(hex_hashes))
         hashes = [bytes.fromhex(h) for h in hex_hashes]
         tree.populate_tree([1] * 31, hashes)
-        root = '597c4bafe3832b17cbbabe56f878f4fc2ad0f6a402cee7fa851a9cb205f87ed1'
+        root = "597c4bafe3832b17cbbabe56f878f4fc2ad0f6a402cee7fa851a9cb205f87ed1"
         self.assertEqual(tree.root().hex(), root)
 
     def test_populate_tree_2(self):
         hex_hashes = [
-            '42f6f52f17620653dcc909e58bb352e0bd4bd1381e2955d19c00959a22122b2e',
-            '94c3af34b9667bf787e1c6a0a009201589755d01d02fe2877cc69b929d2418d4',
-            '959428d7c48113cb9149d0566bde3d46e98cf028053c522b8fa8f735241aa953',
-            'a9f27b99d5d108dede755710d4a1ffa2c74af70b4ca71726fa57d68454e609a2',
-            '62af110031e29de1efcad103b3ad4bec7bdcf6cb9c9f4afdd586981795516577',
+            "42f6f52f17620653dcc909e58bb352e0bd4bd1381e2955d19c00959a22122b2e",
+            "94c3af34b9667bf787e1c6a0a009201589755d01d02fe2877cc69b929d2418d4",
+            "959428d7c48113cb9149d0566bde3d46e98cf028053c522b8fa8f735241aa953",
+            "a9f27b99d5d108dede755710d4a1ffa2c74af70b4ca71726fa57d68454e609a2",
+            "62af110031e29de1efcad103b3ad4bec7bdcf6cb9c9f4afdd586981795516577",
         ]
         tree = MerkleTree(len(hex_hashes))
         hashes = [bytes.fromhex(h) for h in hex_hashes]
         tree.populate_tree([1] * 11, hashes)
-        root = 'a8e8bd023169b81bc56854137a135b97ef47a6a7237f4c6e037baed16285a5ab'
+        root = "a8e8bd023169b81bc56854137a135b97ef47a6a7237f4c6e037baed16285a5ab"
         self.assertEqual(tree.root().hex(), root)

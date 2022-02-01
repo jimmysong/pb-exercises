@@ -16,7 +16,7 @@ from siphash import SipHash_2_4
 
 BASIC_FILTER_TYPE = 0
 GOLOMB_P = 19
-GOLOMB_M = int(round(1.497137 * 2 ** GOLOMB_P))
+GOLOMB_M = int(round(1.497137 * 2**GOLOMB_P))
 
 
 def _siphash(key, value):
@@ -130,13 +130,15 @@ class CompactFilter:
         self.f = len(self.hashes) * GOLOMB_M
 
     def __repr__(self):
-        result = f'{self.key.hex()}:\n\n'
+        result = f"{self.key.hex()}:\n\n"
         for h in sorted(list(self.hashes)):
-            result += f'{h.hex()}\n'
+            result += f"{h.hex()}\n"
         return result
 
     def __eq__(self, other):
-        return self.key == other.key and sorted(list(self.hashes)) == sorted(list(other.hashes))
+        return self.key == other.key and sorted(list(self.hashes)) == sorted(
+            list(other.hashes)
+        )
 
     @classmethod
     def parse(cls, key, filter_bytes):
@@ -185,7 +187,11 @@ class CFilterMessage:
         self.cf = CompactFilter.parse(block_hash[::-1][:16], filter_bytes)
 
     def __eq__(self, other):
-        return self.filter_type == other.filter_type and self.block_hash == other.block_hash and self.filter_bytes == other.filter_bytes
+        return (
+            self.filter_type == other.filter_type
+            and self.block_hash == other.block_hash
+            and self.filter_bytes == other.filter_bytes
+        )
 
     @classmethod
     def parse(cls, s):
@@ -234,9 +240,9 @@ class CFHeadersMessage:
         self.last_header = current
 
     def __repr__(self):
-        result = f'up to {self.stop_hash.hex()}\nstarting from {self.previous_filter_header.hex()}\n\n'
+        result = f"up to {self.stop_hash.hex()}\nstarting from {self.previous_filter_header.hex()}\n\n"
         for fh in self.filter_hashes:
-            result += f'{fh.hex()}\n'
+            result += f"{fh.hex()}\n"
         return result
 
     @classmethod
@@ -278,9 +284,9 @@ class CFCheckPointMessage:
         self.filter_headers = filter_headers
 
     def __repr__(self):
-        result = f'up to {self.stop_hash.hex()}\n\n'
+        result = f"up to {self.stop_hash.hex()}\n\n"
         for fh in self.filter_headers:
-            result += f'{fh.hex()}\n'
+            result += f"{fh.hex()}\n"
         return result
 
     @classmethod
@@ -295,7 +301,6 @@ class CFCheckPointMessage:
 
 
 class CompactFilterTest(TestCase):
-
     def test_siphash(self):
         zero_key = b"\x00" * 16
         result = _siphash(zero_key, b"Hello world")
@@ -316,7 +321,6 @@ class CompactFilterTest(TestCase):
         self.assertEqual(result, want)
         with self.assertRaises(ValueError):
             _siphash(b"\x00" * 4, b"\x00")
-
 
     def test_golomb(self):
         tests = (
@@ -431,7 +435,8 @@ class CompactFilterTest(TestCase):
             b = Block.parse(BytesIO(bytes.fromhex(full_block_hex)))
             tx_out_scripts = b.get_tx_out_scripts()
             items = filter_null(
-                [bytes.fromhex(s) for s in scripts] + [s.raw_serialize() for s in tx_out_scripts]
+                [bytes.fromhex(s) for s in scripts]
+                + [s.raw_serialize() for s in tx_out_scripts]
             )
             raw_cf = encode_gcs(key, items)
             self.assertEqual(raw_cf.hex(), cfilter_hex, notes)
@@ -442,7 +447,7 @@ class CompactFilterTest(TestCase):
             self.assertEqual(cf, cf2)
             self.assertEqual(cf.serialize(), raw_cf)
             for raw_hex in scripts:
-                if raw_hex == '':
+                if raw_hex == "":
                     continue
                 raw_script_pubkey = encode_varstr(bytes.fromhex(raw_hex))
                 script_pubkey = Script.parse(BytesIO(raw_script_pubkey))

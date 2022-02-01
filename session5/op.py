@@ -15,12 +15,12 @@ from helper import (
 
 def encode_num(num):
     if num == 0:
-        return b''
+        return b""
     abs_num = abs(num)
     negative = num < 0
     result = bytearray()
     while abs_num:
-        result.append(abs_num & 0xff)
+        result.append(abs_num & 0xFF)
         abs_num >>= 8
     # if the top bit is set,
     # for negative numbers we ensure that the top bit is set
@@ -36,14 +36,14 @@ def encode_num(num):
 
 
 def decode_num(element):
-    if element == b'':
+    if element == b"":
         return 0
     # reverse for big endian
     big_endian = element[::-1]
     # top bit being 1 means it's negative
     if big_endian[0] & 0x80:
         negative = True
-        result = big_endian[0] & 0x7f
+        result = big_endian[0] & 0x7F
     else:
         negative = False
         result = big_endian[0]
@@ -615,7 +615,7 @@ def op_ripemd160(stack):
     if len(stack) < 1:
         return False
     element = stack.pop()
-    stack.append(hashlib.new('ripemd160', element).digest())
+    stack.append(hashlib.new("ripemd160", element).digest())
     return True
 
 
@@ -712,7 +712,7 @@ def op_checkmultisig(stack, z):
                 # see if this point can verify this sig with this z
                     # break if so, this sig is valid!
         # if we made it this far, we have to add a 1 to the stack
-        # use encode_num(1)
+            # use encode_num(1)
         raise NotImplementedError
     except (ValueError, SyntaxError):
         return False
@@ -724,7 +724,7 @@ def op_checkmultisigverify(stack, z):
 
 
 def op_checklocktimeverify(stack, locktime, sequence):
-    if sequence == 0xffffffff:
+    if sequence == 0xFFFFFFFF:
         return False
     if len(stack) < 1:
         return False
@@ -753,35 +753,44 @@ def op_checksequenceverify(stack, version, sequence):
             return False
         elif element & (1 << 22) != sequence & (1 << 22):
             return False
-        elif element & 0xffff > sequence & 0xffff:
+        elif element & 0xFFFF > sequence & 0xFFFF:
             return False
     return True
 
 
 class OpTest(TestCase):
-
     def test_op_hash160(self):
-        stack = [b'hello world']
+        stack = [b"hello world"]
         self.assertTrue(op_hash160(stack))
-        self.assertEqual(
-            stack[0].hex(),
-            'd7d5ee7824ff93f94c3055af9382c86c68b5ca92')
+        self.assertEqual(stack[0].hex(), "d7d5ee7824ff93f94c3055af9382c86c68b5ca92")
 
     def test_op_checksig(self):
-        z = 0x7c076ff316692a3d7eb3c3bb0f8b1488cf72e1afcd929e29307032997a838a3d
-        sec = bytes.fromhex('04887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34')
-        sig = bytes.fromhex('3045022000eff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c022100c7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab601')
+        z = 0x7C076FF316692A3D7EB3C3BB0F8B1488CF72E1AFCD929E29307032997A838A3D
+        sec = bytes.fromhex(
+            "04887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34"
+        )
+        sig = bytes.fromhex(
+            "3045022000eff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c022100c7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab601"
+        )
         stack = [sig, sec]
         self.assertTrue(op_checksig(stack, z))
         self.assertEqual(decode_num(stack[0]), 1)
 
     def test_op_checkmultisig(self):
-        z = 0xe71bfa115715d6fd33796948126f40a8cdd39f187e4afb03896795189fe1423c
-        sig1 = bytes.fromhex('3045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701')
-        sig2 = bytes.fromhex('3045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201')
-        sec1 = bytes.fromhex('022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb70')
-        sec2 = bytes.fromhex('03b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb71')
-        stack = [b'', sig1, sig2, b'\x02', sec1, sec2, b'\x02']
+        z = 0xE71BFA115715D6FD33796948126F40A8CDD39F187E4AFB03896795189FE1423C
+        sig1 = bytes.fromhex(
+            "3045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701"
+        )
+        sig2 = bytes.fromhex(
+            "3045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201"
+        )
+        sec1 = bytes.fromhex(
+            "022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb70"
+        )
+        sec2 = bytes.fromhex(
+            "03b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb71"
+        )
+        stack = [b"", sig1, sig2, b"\x02", sec1, sec2, b"\x02"]
         self.assertTrue(op_checkmultisig(stack, z))
         self.assertEqual(decode_num(stack[0]), 1)
 
@@ -882,94 +891,94 @@ OP_CODE_FUNCTIONS = {
 }
 
 OP_CODE_NAMES = {
-    0: 'OP_0',
-    76: 'OP_PUSHDATA1',
-    77: 'OP_PUSHDATA2',
-    78: 'OP_PUSHDATA4',
-    79: 'OP_1NEGATE',
-    81: 'OP_1',
-    82: 'OP_2',
-    83: 'OP_3',
-    84: 'OP_4',
-    85: 'OP_5',
-    86: 'OP_6',
-    87: 'OP_7',
-    88: 'OP_8',
-    89: 'OP_9',
-    90: 'OP_10',
-    91: 'OP_11',
-    92: 'OP_12',
-    93: 'OP_13',
-    94: 'OP_14',
-    95: 'OP_15',
-    96: 'OP_16',
-    97: 'OP_NOP',
-    99: 'OP_IF',
-    100: 'OP_NOTIF',
-    103: 'OP_ELSE',
-    104: 'OP_ENDIF',
-    105: 'OP_VERIFY',
-    106: 'OP_RETURN',
-    107: 'OP_TOALTSTACK',
-    108: 'OP_FROMALTSTACK',
-    109: 'OP_2DROP',
-    110: 'OP_2DUP',
-    111: 'OP_3DUP',
-    112: 'OP_2OVER',
-    113: 'OP_2ROT',
-    114: 'OP_2SWAP',
-    115: 'OP_IFDUP',
-    116: 'OP_DEPTH',
-    117: 'OP_DROP',
-    118: 'OP_DUP',
-    119: 'OP_NIP',
-    120: 'OP_OVER',
-    121: 'OP_PICK',
-    122: 'OP_ROLL',
-    123: 'OP_ROT',
-    124: 'OP_SWAP',
-    125: 'OP_TUCK',
-    130: 'OP_SIZE',
-    135: 'OP_EQUAL',
-    136: 'OP_EQUALVERIFY',
-    139: 'OP_1ADD',
-    140: 'OP_1SUB',
-    143: 'OP_NEGATE',
-    144: 'OP_ABS',
-    145: 'OP_NOT',
-    146: 'OP_0NOTEQUAL',
-    147: 'OP_ADD',
-    148: 'OP_SUB',
-    154: 'OP_BOOLAND',
-    155: 'OP_BOOLOR',
-    156: 'OP_NUMEQUAL',
-    157: 'OP_NUMEQUALVERIFY',
-    158: 'OP_NUMNOTEQUAL',
-    159: 'OP_LESSTHAN',
-    160: 'OP_GREATERTHAN',
-    161: 'OP_LESSTHANOREQUAL',
-    162: 'OP_GREATERTHANOREQUAL',
-    163: 'OP_MIN',
-    164: 'OP_MAX',
-    165: 'OP_WITHIN',
-    166: 'OP_RIPEMD160',
-    167: 'OP_SHA1',
-    168: 'OP_SHA256',
-    169: 'OP_HASH160',
-    170: 'OP_HASH256',
-    171: 'OP_CODESEPARATOR',
-    172: 'OP_CHECKSIG',
-    173: 'OP_CHECKSIGVERIFY',
-    174: 'OP_CHECKMULTISIG',
-    175: 'OP_CHECKMULTISIGVERIFY',
-    176: 'OP_NOP1',
-    177: 'OP_CHECKLOCKTIMEVERIFY',
-    178: 'OP_CHECKSEQUENCEVERIFY',
-    179: 'OP_NOP4',
-    180: 'OP_NOP5',
-    181: 'OP_NOP6',
-    182: 'OP_NOP7',
-    183: 'OP_NOP8',
-    184: 'OP_NOP9',
-    185: 'OP_NOP10',
+    0: "OP_0",
+    76: "OP_PUSHDATA1",
+    77: "OP_PUSHDATA2",
+    78: "OP_PUSHDATA4",
+    79: "OP_1NEGATE",
+    81: "OP_1",
+    82: "OP_2",
+    83: "OP_3",
+    84: "OP_4",
+    85: "OP_5",
+    86: "OP_6",
+    87: "OP_7",
+    88: "OP_8",
+    89: "OP_9",
+    90: "OP_10",
+    91: "OP_11",
+    92: "OP_12",
+    93: "OP_13",
+    94: "OP_14",
+    95: "OP_15",
+    96: "OP_16",
+    97: "OP_NOP",
+    99: "OP_IF",
+    100: "OP_NOTIF",
+    103: "OP_ELSE",
+    104: "OP_ENDIF",
+    105: "OP_VERIFY",
+    106: "OP_RETURN",
+    107: "OP_TOALTSTACK",
+    108: "OP_FROMALTSTACK",
+    109: "OP_2DROP",
+    110: "OP_2DUP",
+    111: "OP_3DUP",
+    112: "OP_2OVER",
+    113: "OP_2ROT",
+    114: "OP_2SWAP",
+    115: "OP_IFDUP",
+    116: "OP_DEPTH",
+    117: "OP_DROP",
+    118: "OP_DUP",
+    119: "OP_NIP",
+    120: "OP_OVER",
+    121: "OP_PICK",
+    122: "OP_ROLL",
+    123: "OP_ROT",
+    124: "OP_SWAP",
+    125: "OP_TUCK",
+    130: "OP_SIZE",
+    135: "OP_EQUAL",
+    136: "OP_EQUALVERIFY",
+    139: "OP_1ADD",
+    140: "OP_1SUB",
+    143: "OP_NEGATE",
+    144: "OP_ABS",
+    145: "OP_NOT",
+    146: "OP_0NOTEQUAL",
+    147: "OP_ADD",
+    148: "OP_SUB",
+    154: "OP_BOOLAND",
+    155: "OP_BOOLOR",
+    156: "OP_NUMEQUAL",
+    157: "OP_NUMEQUALVERIFY",
+    158: "OP_NUMNOTEQUAL",
+    159: "OP_LESSTHAN",
+    160: "OP_GREATERTHAN",
+    161: "OP_LESSTHANOREQUAL",
+    162: "OP_GREATERTHANOREQUAL",
+    163: "OP_MIN",
+    164: "OP_MAX",
+    165: "OP_WITHIN",
+    166: "OP_RIPEMD160",
+    167: "OP_SHA1",
+    168: "OP_SHA256",
+    169: "OP_HASH160",
+    170: "OP_HASH256",
+    171: "OP_CODESEPARATOR",
+    172: "OP_CHECKSIG",
+    173: "OP_CHECKSIGVERIFY",
+    174: "OP_CHECKMULTISIG",
+    175: "OP_CHECKMULTISIGVERIFY",
+    176: "OP_NOP1",
+    177: "OP_CHECKLOCKTIMEVERIFY",
+    178: "OP_CHECKSEQUENCEVERIFY",
+    179: "OP_NOP4",
+    180: "OP_NOP5",
+    181: "OP_NOP6",
+    182: "OP_NOP7",
+    183: "OP_NOP8",
+    184: "OP_NOP9",
+    185: "OP_NOP10",
 }

@@ -1,4 +1,4 @@
-'''
+"""
 #code
 >>> import helper
 
@@ -131,7 +131,7 @@ print(b[::-1]) # b'dlrow olleh'
 Indexing bytes will get you the numerical value:
 
 ```python
-print(b'&'[0]) # 38 since & is charcter #38
+print(b'&'[0]) # 38 since & is character #38
 ```
 
 You can do the reverse by using bytes:
@@ -152,7 +152,7 @@ dlrow olleh
 >>> print(b[::-1]) # b'dlrow olleh'
 b'dlrow olleh'
 >>>
->>> print(b'&'[0]) # 38 since & charcter #38
+>>> print(b'&'[0]) # 38 since & character #38
 38
 >>>
 >>> print(bytes([38])) # b'&'
@@ -302,7 +302,7 @@ We'll want to convert from little-endian bytes to an integer often, so write a f
 helper:HelperTest:test_int_to_little_endian:
 Similarly, we'll want to do the inverse operation, so write a function that will convert an integer to little-endian bytes given the number and the number of bytes it should take up.
 #endunittest
-'''
+"""
 
 
 from unittest import TestCase
@@ -310,21 +310,23 @@ from unittest import TestCase
 import helper
 
 
-def bytes_to_str(b, encoding='ascii'):
+def bytes_to_str(b, encoding="ascii"):
     return b.decode(encoding)
 
-def str_to_bytes(s, encoding='ascii'):
+
+def str_to_bytes(s, encoding="ascii"):
     return s.encode(encoding)
 
+
 def little_endian_to_int(b):
-    return int.from_bytes(b, 'little')
+    return int.from_bytes(b, "little")
+
 
 def int_to_little_endian(n, length):
-    return n.to_bytes(length, 'little')
+    return n.to_bytes(length, "little")
 
 
 class SessionTest(TestCase):
-
     def test_apply(self):
         helper.bytes_to_str = bytes_to_str
         helper.str_to_bytes = str_to_bytes

@@ -1,4 +1,4 @@
-'''
+"""
 #code
 >>> import op, script, tx
 
@@ -230,7 +230,7 @@ Validate the signature for the first input in this transaction.
 True
 
 #endexercise
-'''
+"""
 
 
 from unittest import TestCase
@@ -299,20 +299,20 @@ def serialize_txout(self):
     return result
 
 
-def value(self, testnet=False):
-    tx = self.fetch_tx(testnet=testnet)
+def value(self, network="mainnet"):
+    tx = self.fetch_tx(network=network)
     return tx.tx_outs[self.prev_index].amount
 
 
-def script_pubkey(self, testnet=False):
-    tx = self.fetch_tx(testnet=testnet)
+def script_pubkey(self, network="mainnet"):
+    tx = self.fetch_tx(network=network)
     return tx.tx_outs[self.prev_index].script_pubkey
 
 
 def fee(self):
     input_sum, output_sum = 0, 0
     for tx_in in self.tx_ins:
-        input_sum += tx_in.value(self.testnet)
+        input_sum += tx_in.value(self.network)
     for tx_out in self.tx_outs:
         output_sum += tx_out.amount
     return input_sum - output_sum
@@ -323,7 +323,7 @@ def sig_hash(self, input_index):
     s += encode_varint(len(self.tx_ins))
     for i, tx_in in enumerate(self.tx_ins):
         if i == input_index:
-            script_sig = tx_in.script_pubkey(self.testnet)
+            script_sig = tx_in.script_pubkey(self.network)
         else:
             script_sig = None
         s += TxIn(
@@ -338,16 +338,15 @@ def sig_hash(self, input_index):
     s += int_to_little_endian(self.locktime, 4)
     s += int_to_little_endian(SIGHASH_ALL, 4)
     h256 = hash256(s)
-    return int.from_bytes(h256, 'big')
+    return int.from_bytes(h256, "big")
 
 
 class SessionTest(TestCase):
-
     def test_apply(self):
         op.op_hash160 = op_hash160
-        op.OP_CODE_FUNCTIONS[0xa9] = op_hash160
+        op.OP_CODE_FUNCTIONS[0xA9] = op_hash160
         op.op_checksig = op_checksig
-        op.OP_CODE_FUNCTIONS[0xac] = op_checksig
+        op.OP_CODE_FUNCTIONS[0xAC] = op_checksig
         Tx.serialize = serialize_tx
         TxIn.serialize = serialize_txin
         TxOut.serialize = serialize_txout
