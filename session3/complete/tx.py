@@ -58,7 +58,7 @@ class TxIn:
         self.sequence = sequence
 
     def __repr__(self):
-        return f"{self.prev_tx.hex()}:{prev_index}"
+        return f"{self.prev_tx.hex()}:{self.prev_index}"
 
     @classmethod
     def parse(cls, s):
