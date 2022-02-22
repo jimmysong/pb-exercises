@@ -320,16 +320,6 @@ class Tx:
         # convert the first command from little endian to int
         return little_endian_to_int(first_command)
 
-    def find_utxos(self, address):
-        """Returns transaction outputs that matches the address"""
-        h160 = decode_base58(address)
-        # utxos are a list of tuples: (hash, index, amount)
-        utxos = []
-        for index, tx_out in enumerate(self.tx_outs):
-            if tx_out.script_pubkey.hash160() == h160:
-                utxos.append((self.hash(), index, tx_out.amount))
-        return utxos
-
     def coinbase_block_subsidy(self):
         """Returns the calculated block subsidy of this coinbase transaction in Satoshis"""
         # grab the height using coinbase_height

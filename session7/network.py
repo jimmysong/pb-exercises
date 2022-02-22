@@ -303,13 +303,11 @@ class GetDataMessage:
 
     def serialize(self):
         # start with the number of items as a varint
-        result = encode_varint(len(self.data))
-        for data_type, identifier in self.data:
+        # loop through self.data which is a list of data_type and identifier
             # data type is 4 bytes little endian
-            result += int_to_little_endian(data_type, 4)
             # identifier needs to be in little endian
-            result += identifier[::-1]
-        return result
+        # return the whole thing
+        raise NotImplementedError
 
 
 class GetDataMessageTest(TestCase):

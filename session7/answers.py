@@ -404,6 +404,8 @@ True
 #unittest
 block:BlockTest:test_validate_merkle_root:
 #endunittest
+#unittest
+network:GetDataMessageTest:test_serialize:
 #exercise
 Validate the merkle root for this block from Testnet via network protocol:
 Block Hash:
@@ -421,11 +423,11 @@ Block Hash:
 >>> node.handshake()  #/
 >>> # create a GetDataMessage
 >>> getdata = GetDataMessage()  #/
->>> # add_data on the message (BLOCK_DATA_TYPE, block_hash)
+>>> # request a block with (BLOCK_DATA_TYPE, block_hash)
 >>> getdata.add_data(BLOCK_DATA_TYPE, block_hash)  #/
 >>> # send the getdata message
 >>> node.send(getdata)  #/
->>> # wait for the block message in response
+>>> # wait for the block message in response (class is Block)
 >>> block_obj = node.wait_for(Block)  #/
 >>> # check the proof of work
 >>> if not block_obj.check_pow():  #/
@@ -521,6 +523,14 @@ def serialize_gh(self):
     result += encode_varint(self.num_hashes)
     result += self.start_block[::-1]
     result += self.end_block[::-1]
+    return result
+
+
+def serialize_gd(self):
+    result = encode_varint(len(self.data))
+    for data_type, identifier in self.data:
+        result += int_to_little_endian(data_type, 4)
+        result += identifier[::-1]
     return result
 
 
