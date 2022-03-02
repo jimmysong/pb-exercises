@@ -406,6 +406,7 @@ block:BlockTest:test_validate_merkle_root:
 #endunittest
 #unittest
 network:GetDataMessageTest:test_serialize:
+#endunittest
 #exercise
 Validate the merkle root for this block from Testnet via network protocol:
 Block Hash:

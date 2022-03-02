@@ -279,7 +279,7 @@ class Tx:
             return None
         # calculate the epoch (height / 210,000) rounded down
         epoch = height // 210000
-        # return the initial subsidy right-shigfted by the epoch
+        # return the initial subsidy right-shifted by the epoch
         return 5000000000 >> epoch
 
 

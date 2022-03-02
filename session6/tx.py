@@ -262,7 +262,7 @@ class Tx:
         # grab the height using coinbase_height
         # if the height is None return None
         # calculate the epoch (height / 210,000) rounded down
-        # return the initial subsidy right-shigfted by the epoch
+        # return the initial subsidy right-shifted by the epoch
         raise NotImplementedError
 
 

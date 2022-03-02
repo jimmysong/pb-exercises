@@ -16,7 +16,6 @@ Check that the block with your previous transaction in fact has it
 >>> from script import p2pkh_script
 >>> from tx import Tx
 >>> block_hash = bytes.fromhex('00000006439f526ce138524262a29500258db39130e1ddf0c168ca59002877b8')  #/block_hash = bytes.fromhex('<block hash from class>')  # CHANGE
->>> block_height = 75912  #/block_height = -1  # CHANGE
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<your passphrase here>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
 >>> private_key = PrivateKey(secret=secret)
@@ -62,7 +61,7 @@ Turn on logging in `SimpleNode` if you need to debug
 >>> from network import GetDataMessage, SimpleNode, BLOCK_DATA_TYPE
 >>> from script import p2pkh_script
 >>> from tx import Tx, TxIn, TxOut
->>> block_hex = '0000013cacd6f0e096f8c059241f389211fc014bf7134ed0b83298788a86c9ad'  #/start_block_hex = '<insert from class>'  # CHANGE
+>>> block_hex = '0000013cacd6f0e096f8c059241f389211fc014bf7134ed0b83298788a86c9ad'  #/block_hex = '<insert from class>'  # CHANGE
 >>> block_hash = bytes.fromhex(block_hex)
 >>> passphrase = b'Jimmy Song'  #/passphrase = b'<get from session 2>'  # CHANGE
 >>> secret = little_endian_to_int(hash256(passphrase))
@@ -82,8 +81,6 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> node.handshake()  #/
 >>> # get the block object using the get_block method of node
 >>> block_obj = node.get_block(block_hash)  #/
->>> # initialize the utxos array
->>> utxos = []  #/
 >>> # grab the txs from the block using get_transactions
 >>> txs = block_obj.get_transactions(my_script_pubkey)  #/
 >>> # there should be one transaction
@@ -95,7 +92,7 @@ mseRGXB89UTFVkWJhTRTzzZ9Ujj4ZPbGK5
 >>> for i, tx_out in enumerate(txs[0].tx_outs):  #/
 ...     # check if the output has the script pubkey we're looking for
 ...     if tx_out.script_pubkey == my_script_pubkey:  #/
-...         # add this tx out as a tx in  #/
+...         # add this tx out as a tx in
 ...         tx_ins.append(TxIn(txs[0].hash(), i))  #/
 ...         # record the amount from this output
 ...         prev_amount = tx_out.amount  #/
