@@ -15,6 +15,7 @@ from helper import (
     SIGHASH_ALL,
 )
 from script import p2pkh_script, Script
+from witness import Witness
 
 
 class TxFetcher:

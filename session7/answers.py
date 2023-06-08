@@ -600,6 +600,7 @@ class SessionTest(TestCase):
         NetworkEnvelope.serialize = serialize_ne
         VersionMessage.serialize = serialize_vm
         GetHeadersMessage.serialize = serialize_gh
+        GetDataMessage.serialize = serialize_gd
         HeadersMessage.parse = parse_h
         SimpleNode.handshake = handshake
         helper.merkle_parent = merkle_parent
