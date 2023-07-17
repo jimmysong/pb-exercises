@@ -20,7 +20,7 @@ class TxFetcher:
 
     @classmethod
     def get_url(cls, network="mainnet"):
-        if network == "mainnet":
+        if network == "testnet":
             return "http://blockstream.info/testnet/api"
         elif network == "signet":
             return "http://mempool.space/signet/api"
