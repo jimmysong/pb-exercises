@@ -383,8 +383,8 @@ class BlockTest(TestCase):
                 )
             )
         )
-        want = bytes.fromhex("80df6217")
-        self.assertEqual(block1.new_bits(block2), want)
+        want = bytes.fromhex("308d0118")
+        self.assertEqual(block2.new_bits(block1), want)
 
     def test_validate_merkle_root(self):
         hashes_hex = [
